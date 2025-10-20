@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Reminder Email Template</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .booking-summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b; }
+        .payment-due { background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; text-align: center; }
+        .payment-button { background: #dc2626; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 18px; margin: 10px 0; }
+        .delivery-reminder { background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; }
+        h1, h2, h3 { color: #1f2937; }
+        .booking-ref { font-size: 24px; font-weight: bold; color: #f59e0b; }
+        .amount-due { font-size: 28px; font-weight: bold; color: #dc2626; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .urgent { background: #fef2f2; padding: 2px 6px; border-radius: 4px; color: #dc2626; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⏰ Payment Reminder - Delivery in 5 Days</h1>
+        <p>Booking Reference: <span class="booking-ref">#[Booking Ref]</span></p>
+    </div>
+    
+    <div class="content">
+        <h2>Hello <strong>[Customer Name]</strong>,</h2>
+        
+        <p>Your Kitchen Pod delivery is scheduled for <strong>[Delivery Date]</strong> - just 5 days away!</p>
+        
+        <div class="payment-due">
+            <h3>💳 Payment Due Now</h3>
+            <p>Your balance payment is now due to secure your delivery.</p>
+            <p class="amount-due">Amount Due: £[Balance Amount] + VAT</p>
+            <a href="[Payment Link]" class="payment-button">Pay Now Securely</a>
+            <p><small>Payment is processed securely via Stripe</small></p>
+        </div>
+        
+        <div class="booking-summary">
+            <h3>📋 Your Booking Details</h3>
+            <ul>
+                <li><strong>Booking Reference:</strong> #[Booking Ref]</li>
+                <li><strong>Delivery Date:</strong> [dd/mm/yyyy]</li>
+                <li><strong>Hire Length:</strong> [xx days]</li>
+                <li><strong>Delivery Address:</strong> [full address]</li>
+                <li><strong>Deposit Paid:</strong> £250.00</li>
+            </ul>
+        </div>
+        
+        <div class="delivery-reminder">
+            <h3>🚚 Delivery Day Preparation</h3>
+            <p>Please ensure the following are ready for delivery:</p>
+            <ul>
+                <li>✅ <strong>Site access:</strong> Clear path for delivery vehicle (6.5m x 2.5m minimum)</li>
+                <li>✅ <strong>Electrical supply:</strong> Two 13-amp sockets or 16A supply available</li>
+                <li>✅ <strong>Water supply:</strong> Outside tap within 25m</li>
+                <li>✅ <strong>Drainage:</strong> Suitable drain within 3m</li>
+                <li>✅ <strong>Someone present:</strong> Person over 18 to sign for delivery</li>
+            </ul>
+        </div>
+        
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+            <h3>⚠️ Important Reminders</h3>
+            <ul>
+                <li>Payment must be completed <span class="urgent">before delivery day</span></li>
+                <li>Our team will contact you 2-3 days before delivery to confirm arrival time</li>
+                <li>Installation takes approximately 1 hour</li>
+                <li>Please have your site requirements checklist ready for our team</li>
+            </ul>
+        </div>
+        
+        <p>If you have any questions or need to make changes to your booking, please contact us immediately.</p>
+        
+        <p>We look forward to delivering your temporary kitchen solution!</p>
+        
+        <p>Best regards,<br>
+        <strong>The Kitchen Rescue Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>📞 [Your Phone Number] | 📧 [Your Email Address] | 🌐 [Website Link]</p>
+        <p>Kitchen Rescue - Temporary Kitchen Solutions</p>
+    </div>
+</body>
+</html>
+
+

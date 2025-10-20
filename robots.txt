@@ -1,0 +1,30 @@
+User-agent: *
+Allow: /
+
+# Important pages
+Allow: /index.html
+Allow: /availability.html
+Allow: /temporary-kitchen-hire-areas.html
+Allow: /kitchen-renovation-guide.html
+
+# Booking pages (allow but lower priority)
+Allow: /booking-checklist.html
+Allow: /booking-form.html
+Allow: /booking-payment.html
+Allow: /booking-confirmation.html
+
+# Assets
+Allow: /assets/
+Allow: /styles.css
+Allow: /script.js
+
+# Block admin/sensitive files
+Disallow: /server.js
+Disallow: /package.json
+Disallow: /node_modules/
+Disallow: /.env
+
+# Sitemap
+Sitemap: https://yourdomain.com/sitemap.xml
+
+

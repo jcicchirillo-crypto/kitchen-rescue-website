@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Suitability Checklist • Kitchen Rescue</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .booking-container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+        .booking-header { text-align: center; margin-bottom: 2rem; }
+        .booking-title { font-size: 1.75rem; font-weight: 600; margin-bottom: 1rem; letter-spacing: -0.025em; }
+        .booking-subtitle { font-size: 1rem; color: #64748b; margin-bottom: 2rem; line-height: 1.6; }
+        .checklist-container { background: #f8fafc; border-radius: 0.75rem; padding: 2rem; margin-bottom: 2rem; border: 1px solid #e2e8f0; }
+        .checklist-item { display: flex; align-items: flex-start; margin-bottom: 0.75rem; padding: 1rem; background: white; border-radius: 0.5rem; border: 1px solid #e2e8f0; transition: all 0.2s ease; }
+        .checklist-item:hover { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+        .checklist-item.checked { background: #fef2f2; border-color: #fecaca; }
+        .checklist-checkbox { margin-right: 1rem; margin-top: 0.25rem; width: 1.25rem; height: 1.25rem; accent-color: #ef4444; }
+        .checklist-text { flex: 1; font-size: 0.875rem; line-height: 1.5; color: #374151; }
+        .contact-note { background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 1rem; margin-bottom: 2rem; }
+        .contact-note p { margin: 0; color: #dc2626; font-weight: 500; }
+        .btn { border-radius: 0.5rem; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+        .btn-primary { background-color: #ef4444; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+        .btn-primary:hover:not(:disabled) { background-color: #dc2626; transform: translateY(-1px); }
+        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; transform: none; }
+        .btn-secondary { background-color: #64748b; color: #fff; margin-right: 1rem; }
+        .btn-secondary:hover { background-color: #475569; transform: translateY(-1px); }
+        .progress-bar { background: #e2e8f0; border-radius: 0.5rem; height: 0.375rem; margin-bottom: 2rem; }
+        .progress-fill { background: #ef4444; height: 100%; border-radius: 0.5rem; width: 25%; transition: width 0.3s ease; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
+                    <a href="availability.html" class="mobile-availability">Availability</a>
+                </div>
+                <nav class="nav">
+                    <a href="index.html#features" class="nav-link">Features</a>
+                    <a href="index.html#spec" class="nav-link">Spec</a>
+                    <a href="index.html#gallery" class="nav-link">Gallery</a>
+                    <a href="index.html#faqs" class="nav-link">FAQs</a>
+                    <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="booking-container">
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        
+        <div class="booking-header">
+            <h1 class="booking-title">
+                <img src="assets/Lorry Favicon.png" alt="Kitchen Rescue" style="height: 1em; vertical-align: middle; margin-right: 0.5rem;">
+                Check your site before booking
+            </h1>
+            <p class="booking-subtitle">Please confirm the following before continuing. If any don't apply, please contact us first.</p>
+        </div>
+
+        <div class="contact-note">
+            <p>⚠️ If any requirements don't apply to your site, please contact us first before proceeding with your booking.</p>
+        </div>
+
+        <div class="checklist-container">
+            <div class="checklist-item" data-requirement="driveway">
+                <input type="checkbox" class="checklist-checkbox" id="driveway">
+                <label for="driveway" class="checklist-text">I have a driveway/private land (not a public road/parking bay).</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="dimensions">
+                <input type="checkbox" class="checklist-checkbox" id="dimensions">
+                <label for="dimensions" class="checklist-text">My driveway/access is at least 6.5m long and 2.5m wide.</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="access">
+                <input type="checkbox" class="checklist-checkbox" id="access">
+                <label for="access" class="checklist-text">The access route has no sharp turns/low branches/obstacles.</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="surface">
+                <input type="checkbox" class="checklist-checkbox" id="surface">
+                <label for="surface" class="checklist-text">The surface is firm (concrete, tarmac, gravel, not soft grass/mud).</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="water">
+                <input type="checkbox" class="checklist-checkbox" id="water">
+                <label for="water" class="checklist-text">There is an outside water tap within 25m.</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="electric">
+                <input type="checkbox" class="checklist-checkbox" id="electric">
+                <label for="electric" class="checklist-text">There are at least two 13-amp sockets within 25m (or a 16A supply with adapter).</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="drain">
+                <input type="checkbox" class="checklist-checkbox" id="drain">
+                <label for="drain" class="checklist-text">There is a suitable drain within 3m.</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="deposit">
+                <input type="checkbox" class="checklist-checkbox" id="deposit">
+                <label for="deposit" class="checklist-text">I agree to pay a £250 security deposit now to secure my booking.</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="refund">
+                <input type="checkbox" class="checklist-checkbox" id="refund">
+                <label for="refund" class="checklist-text">I understand the deposit is refundable up to one month before delivery, after that non-refundable.</label>
+            </div>
+
+            <div class="checklist-item" data-requirement="payment">
+                <input type="checkbox" class="checklist-checkbox" id="payment">
+                <label for="payment" class="checklist-text">I understand full payment is due 5 days before delivery.</label>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="index.html" class="btn btn-secondary">← Back to Home</a>
+            <button id="continueBtn" class="btn btn-primary" disabled>➡️ Continue</button>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.checklist-checkbox');
+            const continueBtn = document.getElementById('continueBtn');
+            const checklistItems = document.querySelectorAll('.checklist-item');
+
+            // Add visual feedback when checkboxes are checked
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const item = this.closest('.checklist-item');
+                    if (this.checked) {
+                        item.classList.add('checked');
+                    } else {
+                        item.classList.remove('checked');
+                    }
+                    updateContinueButton();
+                });
+            });
+
+            function updateContinueButton() {
+                const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+                continueBtn.disabled = !allChecked;
+                
+                if (allChecked) {
+                    continueBtn.textContent = '➡️ Continue';
+                } else {
+                    continueBtn.textContent = 'Please check all requirements';
+                }
+            }
+
+            // Handle continue button click
+            continueBtn.addEventListener('click', function() {
+                if (!this.disabled) {
+                    // Store checklist completion in sessionStorage
+                    sessionStorage.setItem('checklistCompleted', 'true');
+                    window.location.href = 'booking-form.html';
+                }
+            });
+
+            // Check if user came from availability page
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedDates = urlParams.get('dates');
+            const postcode = urlParams.get('postcode');
+            
+            if (selectedDates && postcode) {
+                // Store the booking data
+                sessionStorage.setItem('selectedDates', selectedDates);
+                sessionStorage.setItem('postcode', postcode);
+            }
+        });
+    </script>
+</body>
+</html>
+
+

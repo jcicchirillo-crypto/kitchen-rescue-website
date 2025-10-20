@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmed • Kitchen Rescue</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .booking-container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+        .booking-header { text-align: center; margin-bottom: 2rem; }
+        .booking-title { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #dc2626; }
+        .booking-subtitle { font-size: 1.125rem; color: #6b7280; margin-bottom: 2rem; }
+        .confirmation-container { background: #fef2f2; border: 2px solid #fecaca; border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; }
+        .confirmation-header { text-align: center; margin-bottom: 2rem; }
+        .confirmation-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .booking-summary { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6; }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row.total { border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem; font-weight: 600; font-size: 1.125rem; }
+        .summary-label { font-weight: 600; color: #374151; }
+        .summary-value { color: #6b7280; }
+        .next-steps { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .next-steps h3 { margin: 0 0 1rem 0; color: #374151; }
+        .next-steps ul { margin: 0; padding-left: 1.5rem; }
+        .next-steps li { margin-bottom: 0.5rem; color: #6b7280; }
+        .btn { border-radius: 0.75rem; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-primary { background-color: #dc2626; color: #fff; }
+        .btn-secondary { background-color: #6b7280; color: #fff; margin-right: 1rem; }
+        .progress-bar { background: #e5e7eb; border-radius: 0.5rem; height: 0.5rem; margin-bottom: 2rem; }
+        .progress-fill { background: #dc2626; height: 100%; border-radius: 0.5rem; width: 100%; }
+        .email-notice { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 2rem; }
+        .email-notice p { margin: 0; color: #374151; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
+                    <a href="availability.html" class="mobile-availability">Availability</a>
+                </div>
+                <nav class="nav">
+                    <a href="index.html#features" class="nav-link">Features</a>
+                    <a href="index.html#spec" class="nav-link">Spec</a>
+                    <a href="index.html#gallery" class="nav-link">Gallery</a>
+                    <a href="index.html#faqs" class="nav-link">FAQs</a>
+                    <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="booking-container">
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        
+        <div class="confirmation-container">
+            <div class="confirmation-header">
+                <div class="confirmation-icon">✅</div>
+                <h1 class="booking-title">Booking Confirmed</h1>
+                <p class="booking-subtitle">Thank you, <span id="customerName"></span>!<br>Your booking reference is: <strong id="bookingReference"></strong></p>
+            </div>
+
+            <div class="email-notice">
+                <p>📧 A confirmation email has been sent to <span id="customerEmail"></span>.</p>
+            </div>
+
+            <div class="booking-summary">
+                <h3>Booking Summary</h3>
+                <div id="summaryContent"></div>
+            </div>
+
+            <div class="next-steps">
+                <h3>What happens next?</h3>
+                <ul>
+                    <li>We've received your £250 deposit and your Kitchen Pod is now reserved</li>
+                    <li>You will receive an invoice for the full hire balance 5 days before delivery</li>
+                    <li>Our team will contact you 2-3 days before delivery to confirm arrival time</li>
+                    <li>Please ensure all site requirements are met before delivery day</li>
+                    <li>Someone over 18 must be present to sign for the delivery</li>
+                </ul>
+                
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border-left: 4px solid #dc2626;">
+                    <p style="margin: 0; font-weight: 600; color: #111827;">Need to speak to us?</p>
+                    <p style="margin: 0.5rem 0 0 0; color: #374151;">
+                        Call us on <a href="tel:+447342606655" style="color: #dc2626; text-decoration: none; font-weight: 600;">+44 7342 606655</a> 
+                        or WhatsApp us for quick assistance.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="index.html" class="btn btn-primary">🏠 Back to Home</a>
+            <a href="availability.html" class="btn btn-secondary">📅 Book Another</a>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user completed payment
+            if (!sessionStorage.getItem('paymentConfirmed')) {
+                window.location.href = 'booking-checklist.html';
+                return;
+            }
+
+            // Load booking data
+            const bookingData = JSON.parse(sessionStorage.getItem('bookingData'));
+            const bookingReference = sessionStorage.getItem('bookingReference');
+            
+            // Display customer information
+            document.getElementById('customerName').textContent = bookingData.fullName;
+            document.getElementById('customerEmail').textContent = bookingData.email;
+            document.getElementById('bookingReference').textContent = bookingReference;
+
+            // Display booking summary
+            displayBookingSummary(bookingData);
+
+            // Store booked dates to mark them as unavailable
+            storeBookedDates(bookingData);
+
+            // Send confirmation email (simulate)
+            sendConfirmationEmail(bookingData, bookingReference);
+
+            function getDeliveryCost(postcode) {
+                if (!postcode) return 150;
+                
+                // Special rate for EN10 area
+                if (postcode.startsWith('EN10')) {
+                    return 150; // £75 delivery + £75 collection
+                }
+                
+                // Distance-based pricing (same as availability page)
+                const postcodeArea = postcode.substring(0, 2);
+                const distanceMap = {
+                    // Hertfordshire & nearby (0-50 miles)
+                    'EN': 5, 'AL': 15, 'HP': 20, 'LU': 25, 'MK': 30, 'SG': 35, 'CB': 40, 'CM': 45, 'CO': 50,
+                    // London areas (10-30 miles)
+                    'E': 15, 'EC': 20, 'N': 10, 'NW': 12, 'SE': 18, 'SW': 20, 'W': 15, 'WC': 18,
+                    'IG': 20, 'RM': 25, 'DA': 25, 'BR': 30, 'CR': 35, 'KT': 40, 'SM': 35, 'TW': 45,
+                    'UB': 50, 'HA': 40, 'WD': 45,
+                    // South East (50-100 miles)
+                    'SL': 55, 'RG': 60, 'GU': 65, 'PO': 70, 'SO': 75, 'BH': 80, 'DT': 85, 'SP': 90, 'OX': 95,
+                    // Midlands (100-150 miles)
+                    'BA': 105, 'SN': 110, 'WR': 115, 'CV': 120, 'B': 125, 'DY': 130, 'WS': 135, 'WV': 140,
+                    'ST': 145, 'TF': 150
+                };
+                
+                const estimatedMiles = distanceMap[postcodeArea] || 100;
+                
+                const deliveryRates = [
+                    { maxMiles: 50, price: 150 },   // £75 delivery + £75 collection
+                    { maxMiles: 100, price: 200 }, // £100 delivery + £100 collection
+                    { maxMiles: 150, price: 250 }, // £125 delivery + £125 collection
+                    { maxMiles: 200, price: 300 }, // £150 delivery + £150 collection
+                    { maxMiles: 300, price: 450 }  // £225 delivery + £225 collection
+                ];
+                
+                for (const rate of deliveryRates) {
+                    if (estimatedMiles <= rate.maxMiles) {
+                        return rate.price;
+                    }
+                }
+                
+                return deliveryRates[deliveryRates.length - 1].price;
+            }
+
+            function displayBookingSummary(data) {
+                const summaryContent = document.getElementById('summaryContent');
+                const startDate = new Date(data.deliveryDate);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + parseInt(data.hireLength) - 1);
+                
+                // Calculate total cost (this would normally come from your pricing calculation)
+                const dailyRate = 70;
+                const days = parseInt(data.hireLength);
+                const dailyCost = days * dailyRate;
+                
+                // Calculate delivery cost using same logic as availability page
+                let deliveryCost = getDeliveryCost(data.postcode);
+                
+                const totalCost = dailyCost + deliveryCost;
+                const balanceDue = totalCost; // Full hire cost (deposit is separate and refundable)
+                
+                summaryContent.innerHTML = `
+                    <div class="summary-row">
+                        <span class="summary-label">Booking Reference:</span>
+                        <span class="summary-value">${bookingReference}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Delivery Date:</span>
+                        <span class="summary-value">${startDate.toLocaleDateString()}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Hire Length:</span>
+                        <span class="summary-value">${data.hireLength}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Delivery Address:</span>
+                        <span class="summary-value">${data.deliveryAddress}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Notes:</span>
+                        <span class="summary-value">${data.notes || 'None'}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Daily Hire Rate:</span>
+                        <span class="summary-value">£${dailyRate} × ${days} days = £${dailyCost.toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Delivery & Collection:</span>
+                        <span class="summary-value">£${deliveryCost.toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span class="summary-label">Total Hire Cost (due 5 days before delivery):</span>
+                        <span class="summary-value">£${totalCost.toFixed(2)} + VAT</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Refundable Deposit Paid Today:</span>
+                        <span class="summary-value">£250.00</span>
+                    </div>
+                `;
+            }
+
+            function sendConfirmationEmail(bookingData, bookingReference) {
+                // This would normally send an actual email via your backend
+                console.log('Sending confirmation email to:', bookingData.email);
+                console.log('Booking reference:', bookingReference);
+                
+                // In a real implementation, you would:
+                // 1. Send a POST request to your backend
+                // 2. Backend would send the email using a service like SendGrid, Mailgun, etc.
+                // 3. Email would contain the confirmation details
+                
+                // For now, we'll just log the email content
+                const emailContent = generateEmailContent(bookingData, bookingReference);
+                console.log('Email content:', emailContent);
+            }
+
+            function storeBookedDates(bookingData) {
+                // Store the booked dates in localStorage to mark them as unavailable
+                const startDate = new Date(bookingData.deliveryDate);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + parseInt(bookingData.hireLength) - 1);
+                
+                // Generate all dates in the booking period
+                const bookedDates = [];
+                const currentDate = new Date(startDate);
+                while (currentDate <= endDate) {
+                    bookedDates.push(currentDate.toISOString().slice(0, 10));
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                // Add buffer day after rental for collection, PAT testing, and cleaning
+                const bufferDate = new Date(endDate);
+                bufferDate.setDate(endDate.getDate() + 1);
+                const bufferDateStr = bufferDate.toISOString().slice(0, 10);
+                bookedDates.push(bufferDateStr);
+                
+                console.log('Rental period:', startDate.toISOString().slice(0, 10), 'to', endDate.toISOString().slice(0, 10));
+                console.log('Buffer day added:', bufferDateStr, '(for collection, PAT testing, and cleaning)');
+                
+                // Get existing booked dates from localStorage
+                const existingBookedDates = JSON.parse(localStorage.getItem('bookedDates') || '[]');
+                
+                // Add new booked dates (avoid duplicates)
+                const allBookedDates = [...new Set([...existingBookedDates, ...bookedDates])];
+                
+                // Store back to localStorage
+                localStorage.setItem('bookedDates', JSON.stringify(allBookedDates));
+                
+                console.log('Stored booked dates (including buffer day):', bookedDates);
+                console.log('All booked dates in localStorage:', allBookedDates);
+            }
+
+            function generateEmailContent(data, reference) {
+                const startDate = new Date(data.deliveryDate);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + parseInt(data.hireLength) - 1);
+                
+                return {
+                    to: data.email,
+                    subject: `✅ Your Kitchen Pod Booking is Confirmed – Reference #${reference}`,
+                    html: `
+                        <h2>Thank you for your booking with Kitchen Rescue.</h2>
+                        <p>Hello ${data.fullName},</p>
+                        <p>We're pleased to confirm your booking. Your £250 deposit has been received and your Kitchen Pod is now reserved.</p>
+                        
+                        <h3>📋 Booking Summary</h3>
+                        <ul>
+                            <li><strong>Booking Reference:</strong> #${reference}</li>
+                            <li><strong>Delivery Date:</strong> ${startDate.toLocaleDateString()}</li>
+                            <li><strong>Hire Length:</strong> ${data.hireLength}</li>
+                            <li><strong>Delivery Address:</strong> ${data.deliveryAddress}</li>
+                            <li><strong>Notes:</strong> ${data.notes || 'None'}</li>
+                        </ul>
+                        
+                        <h3>💳 Payment Details</h3>
+                        <ul>
+                            <li><strong>Deposit:</strong> £250 (paid)</li>
+                            <li><strong>Balance:</strong> [Total hire + delivery – £250 deposit]</li>
+                        </ul>
+                        <p>The balance is due 5 days before delivery. We'll send you a reminder and payment link at that time.</p>
+                        
+                        <h3>📌 Important Information</h3>
+                        <ul>
+                            <li>Your deposit is refundable if cancelled more than 1 month before delivery.</li>
+                            <li>Cancellations within 1 month of delivery are non-refundable.</li>
+                            <li>Please ensure the checklist requirements (driveway length, access, sockets, water tap, drain) are met before delivery.</li>
+                            <li>Our installation team will need approx. 1 hour on site.</li>
+                        </ul>
+                        
+                        <h3>🚚 On Delivery Day</h3>
+                        <p>Our team will:</p>
+                        <ul>
+                            <li>Deliver and position your Kitchen Pod.</li>
+                            <li>Connect water, waste, and electric supplies (provided by you as agreed).</li>
+                            <li>Demonstrate how to use the appliances.</li>
+                        </ul>
+                        <p>Please ensure someone over 18 is present to sign for the delivery.</p>
+                        
+                        <h3>📅 Collection Day</h3>
+                        <p>Your Kitchen Pod will be collected the day after your hire period ends. This allows us time to:</p>
+                        <ul>
+                            <li>Collect the unit safely</li>
+                            <li>Perform PAT testing on all electrical equipment</li>
+                            <li>Thoroughly clean and sanitize for the next customer</li>
+                        </ul>
+                        <p>Please ensure the unit is accessible for collection and someone over 18 is available to sign for collection.</p>
+                        
+                        <p>Thank you for choosing Kitchen Rescue. We look forward to providing you with a fully equipped temporary kitchen.</p>
+                        
+                        <p>Warm regards,<br>
+                        The Kitchen Rescue Team</p>
+                    `
+                };
+            }
+        });
+    </script>
+</body>
+</html>
+
+
