@@ -1,12 +1,36 @@
 const express = require('express');
-require('dotenv').config(); // Load .env file
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Load .env file if available
+try {
+    require('dotenv').config();
+    console.log('Environment variables loaded from .env file');
+} catch (error) {
+    console.log('dotenv not available, using system environment variables - force redeploy');
+}
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
-const OAuthClient = require('intuit-oauth');
-const QuickBooks = require('node-quickbooks');
+
+// Initialize Stripe only if credentials are available
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+    const stripeLib = require('stripe');
+    stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
+    console.log('Stripe initialized successfully');
+} else {
+    console.log('Stripe credentials not configured. Payment processing will be simulated.');
+}
+
+// Initialize QuickBooks only if credentials are available
+let OAuthClient = null;
+let QuickBooks = null;
+if (process.env.QUICKBOOKS_CLIENT_ID && process.env.QUICKBOOKS_CLIENT_SECRET) {
+    OAuthClient = require('intuit-oauth');
+    QuickBooks = require('node-quickbooks');
+    console.log('QuickBooks initialized successfully');
+} else {
+    console.log('QuickBooks credentials not configured. QuickBooks integration will be simulated.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +38,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+// Serve static files from the same directory as server.js
+app.use(express.static(path.join(__dirname)));
 
 // Email transporter setup
 let transporter = null;
@@ -71,6 +96,16 @@ app.post('/create-payment-intent', async (req, res) => {
         
         const { amount, currency, booking_data } = req.body;
         
+        // Check if Stripe is configured
+        if (!stripe) {
+            console.log('Stripe not configured - simulating payment intent');
+            return res.json({
+                client_secret: 'pi_simulated_' + Date.now(),
+                booking_reference: generateBookingReference(),
+                simulated: true
+            });
+        }
+        
         // Create payment intent
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
@@ -100,6 +135,16 @@ app.post('/create-payment-intent', async (req, res) => {
 app.post('/payment-success', async (req, res) => {
     try {
         const { payment_intent_id, booking_data } = req.body;
+        
+        // Check if Stripe is configured
+        if (!stripe) {
+            console.log('Stripe not configured - simulating payment success');
+            return res.json({ 
+                success: true, 
+                booking_reference: 'SIM-' + Date.now(),
+                simulated: true
+            });
+        }
         
         // Retrieve payment intent to confirm it was successful
         const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
@@ -571,19 +616,25 @@ app.post('/api/quickbooks/sync-booking', authenticateAdmin, async (req, res) => 
     }
 });
 
-// QuickBooks configuration
-const qbo = new QuickBooks(
-    process.env.QUICKBOOKS_CLIENT_ID,
-    process.env.QUICKBOOKS_CLIENT_SECRET,
-    process.env.QUICKBOOKS_ACCESS_TOKEN,
-    false, // no token secret for OAuth 2.0
-    process.env.QUICKBOOKS_REALM_ID,
-    true, // use sandbox
-    true, // enable debug
-    null, // minor version
-    '2.0', // oauth version
-    process.env.QUICKBOOKS_REFRESH_TOKEN
-);
+// QuickBooks configuration (only if credentials are available)
+let qbo = null;
+if (process.env.QUICKBOOKS_CLIENT_ID && process.env.QUICKBOOKS_ACCESS_TOKEN) {
+    qbo = new QuickBooks(
+        process.env.QUICKBOOKS_CLIENT_ID,
+        process.env.QUICKBOOKS_CLIENT_SECRET,
+        process.env.QUICKBOOKS_ACCESS_TOKEN,
+        false, // no token secret for OAuth 2.0
+        process.env.QUICKBOOKS_REALM_ID,
+        true, // use sandbox
+        true, // enable debug
+        null, // minor version
+        '2.0', // oauth version
+        process.env.QUICKBOOKS_REFRESH_TOKEN
+    );
+    console.log('QuickBooks client initialized');
+} else {
+    console.log('QuickBooks not configured - using simulation mode');
+}
 
 // Helper function to create QuickBooks invoice
 async function createQuickBooksInvoice(booking) {
@@ -591,7 +642,7 @@ async function createQuickBooksInvoice(booking) {
     
     try {
         // Check if QuickBooks is configured
-        if (!process.env.QUICKBOOKS_CLIENT_ID || !process.env.QUICKBOOKS_ACCESS_TOKEN) {
+        if (!qbo || !process.env.QUICKBOOKS_CLIENT_ID || !process.env.QUICKBOOKS_ACCESS_TOKEN) {
             console.log('QuickBooks not configured, using simulation');
             return {
                 invoiceId: `QB-SIM-${Date.now()}`,
@@ -645,6 +696,16 @@ async function createQuickBooksInvoice(booking) {
 // Helper function to find or create customer in QuickBooks
 async function findOrCreateCustomer(booking) {
     try {
+        // Check if QuickBooks is configured
+        if (!qbo) {
+            console.log('QuickBooks not configured - simulating customer creation');
+            return {
+                Id: `QB-CUST-SIM-${Date.now()}`,
+                Name: booking.customer.name,
+                PrimaryEmailAddr: booking.customer.email
+            };
+        }
+        
         // Try to find existing customer by email
         const existingCustomers = await qbo.findCustomers({
             PrimaryEmailAddr: booking.customer.email
