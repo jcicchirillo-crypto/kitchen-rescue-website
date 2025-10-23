@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "server.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "routes": [
     {
       "src": "/admin/(.*)",
@@ -8,6 +13,18 @@
     {
       "src": "/api/(.*)",
       "dest": "/server.js"
+    },
+    {
+      "src": "/create-payment-intent",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/send-quote-email",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*\\.(png|jpg|jpeg|gif|svg|ico|css|js|woff|woff2|ttf|eot|txt))",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
