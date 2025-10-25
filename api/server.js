@@ -38,8 +38,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-// Serve static files from the same directory as server.js
-app.use(express.static(path.join(__dirname)));
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Email transporter setup
 let transporter = null;
@@ -74,7 +74,7 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
 
 // Serve static files
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
 // Serve admin static files (CSS, JS) - this must come BEFORE the routes
