@@ -45,6 +45,10 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 let transporter = null;
 
 // Initialize email transporter if credentials are available
+console.log('Checking email configuration...');
+console.log('EMAIL_USER exists:', !!process.env.EMAIL_USER);
+console.log('EMAIL_PASS exists:', !!process.env.EMAIL_PASS);
+
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     transporter = nodemailer.createTransport({
         host: 'mail.privateemail.com', // Namecheap Private Email SMTP
