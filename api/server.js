@@ -77,6 +77,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// Serve all HTML files
+app.get('/*.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', req.path));
+});
+
 // Serve admin static files (CSS, JS) - this must come BEFORE the routes
 app.use('/static', express.static(path.join(__dirname, 'admin/build/static')));
 
