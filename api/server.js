@@ -326,9 +326,11 @@ app.post('/send-quote-email', async (req, res) => {
 // Generate quote email HTML for customer
 function generateQuoteEmailHTML(data) {
     // Determine the base URL based on environment
-    const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://thekitchenrescue.co.uk' 
-        : 'http://localhost:3000';
+    const baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}`
+        : process.env.NODE_ENV === 'production' 
+            ? 'https://www.thekitchenrescue.co.uk' 
+            : 'http://localhost:3000';
     
     return `
     <!DOCTYPE html>

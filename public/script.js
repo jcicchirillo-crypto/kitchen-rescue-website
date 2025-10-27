@@ -129,15 +129,8 @@ function checkAvailability() {
         btn.textContent = originalText;
         btn.disabled = false;
         
-        // Basic distance check from Broxbourne (EN10 area)
-        const postcodeArea = postcode.substring(0, 2).toUpperCase();
-        const nearbyAreas = ['EN', 'AL', 'HP', 'LU', 'MK', 'SG', 'CB', 'CM', 'CO', 'IP', 'NR', 'PE', 'SS', 'IG', 'RM', 'E', 'EC', 'N', 'NW', 'SE', 'SW', 'W', 'WC', 'DA', 'BR', 'CR', 'KT', 'SM', 'TW', 'UB', 'HA', 'WD', 'SL', 'RG', 'GU', 'PO', 'SO', 'BH', 'DT', 'SP', 'OX', 'GL', 'BA', 'SN', 'WR', 'CV', 'B', 'DY', 'WS', 'WV', 'ST', 'TF', 'SY', 'HR', 'LD', 'NP', 'CF', 'SA', 'LL', 'CH', 'L', 'M', 'SK', 'OL', 'BL', 'PR', 'FY', 'BB', 'BD', 'HD', 'HX', 'LS', 'S', 'WF', 'DN', 'HU', 'YO', 'NE', 'DH', 'SR', 'TS', 'DL', 'HG', 'BD', 'LA', 'CA', 'DL', 'TD', 'EH', 'FK', 'G', 'KA', 'KY', 'ML', 'PA', 'PH', 'AB', 'DD', 'IV', 'KW', 'ZE'];
-        
-        const isInArea = nearbyAreas.includes(postcodeArea);
-        if (!isInArea) {
-            alert('Sorry, we currently only deliver within 100 miles of Broxbourne.\n\nPlease contact us to discuss alternative arrangements.');
-            return;
-        }
+        // Removed postcode area restriction - now accepting all UK postcodes
+        // Delivery charges will be calculated based on distance in the booking flow
 
         // Open availability page with postcode prefilled
         const encodedPc = encodeURIComponent(postcode.toUpperCase());
