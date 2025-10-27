@@ -88,15 +88,15 @@ app.get('/*.html', (req, res) => {
 });
 
 // Serve admin static files (CSS, JS) - this must come BEFORE the routes
-app.use('/static', express.static(path.join(__dirname, 'admin/build/static')));
+app.use('/static', express.static(path.join(__dirname, '..', 'admin/build/static')));
 
 // Admin routes - serve React app for all admin routes
 app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin/build/index.html'));
+    res.sendFile(path.join(__dirname, '..', 'admin/build/index.html'));
 });
 
 app.get('/admin/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin/build/index.html'));
+    res.sendFile(path.join(__dirname, '..', 'admin/build/index.html'));
 });
 
 // Create payment intent

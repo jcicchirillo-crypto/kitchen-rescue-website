@@ -5,7 +5,8 @@
   "main": "api/server.js",
   "scripts": {
     "start": "node api/server.js",
-    "dev": "nodemon api/server.js"
+    "dev": "nodemon api/server.js",
+    "build": "cd admin && npm install && npm run build"
   },
   "dependencies": {
     "cors": "^2.8.5",
