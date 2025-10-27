@@ -260,6 +260,9 @@ app.post('/send-quote-email', async (req, res) => {
         const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyCost, deliveryCost, collectionCost, totalCost } = req.body;
         
         console.log('Quote email request received for:', email);
+        console.log('Transporter exists:', !!transporter);
+        console.log('EMAIL_USER set:', !!process.env.EMAIL_USER);
+        console.log('EMAIL_PASS set:', !!process.env.EMAIL_PASS);
         
         // Check if email is configured
         if (!transporter) {
