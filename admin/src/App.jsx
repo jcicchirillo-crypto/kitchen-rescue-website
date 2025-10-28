@@ -227,7 +227,7 @@ export default function KitchenRescueAdmin() {
                       </TableCell>
                       <TableCell className="text-right">£{b.totalCost?.toFixed(0) || 0}</TableCell>
                     </TableRow>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
