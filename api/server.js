@@ -372,7 +372,12 @@ app.post('/send-quote-email', async (req, res) => {
             html: quoteEmailHTML
         };
         
-        await transporter.sendMail(customerMailOptions);
+        try {
+            await transporter.sendMail(customerMailOptions);
+            console.log('Customer email sent successfully to:', email);
+        } catch (emailError) {
+            console.error('Error sending customer email:', emailError.message);
+        }
         
         // Send notification email to business
         const businessMailOptions = {
@@ -384,7 +389,12 @@ app.post('/send-quote-email', async (req, res) => {
             })
         };
         
-        await transporter.sendMail(businessMailOptions);
+        try {
+            await transporter.sendMail(businessMailOptions);
+            console.log('Business notification email sent successfully');
+        } catch (emailError) {
+            console.error('Error sending business email:', emailError.message);
+        }
         
         // Save the quote as a booking in the admin system
         const newBooking = {
