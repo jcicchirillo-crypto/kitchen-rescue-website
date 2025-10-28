@@ -638,8 +638,7 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         const bookingId = req.params.id;
         
         // Read existing bookings
-        const bookings = await getAllBookings(););
-        }
+        const bookings = await getAllBookings();
         
         // Find and update booking
         const bookingIndex = bookings.findIndex(b => b.id === bookingId);
@@ -664,8 +663,7 @@ app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         const bookingId = req.params.id;
         
         // Read existing bookings
-        const bookings = await getAllBookings(););
-        }
+        const bookings = await getAllBookings();
         
         // Filter out the booking
         const filteredBookings = bookings.filter(b => b.id !== bookingId);
@@ -697,7 +695,7 @@ app.post('/api/quickbooks/sync-booking', authenticateAdmin, async (req, res) => 
         const { bookingId } = req.body;
         
         // Read the booking
-        const bookings = await getAllBookings(););
+        const bookings = await getAllBookings();
         }
         
         const booking = bookings.find(b => b.id === bookingId);
