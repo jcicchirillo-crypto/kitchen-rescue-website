@@ -10,6 +10,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
 
 // Initialize Stripe only if credentials are available
 let stripe = null;
@@ -348,19 +349,13 @@ app.post('/send-quote-email', async (req, res) => {
             };
             
             // Read existing bookings
-            let bookings = [];
-            try {
-                const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-                bookings = JSON.parse(bookingsData);
-            } catch (error) {
-                // File doesn't exist, start with empty array
-            }
+            const bookings = await getAllBookings();
             
             // Add new booking
             bookings.push(newBooking);
             
             // Write back to file
-            fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
+            await saveAllBookings(bookings);
             console.log('Quote saved as booking:', newBooking.id);
             
             return res.json({ 
@@ -420,19 +415,13 @@ app.post('/send-quote-email', async (req, res) => {
         };
         
         // Read existing bookings
-        let bookings = [];
-        try {
-            const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-            bookings = JSON.parse(bookingsData);
-        } catch (error) {
-            // File doesn't exist, start with empty array
-        }
+        const bookings = await getAllBookings();
         
         // Add new booking
         bookings.push(newBooking);
         
         // Write back to file
-        fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
+        await saveAllBookings(bookings);
         console.log('Quote saved as booking:', newBooking.id);
         
         console.log('Quote emails sent successfully');
@@ -609,20 +598,18 @@ const authenticateAdmin = (req, res, next) => {
 };
 
 // Get all bookings
-app.get('/api/bookings', authenticateAdmin, (req, res) => {
+app.get('/api/bookings', authenticateAdmin, async (req, res) => {
     try {
-        // Read bookings from JSON file (replace with database later)
-        const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-        const bookings = JSON.parse(bookingsData);
+        const bookings = await getAllBookings();
         res.json(bookings);
     } catch (error) {
-        // Return empty array if file doesn't exist
+        console.error('Error fetching bookings:', error);
         res.json([]);
     }
 });
 
 // Create new booking
-app.post('/api/bookings', authenticateAdmin, (req, res) => {
+app.post('/api/bookings', authenticateAdmin, async (req, res) => {
     try {
         const newBooking = {
             id: `KR-${Date.now()}`,
@@ -631,19 +618,13 @@ app.post('/api/bookings', authenticateAdmin, (req, res) => {
         };
         
         // Read existing bookings
-        let bookings = [];
-        try {
-            const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-            bookings = JSON.parse(bookingsData);
-        } catch (error) {
-            // File doesn't exist, start with empty array
-        }
+        const bookings = await getAllBookings();
         
         // Add new booking
         bookings.push(newBooking);
         
         // Write back to file
-        fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
+        await saveAllBookings(bookings);
         
         res.json(newBooking);
     } catch (error) {
@@ -652,17 +633,12 @@ app.post('/api/bookings', authenticateAdmin, (req, res) => {
 });
 
 // Update booking
-app.put('/api/bookings/:id', authenticateAdmin, (req, res) => {
+app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
     try {
         const bookingId = req.params.id;
         
         // Read existing bookings
-        let bookings = [];
-        try {
-            const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-            bookings = JSON.parse(bookingsData);
-        } catch (error) {
-            return res.status(404).json({ error: 'Bookings file not found' });
+        const bookings = await getAllBookings(););
         }
         
         // Find and update booking
@@ -674,7 +650,7 @@ app.put('/api/bookings/:id', authenticateAdmin, (req, res) => {
         bookings[bookingIndex] = { ...bookings[bookingIndex], ...req.body };
         
         // Write back to file
-        fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
+        await saveAllBookings(bookings);
         
         res.json(bookings[bookingIndex]);
     } catch (error) {
@@ -683,24 +659,19 @@ app.put('/api/bookings/:id', authenticateAdmin, (req, res) => {
 });
 
 // Delete booking
-app.delete('/api/bookings/:id', authenticateAdmin, (req, res) => {
+app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
     try {
         const bookingId = req.params.id;
         
         // Read existing bookings
-        let bookings = [];
-        try {
-            const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-            bookings = JSON.parse(bookingsData);
-        } catch (error) {
-            return res.status(404).json({ error: 'Bookings file not found' });
+        const bookings = await getAllBookings(););
         }
         
         // Filter out the booking
         const filteredBookings = bookings.filter(b => b.id !== bookingId);
         
         // Write back to file
-        fs.writeFileSync('bookings.json', JSON.stringify(filteredBookings, null, 2));
+        await saveAllBookings(filteredBookings);
         
         res.json({ success: true });
     } catch (error) {
@@ -726,12 +697,7 @@ app.post('/api/quickbooks/sync-booking', authenticateAdmin, async (req, res) => 
         const { bookingId } = req.body;
         
         // Read the booking
-        let bookings = [];
-        try {
-            const bookingsData = fs.readFileSync('bookings.json', 'utf8');
-            bookings = JSON.parse(bookingsData);
-        } catch (error) {
-            return res.status(404).json({ error: 'Bookings file not found' });
+        const bookings = await getAllBookings(););
         }
         
         const booking = bookings.find(b => b.id === bookingId);
