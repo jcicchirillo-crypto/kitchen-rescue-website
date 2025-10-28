@@ -696,7 +696,6 @@ app.post('/api/quickbooks/sync-booking', authenticateAdmin, async (req, res) => 
         
         // Read the booking
         const bookings = await getAllBookings();
-        }
         
         const booking = bookings.find(b => b.id === bookingId);
         if (!booking) {
