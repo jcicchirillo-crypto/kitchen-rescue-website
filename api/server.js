@@ -344,15 +344,13 @@ app.post('/send-quote-email', async (req, res) => {
                 pod: '16ft Pod'
             };
             
-            // Read existing bookings
-            const bookings = await getAllBookings();
-            
-            // Add new booking
-            bookings.push(newBooking);
-            
-            // Write back to file
-            await saveAllBookings(bookings);
-            console.log('Quote saved as booking:', newBooking.id);
+            // Save new booking to database
+            const saved = await addBooking(newBooking);
+            if (saved) {
+                console.log('Quote saved as booking:', newBooking.id);
+            } else {
+                console.log('Failed to save quote to database');
+            }
             
             return res.json({ 
                 success: true, 
@@ -410,15 +408,13 @@ app.post('/send-quote-email', async (req, res) => {
             pod: '16ft Pod'
         };
         
-        // Read existing bookings
-        const bookings = await getAllBookings();
-        
-        // Add new booking
-        bookings.push(newBooking);
-        
-        // Write back to file
-        await saveAllBookings(bookings);
-        console.log('Quote saved as booking:', newBooking.id);
+        // Save new booking to database
+        const saved = await addBooking(newBooking);
+        if (saved) {
+            console.log('Quote saved as booking:', newBooking.id);
+        } else {
+            console.log('Failed to save quote to database');
+        }
         
         console.log('Quote emails sent successfully');
         res.json({ success: true, message: 'Quote sent successfully' });
