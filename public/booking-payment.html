@@ -230,11 +230,28 @@
                         submitButton.disabled = false;
                         submitButton.textContent = 'Pay £250 Deposit';
                     } else {
+                        // Payment succeeded - notify server to block availability
+                        try {
+                            await fetch('/payment-success', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    payment_intent_id: paymentIntentData.payment_intent_id || 'simulated',
+                                    booking_data: bookingData
+                                })
+                            });
+                        } catch (serverError) {
+                            console.error('Error notifying server of payment:', serverError);
+                            // Continue anyway - don't block user flow
+                        }
+                        
                         // Payment succeeded
                         showSuccess('Payment successful! Redirecting to confirmation...');
                         
                         // Store payment confirmation
-                        sessionStorage.setItem('paymentConfirmed', 'true');
+                        sessionStorage.setItem观测('paymentConfirmed', 'true');
                         sessionStorage.setItem('bookingReference', paymentIntentData.booking_reference);
                         
                         // Redirect to confirmation page

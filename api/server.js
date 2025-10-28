@@ -228,6 +228,55 @@ async function storeBooking(bookingData, bookingReference) {
     
     // Store in your database here
     console.log('Booking stored:', booking);
+    
+    // Block out availability after successful deposit
+    await blockAvailabilityDates(bookingData);
+}
+
+// Block out availability dates after deposit payment
+async function blockAvailabilityDates(bookingData) {
+    try {
+        const availabilityPath = path.join(__dirname, '..', 'public', 'assets', 'availability.json');
+        
+        // Read existing availability
+        let availability = { unavailable: [] };
+        try {
+            const data = fs.readFileSync(availabilityPath, 'utf8');
+            availability = JSON.parse(data);
+        } catch (error) {
+            console.log('No existing availability file, creating new one');
+        }
+        
+        // Calculate start and end dates for blocking
+        const deliveryDate = new Date(bookingData.deliveryDate);
+        const endDate = new Date(deliveryDate);
+        endDate.setDate(deliveryDate.getDate() + parseInt(bookingData.hireLength) - 1);
+        
+        const startDateStr = deliveryDate.toISOString().slice(0, 10);
+        const endDateStr = endDate.toISOString().slice(0, 10);
+        
+        // Check if this date range already exists
+        const exists = availability.unavailable.some(range => 
+            range.start === startDateStr && range.end === endDateStr
+        );
+        
+        if (!exists) {
+            // Add new unavailable range
+            availability.unavailable.push({
+                start: startDateStr,
+                end: endDateStr
+            });
+            
+            // Write back to file
+            fs.writeFileSync(availabilityPath, JSON.stringify(availability, null, 2));
+            console.log(`Availability blocked: ${startDateStr} to ${endDateStr}`);
+        } else {
+            console.log(`Date range already blocked: ${startDateStr} to ${endDateStr}`);
+        }
+    } catch (error) {
+        console.error('Error blocking availability dates:', error);
+        // Don't throw error to prevent payment flow from failing
+    }
 }
 
 // Generate booking reference
