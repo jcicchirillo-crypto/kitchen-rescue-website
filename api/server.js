@@ -62,17 +62,13 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         },
         tls: {
             rejectUnauthorized: false
-        }
+        },
+        connectionTimeout: 5000, // 5 second timeout
+        greetingTimeout: 5000,
+        socketTimeout: 5000
     });
     
-    // Test the connection
-    transporter.verify((error, success) => {
-        if (error) {
-            console.log('Email configuration error:', error);
-        } else {
-            console.log('Email server is ready to send messages');
-        }
-    });
+    console.log('Email transporter configured - will attempt to send emails');
 } else {
     console.log('Email credentials not configured. Quote emails will not be sent.');
     console.log('To enable email quotes, set EMAIL_USER and EMAIL_PASS in your .env file');
