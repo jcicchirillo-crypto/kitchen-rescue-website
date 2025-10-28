@@ -254,7 +254,7 @@ export default function KitchenRescueAdmin() {
               <TableBody>
                 {filtered.map((b) => (
                   <TableRow key={b.id}>
-                    <TableCell className=" repertoire">{{b.name}}</TableCell>
+                    <TableCell className="font-medium">{b.name}</TableCell>
                     <TableCell className="text-xs flex items-center gap-1"><Mail className="h-3 w-3"/>{b.email}</TableCell>
                     <TableCell className="text-xs">{b.phone}</TableCell>
                     <TableCell className="text-xs">{b.postcode}</TableCell>
