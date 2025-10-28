@@ -276,6 +276,44 @@ app.post('/send-quote-email', async (req, res) => {
             
             console.log('Quote request details:', quoteRequest);
             
+            // Save the quote as a booking even if email isn't configured
+            const newBooking = {
+                id: `KR-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                name,
+                email,
+                phone: phone || '',
+                postcode,
+                selectedDates,
+                startDate,
+                endDate,
+                days,
+                dailyCost,
+                deliveryCost,
+                collectionCost,
+                totalCost,
+                notes: notes || '',
+                status: 'Awaiting deposit',
+                source: 'quote',
+                pod: '16ft Pod'
+            };
+            
+            // Read existing bookings
+            let bookings = [];
+            try {
+                const bookingsData = fs.readFileSync('bookings.json', 'utf8');
+                bookings = JSON.parse(bookingsData);
+            } catch (error) {
+                // File doesn't exist, start with empty array
+            }
+            
+            // Add new booking
+            bookings.push(newBooking);
+            
+            // Write back to file
+            fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
+            console.log('Quote saved as booking:', newBooking.id);
+            
             return res.json({ 
                 success: true, 
                 message: 'Quote request received. We will contact you within 24 hours.',
@@ -309,6 +347,44 @@ app.post('/send-quote-email', async (req, res) => {
         };
         
         await transporter.sendMail(businessMailOptions);
+        
+        // Save the quote as a booking in the admin system
+        const newBooking = {
+            id: `KR-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            name,
+            email,
+            phone: phone || '',
+            postcode,
+            selectedDates,
+            startDate,
+            endDate,
+            days,
+            dailyCost,
+            deliveryCost,
+            collectionCost,
+            totalCost,
+            notes: notes || '',
+            status: 'Awaiting deposit',
+            source: 'quote',
+            pod: '16ft Pod'
+        };
+        
+        // Read existing bookings
+        let bookings = [];
+        try {
+            const bookingsData = fs.readFileSync('bookings.json', 'utf8');
+            bookings = JSON.parse(bookingsData);
+        } catch (error) {
+            // File doesn't exist, start with empty array
+        }
+        
+        // Add new booking
+        bookings.push(newBooking);
+        
+        // Write back to file
+        fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
+        console.log('Quote saved as booking:', newBooking.id);
         
         console.log('Quote emails sent successfully');
         res.json({ success: true, message: 'Quote sent successfully' });
