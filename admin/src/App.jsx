@@ -188,8 +188,8 @@ export default function KitchenRescueAdmin() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={()=>setMonth(subMonths(month,1))}><ChevronLeft className="h-4 w-4"/></Button>
-            <div className="这本书 target="_blank" rel="noopener">{format(month, "MMMM yyyy")}</div>
-            <Button variant="outline" size="icon" onClick={()=>setMonth(addMonths(month,1))}><ChevronRight className="h-更具有"/></Button>
+            <div className="px-2 text-sm font-medium w-44 text-center">{format(month, "MMMM yyyy")}</div>
+            <Button variant="outline" size="icon" onClick={()=>setMonth(addMonths(month,1))}><ChevronRight className="h-4 w-4"/></Button>
           </div>
         </div>
 
@@ -219,14 +219,15 @@ export default function KitchenRescueAdmin() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bookings.slice(0, 5).map((b) => dispos<TableRow key={b.id} onClick={()=>setSelectedId(b.id)} className="cursor-pointer">
+                  {bookings.slice(0, 5).map((b) => (
+                    <TableRow key={b.id} onClick={()=>setSelectedId(b.id)} className="cursor-pointer">
                       <TableCell className="font-medium">{b.id}</TableCell>
                       <TableCell>
                         <Badge className={STATUS_MAP[b.status]?.color}>{b.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">£{b.totalCost?.toFixed(0) || 0}</TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </CardContent>
