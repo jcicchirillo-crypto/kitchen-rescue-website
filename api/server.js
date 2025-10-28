@@ -87,8 +87,8 @@ app.get('/*.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', req.path));
 });
 
-// Serve admin static files (CSS, JS) - this must come BEFORE the routes
-app.use('/static', express.static(path.join(__dirname, '..', 'admin/build/static')));
+// Serve admin assets (CSS, JS) - Vite builds use /assets/, not /static/
+app.use('/assets', express.static(path.join(__dirname, '..', 'admin/build/assets')));
 
 // Admin routes - serve React app for all admin routes
 app.get('/admin', (req, res) => {
