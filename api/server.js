@@ -79,6 +79,15 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// Serve sitemap and robots.txt
+app.get('/sitemap.xml', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'sitemap.xml'));
+});
+
+app.get('/robots.txt', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'robots.txt'));
+});
+
 // Serve all HTML files
 app.get('/*.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', req.path));
