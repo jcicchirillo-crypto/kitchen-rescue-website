@@ -368,33 +368,35 @@
       font-weight: 600;
     }
 
-    section:not(.hero) {
+    .content-block {
       max-width: var(--max-width);
       margin: 0 auto 28px;
-      padding: 28px 24px 36px;
-      background: linear-gradient(175deg, #212121 0%, #181818 65%, #151515 100%);
+      padding: 32px 28px 36px;
+      background: #ffffff;
       border-radius: var(--radius-xl);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 35px 55px rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      box-shadow: 0 30px 60px rgba(15, 15, 15, 0.3);
+      color: #111827;
     }
 
-    section:not(.hero):nth-of-type(even) {
-      background: linear-gradient(175deg, #2b2b2b 0%, #202020 65%, #1a1a1a 100%);
-      border-color: rgba(255, 255, 255, 0.12);
-      box-shadow: 0 35px 60px rgba(0, 0, 0, 0.6);
+    .content-block.alt {
+      background: #f8fafc;
+      border-color: rgba(17, 24, 39, 0.15);
     }
 
-    section h2 {
-      font-size: clamp(24px, 3vw, 30px);
+    .content-block h2 {
+      font-size: clamp(26px, 3.2vw, 32px);
       margin-bottom: 12px;
       letter-spacing: 0.01em;
+      color: #0f172a;
     }
 
-    section p.section-intro {
-      color: #f1f1f1;
+    .content-block p.section-intro {
+      color: #334155;
       font-size: 1rem;
       margin-bottom: 20px;
       max-width: 640px;
+      line-height: 1.7;
     }
 
     .grid-3 {
@@ -415,20 +417,22 @@
     }
 
     .card {
-      background: var(--card-bg);
+      background: #ffffff;
       border-radius: var(--radius-xl);
-      padding: 18px 18px 16px;
-      border: 1px solid var(--border-soft);
+      padding: 20px 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
     }
 
     .card h3 {
       font-size: 17px;
       margin-bottom: 8px;
+      color: #0f172a;
     }
 
     .card p {
       font-size: 14px;
-      color: #efefef;
+      color: #475569;
       line-height: 1.65;
     }
 
@@ -470,26 +474,27 @@
     }
 
     .step {
-      background: linear-gradient(160deg, #1c1c1c, #101010);
+      background: #ffffff;
       border-radius: var(--radius-xl);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 16px 16px 14px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 18px 18px 16px;
       font-size: 0.95rem;
       position: relative;
-      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
     }
 
     .step-number {
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      color: var(--muted);
+      color: #c026d3;
       margin-bottom: 4px;
     }
 
     .step-title {
       font-weight: 600;
       margin-bottom: 4px;
+      color: #0f172a;
     }
 
     .list-inline {
@@ -500,7 +505,7 @@
 
     .list-inline li {
       font-size: 0.95rem;
-      color: #f5f5f5;
+      color: #0f172a;
       margin-bottom: 6px;
       line-height: 1.6;
     }
@@ -525,21 +530,23 @@
     }
 
     .highlight-box {
-      background: linear-gradient(145deg, #202020, #090909);
+      background: linear-gradient(135deg, rgba(230, 57, 70, 0.08), rgba(230, 57, 70, 0.02));
       border-radius: var(--radius-xl);
-      padding: 20px 22px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 20px 36px rgba(0, 0, 0, 0.4);
+      padding: 24px 24px 22px;
+      border: 1px solid rgba(230, 57, 70, 0.2);
+      box-shadow: 0 16px 32px rgba(230, 57, 70, 0.18);
+      color: #0f172a;
     }
 
     .highlight-box h3 {
       font-size: 18px;
       margin-bottom: 8px;
+      color: #be123c;
     }
 
     .highlight-box p {
       font-size: 0.95rem;
-      color: #f2f2f2;
+      color: #475569;
       line-height: 1.65;
     }
 
@@ -547,30 +554,31 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 12px;
     }
 
     .tag-chip {
       border-radius: 999px;
-      padding: 6px 11px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #fafafa;
-      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 12px;
+      border: 1px solid rgba(190, 18, 60, 0.25);
+      color: #be123c;
+      background: rgba(190, 18, 60, 0.08);
     }
 
     .referral-banner {
-      background: linear-gradient(120deg, #1a1a1a, #0a0a0a);
+      background: linear-gradient(120deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.01));
       border-radius: var(--radius-xl);
-      padding: 16px 18px;
-      border: 1px dashed rgba(255, 255, 255, 0.28);
+      padding: 18px 20px;
+      border: 1px dashed rgba(15, 23, 42, 0.35);
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
       justify-content: space-between;
       font-size: 0.95rem;
-      margin-top: 16px;
+      margin-top: 20px;
+      color: #0f172a;
     }
 
     .referral-banner strong {
@@ -579,7 +587,7 @@
     }
 
     .referral-banner small {
-      color: #e3e3e3;
+      color: #475569;
       display: block;
       margin-top: 4px;
       font-size: 12px;
@@ -587,22 +595,24 @@
     }
 
     .contact-card {
-      background: linear-gradient(160deg, #1c1c1c, #0b0b0b);
+      background: linear-gradient(130deg, #ffffff, #f8fafc);
       border-radius: var(--radius-xl);
-      padding: 20px 22px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 22px 24px;
+      border: 1px solid rgba(15, 23, 42, 0.1);
       font-size: 0.95rem;
-      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+      color: #0f172a;
     }
 
     .contact-card h3 {
       font-size: 18px;
       margin-bottom: 10px;
+      color: #0f172a;
     }
 
     .contact-line {
       margin-bottom: 8px;
-      color: #f4f4f4;
+      color: #334155;
       line-height: 1.6;
     }
 
@@ -613,17 +623,18 @@
 
     .small-note {
       font-size: 12px;
-      color: var(--muted);
+      color: #475569;
       margin-top: 10px;
       line-height: 1.6;
     }
 
     .gallery-section {
-      background: var(--card-bg);
+      background: #f8fafc;
       border-radius: var(--radius-xl);
-      padding: 20px;
-      border: 1px solid var(--border-soft);
+      padding: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
       margin-top: 16px;
+      box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08);
     }
 
     .gallery-grid {
@@ -636,7 +647,7 @@
     .gallery-item {
       border-radius: 12px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(15, 23, 42, 0.12);
     }
 
     .gallery-item img {
@@ -777,7 +788,7 @@
     </section>
 
     <!-- BENEFITS -->
-    <section id="benefits">
+    <section class="content-block" id="benefits">
       <h2>Why add Kitchen Rescue to your quote?</h2>
       <p class="section-intro">
         You look after the build. We look after the customer experience.
@@ -811,7 +822,7 @@
     </section>
 
     <!-- WHAT'S INSIDE + USE CASES -->
-    <section id="inside">
+    <section class="content-block alt" id="inside">
       <div class="two-col">
         <div>
           <h2>What's inside the pod?</h2>
@@ -847,14 +858,14 @@
     </section>
 
     <!-- GALLERY -->
-    <section id="gallery">
+    <section class="content-block" id="gallery">
       <h2>See the pod inside and out</h2>
       <p class="section-intro">
         Professional finish, fully equipped, ready to use from day one.
       </p>
 
       <div class="gallery-section">
-        <h3 style="font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Outside view</h3>
+        <h3 style="font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569;">Outside view</h3>
         <div class="gallery-grid">
           <div class="gallery-item">
             <img src="/assets/hero.jpg" alt="Kitchen pod on trailer - outside view" loading="lazy">
@@ -863,7 +874,7 @@
       </div>
 
       <div class="gallery-section">
-        <h3 style="font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Inside views</h3>
+        <h3 style="font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569;">Inside views</h3>
         <div class="gallery-grid">
           <div class="gallery-item">
             <img src="/assets/Gallery 1a.png" alt="Kitchen pod interior - cooking area" loading="lazy">
@@ -879,7 +890,7 @@
     </section>
 
     <!-- HOW IT WORKS -->
-    <section id="how-it-works">
+    <section class="content-block alt" id="how-it-works">
       <h2>How it works with your projects</h2>
       <p class="section-intro">
         Simple, plug-and-play. You don't have to touch any connections.
@@ -934,7 +945,7 @@
     </section>
 
     <!-- CONTACT / PARTNER SIGNUP -->
-    <section id="contact">
+    <section class="content-block" id="contact">
       <h2>Become a Kitchen Rescue trade partner</h2>
       <p class="section-intro">
         We'll set you up with a referral code, booking link and simple info pack
@@ -945,7 +956,7 @@
         <div class="contact-card">
           <h3>Tell us about your business</h3>
           <p class="contact-line">
-            Email: <a href="mailto:janine@thekitchenrescue.co.uk?subject=Kitchen%20Rescue%20trade%20partner" style="color: #fff; text-decoration: none;">janine@thekitchenrescue.co.uk</a>
+            Email: <a href="mailto:janine@thekitchenrescue.co.uk?subject=Kitchen%20Rescue%20trade%20partner" style="color: #0f172a; text-decoration: none; font-weight: 600;">janine@thekitchenrescue.co.uk</a>
           </p>
           <p class="contact-line">
             Phone / WhatsApp: <span>+44&nbsp;7342&nbsp;606655</span>
@@ -967,13 +978,13 @@
             <p>
               Many builders simply add a line such as:
             </p>
-            <p style="font-size:12px;color:#ffffff;margin-top:6px;margin-bottom:4px;">
+            <p style="font-size:12px;color:#0f172a;margin-top:6px;margin-bottom:4px;">
               <em>
                 "Optional: Temporary kitchen pod on your driveway while works are ongoing
                 (provided by Kitchen Rescue)."
               </em>
             </p>
-            <p style="font-size:13px;color:var(--muted);">
+            <p style="font-size:13px;color:#475569;">
               If the client is interested, you give them your code or link and
               we take it from there.
             </p>
