@@ -154,6 +154,11 @@
       background: var(--accent);
       border-color: var(--accent);
       color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-small.accent:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     }
 
     .btn-small:hover {
@@ -269,24 +274,29 @@
       background: var(--accent);
       border-color: var(--accent);
       color: #fff;
-      box-shadow: 0 12px 32px rgba(230, 57, 70, 0.45);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+      padding: 13px 22px;
+      font-size: 15px;
     }
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 18px 44px rgba(230, 57, 70, 0.6);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.25);
     }
 
     .btn-ghost {
       border-color: rgba(255, 255, 255, 0.2);
       background: rgba(13, 13, 13, 0.9);
       color: var(--muted);
+      padding: 13px 22px;
+      font-size: 15px;
     }
 
     .btn-ghost:hover {
       color: #fff;
       border-color: rgba(255, 255, 255, 0.45);
       transform: translateY(-1px);
+      background: rgba(20, 20, 20, 0.95);
     }
 
     .hero-footnote {
@@ -307,8 +317,8 @@
     .hero-card-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
+      align-items: flex-start;
+      margin-bottom: 16px;
     }
 
     .hero-tag {
@@ -321,11 +331,14 @@
 
     .hero-chip {
       font-size: 11px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(15, 23, 42, 0.18);
-      color: #334155;
-      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
     }
 
     .pod-details {
@@ -373,15 +386,20 @@
     }
 
     .pod-foot {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
       font-size: 13px;
       color: #334155;
       border-top: 1px dashed rgba(15, 23, 42, 0.15);
       padding-top: 10px;
       margin-top: 8px;
       line-height: 1.5;
+    }
+    
+    .pod-foot > div:last-child {
+      text-align: right;
     }
 
     .pod-foot span.highlight {
@@ -499,10 +517,16 @@
       background: #ffffff;
       border-radius: var(--radius-xl);
       border: 1px solid rgba(15, 23, 42, 0.08);
-      padding: 18px 18px 16px;
+      padding: 20px 20px 18px;
       font-size: 0.95rem;
       position: relative;
       box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .step:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
     }
 
     .step-number {
@@ -582,25 +606,31 @@
 
     .tag-chip {
       border-radius: 999px;
-      padding: 6px 12px;
+      padding: 8px 14px;
       border: 1px solid rgba(190, 18, 60, 0.25);
       color: #be123c;
       background: rgba(190, 18, 60, 0.08);
+      font-size: 12px;
     }
 
     .referral-banner {
       background: linear-gradient(120deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.01));
       border-radius: var(--radius-xl);
-      padding: 18px 20px;
-      border: 1px dashed rgba(15, 23, 42, 0.35);
+      padding: 20px 24px;
+      border: 1px solid rgba(15, 23, 42, 0.2);
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 14px;
       align-items: center;
       justify-content: space-between;
       font-size: 0.95rem;
       margin-top: 20px;
       color: #0f172a;
+    }
+    
+    .referral-banner .btn-small {
+      padding: 10px 20px;
+      font-size: 14px;
     }
 
     .referral-banner strong {
@@ -633,14 +663,25 @@
     }
 
     .contact-line {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       color: #334155;
       line-height: 1.6;
+      font-size: 14px;
     }
 
     .contact-line span {
       color: #ffffff;
       font-weight: 500;
+    }
+    
+    .contact-line a {
+      transition: opacity 0.2s ease, text-decoration 0.2s ease;
+      color: #ffffff;
+    }
+    
+    .contact-line a:hover {
+      opacity: 0.85;
+      text-decoration: underline;
     }
 
     .small-note {
@@ -887,25 +928,23 @@
       </p>
 
       <div class="gallery-section">
-        <h3 style="font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569;">Outside view</h3>
+        <h3 style="font-size: 14px; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; font-weight: 600;">Pod Gallery</h3>
         <div class="gallery-grid">
           <div class="gallery-item">
             <img src="/assets/hero.jpg" alt="Kitchen pod on trailer - outside view" loading="lazy">
+            <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Exterior</p>
           </div>
-        </div>
-      </div>
-
-      <div class="gallery-section">
-        <h3 style="font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569;">Inside views</h3>
-        <div class="gallery-grid">
           <div class="gallery-item">
             <img src="/assets/Gallery 1a.png" alt="Kitchen pod interior - cooking area" loading="lazy">
+            <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Interior - Cooking Area</p>
           </div>
           <div class="gallery-item">
             <img src="/assets/Gallery 2a.png" alt="Kitchen pod interior - side view" loading="lazy">
+            <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Interior - Side View</p>
           </div>
           <div class="gallery-item">
             <img src="/assets/Gallery 3.png" alt="Kitchen pod interior - front view" loading="lazy">
+            <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Interior - Front View</p>
           </div>
         </div>
       </div>
