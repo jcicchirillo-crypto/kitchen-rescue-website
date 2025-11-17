@@ -210,10 +210,11 @@
     }
 
     .hero-subtitle {
-      color: #f0f0f0;
+      color: #e5e5e5;
       margin-bottom: 20px;
       font-size: clamp(1rem, 2vw, 1.15rem);
       line-height: 1.8;
+      font-weight: 400;
     }
 
     .pill-row {
@@ -226,14 +227,15 @@
 
     .pill {
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       padding: 8px 14px;
-      background: rgba(12, 12, 12, 0.85);
-      color: var(--muted);
+      background: rgba(20, 20, 20, 0.9);
+      color: #d1d5db;
+      font-size: 13px;
     }
 
     .pill strong {
-      color: #fff;
+      color: #ffffff;
       font-weight: 600;
     }
 
@@ -292,7 +294,7 @@
     .hero-card {
       background: #ffffff;
       border-radius: var(--radius-xl);
-      padding: 18px 18px 16px;
+      padding: 24px 22px 20px;
       border: 1px solid rgba(15, 23, 42, 0.12);
       box-shadow: 0 25px 45px rgba(15, 23, 42, 0.18);
       color: #0f172a;
@@ -306,10 +308,11 @@
     }
 
     .hero-tag {
-      font-size: 11px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      color: #94a3b8;
+      color: #64748b;
+      font-weight: 500;
     }
 
     .hero-chip {
@@ -317,7 +320,8 @@
       padding: 4px 9px;
       border-radius: 999px;
       border: 1px solid rgba(15, 23, 42, 0.18);
-      color: #475569;
+      color: #334155;
+      font-weight: 500;
     }
 
     .pod-details {
@@ -345,25 +349,35 @@
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #94a3b8;
-      margin-bottom: 4px;
+      color: #64748b;
+      margin-bottom: 6px;
+      font-weight: 600;
     }
 
     .pod-item-main {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 600;
       color: #0f172a;
+      margin-bottom: 4px;
+    }
+    
+    .pod-item p {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.5;
+      margin: 0;
     }
 
     .pod-foot {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
-      color: #475569;
+      font-size: 13px;
+      color: #334155;
       border-top: 1px dashed rgba(15, 23, 42, 0.15);
-      padding-top: 8px;
-      margin-top: 6px;
+      padding-top: 10px;
+      margin-top: 8px;
+      line-height: 1.5;
     }
 
     .pod-foot span.highlight {
@@ -738,7 +752,7 @@
         <div class="hero-card-header">
           <div>
             <div class="hero-tag">Temporary kitchen pod</div>
-            <div style="font-size:13px;font-weight:600;margin-top:2px;">
+            <div style="font-size:15px;font-weight:600;margin-top:4px;color:#0f172a;">
               Everything your client needs, on the driveway.
             </div>
           </div>
