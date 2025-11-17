@@ -28,13 +28,13 @@
   <style>
     :root {
       --bg: #040404;
-      --bg-alt: #0e0e0e;
+      --bg-alt: #191919;
       --text: #ffffff;
       --muted: #dedede;
       --accent: #e63946;
-      --card-bg: #181818;
-      --border-soft: #2b2b2b;
-      --section-alt: #151515;
+      --card-bg: #222222;
+      --border-soft: #3a3a3a;
+      --section-alt: #252525;
       --max-width: 1080px;
       --radius-xl: 18px;
       --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
@@ -372,15 +372,16 @@
       max-width: var(--max-width);
       margin: 0 auto 28px;
       padding: 28px 24px 36px;
-      background: var(--bg-alt);
+      background: linear-gradient(175deg, #212121 0%, #181818 65%, #151515 100%);
       border-radius: var(--radius-xl);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 25px 45px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 35px 55px rgba(0, 0, 0, 0.55);
     }
 
     section:not(.hero):nth-of-type(even) {
-      background: var(--section-alt);
-      border-color: rgba(255, 255, 255, 0.08);
+      background: linear-gradient(175deg, #2b2b2b 0%, #202020 65%, #1a1a1a 100%);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 35px 60px rgba(0, 0, 0, 0.6);
     }
 
     section h2 {
