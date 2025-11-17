@@ -308,10 +308,12 @@
     .hero-card {
       background: #ffffff;
       border-radius: var(--radius-xl);
-      padding: 24px 22px 20px;
+      padding: 24px 22px 18px;
       border: 1px solid rgba(15, 23, 42, 0.12);
       box-shadow: 0 25px 45px rgba(15, 23, 42, 0.18);
       color: #0f172a;
+      display: flex;
+      flex-direction: column;
     }
 
     .hero-card-header {
@@ -338,15 +340,17 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .pod-details {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
-      margin-bottom: 14px;
+      flex: 1;
+      margin-bottom: 12px;
       font-size: 12px;
+      align-content: start;
     }
 
     @media (max-width: 600px) {
@@ -394,7 +398,7 @@
       color: #334155;
       border-top: 1px dashed rgba(15, 23, 42, 0.15);
       padding-top: 10px;
-      margin-top: 8px;
+      margin-top: auto;
       line-height: 1.5;
     }
     
@@ -769,8 +773,8 @@
           FOR BUILDERS & KITCHEN FITTERS
         </p>
         <h1>
-          Keep your clients cooking<br />
-          while you <span class="accent">rip the kitchen out.</span>
+          Keep your clients cooking while you<br />
+          <span class="accent">transform their space.</span>
         </h1>
         <p class="hero-subtitle">
           Add a fully equipped temporary kitchen pod to your service.
