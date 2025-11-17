@@ -612,8 +612,15 @@
 
     .gallery-item img {
       width: 100%;
-      height: auto;
+      height: 210px;
+      object-fit: cover;
       display: block;
+    }
+
+    @media (max-width: 640px) {
+      .gallery-item img {
+        height: 160px;
+      }
     }
 
     footer {
@@ -645,7 +652,7 @@
       </nav>
       <div class="nav-cta">
         <span>Trade partner page</span>
-        <a href="#contact" class="btn-small accent">Get your referral code</a>
+        <a href="mailto:janine@thekitchenrescue.co.uk?subject=Kitchen%20Rescue%20trade%20partner" class="btn-small accent">Get your referral code</a>
       </div>
     </div>
   </header>
@@ -677,7 +684,7 @@
 
         <div class="hero-actions">
           <a href="#how-it-works" class="btn-primary">How it works</a>
-          <a href="#contact" class="btn-ghost">Get your referral code</a>
+          <a href="mailto:janine@thekitchenrescue.co.uk?subject=Kitchen%20Rescue%20trade%20partner" class="btn-ghost">Get your referral code</a>
         </div>
         <p class="hero-footnote">
           Perfect for full rip-outs, extensions, knock-throughs, rewires and worktop delays.
@@ -893,7 +900,7 @@
             so you don't have to.
           </small>
         </div>
-        <a href="#contact" class="btn-small accent">Get my referral code</a>
+        <a href="mailto:janine@thekitchenrescue.co.uk?subject=Kitchen%20Rescue%20trade%20partner" class="btn-small accent">Get my referral code</a>
       </div>
     </section>
 
@@ -909,7 +916,7 @@
         <div class="contact-card">
           <h3>Tell us about your business</h3>
           <p class="contact-line">
-            Email: <span>janine@thekitchenrescue.co.uk</span>
+            Email: <a href="mailto:janine@thekitchenrescue.co.uk?subject=Kitchen%20Rescue%20trade%20partner" style="color: #fff; text-decoration: none;">janine@thekitchenrescue.co.uk</a>
           </p>
           <p class="contact-line">
             Phone / WhatsApp: <span>+44&nbsp;7342&nbsp;606655</span>
