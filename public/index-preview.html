@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Rescue - Preview | Temporary Kitchen Hire</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Override body font to Montserrat like trade page */
+        body {
+            font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: clamp(17px, 1.2vw, 19px);
+            line-height: 1.7;
+        }
+        
+        /* Content blocks styling matching trade page */
+        .content-block {
+            max-width: 1080px;
+            margin: 0 auto 28px;
+            padding: 32px 28px 36px;
+            background: #ffffff;
+            border-radius: 18px;
+            border: 1px solid rgba(17, 24, 39, 0.08);
+            box-shadow: 0 30px 60px rgba(15, 15, 15, 0.3);
+            color: #111827;
+        }
+        
+        .content-block h2 {
+            font-size: clamp(26px, 3.2vw, 32px);
+            margin-bottom: 12px;
+            letter-spacing: 0.01em;
+            color: #0f172a;
+        }
+        
+        .content-block p.section-intro {
+            color: #334155;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            max-width: 640px;
+            line-height: 1.7;
+        }
+        
+        /* Grid for cards */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        
+        @media (max-width: 900px) {
+            .grid-3 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 20px 22px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+        }
+        
+        .card h3 {
+            font-size: 17px;
+            margin-bottom: 8px;
+            color: #0f172a;
+        }
+        
+        .card p {
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.65;
+            margin: 0;
+        }
+        
+        /* Steps styling */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .steps {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .steps {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .step {
+            background: #f8fafc;
+            border-radius: 18px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 18px 18px 16px;
+            font-size: 13px;
+        }
+        
+        .step-number {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #0f172a;
+            font-size: 15px;
+        }
+        
+        .step p {
+            color: #475569;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* List styling */
+        .list-inline {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 12px;
+        }
+        
+        .list-inline li {
+            font-size: 0.95rem;
+            color: #dedede;
+            margin-bottom: 10px;
+            line-height: 1.6;
+            padding-left: 0;
+        }
+        
+        .list-inline li::before {
+            content: "•";
+            color: var(--accent, #e63946);
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        /* Pricing card */
+        .pricing-card {
+            background: linear-gradient(130deg, #ffffff, #f8fafc);
+            border-radius: 18px;
+            padding: 24px 28px;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+        }
+        
+        .pricing-card h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #0f172a;
+        }
+        
+        .pricing-card .price {
+            font-size: 32px;
+            font-weight: 700;
+            color: #dc2626;
+            margin: 16px 0;
+        }
+        
+        .pricing-card p {
+            color: #475569;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        
+        /* CTA section */
+        .cta-section {
+            text-align: center;
+            padding: 48px 28px;
+        }
+        
+        .cta-section h2 {
+            font-size: clamp(28px, 4vw, 36px);
+            margin-bottom: 16px;
+        }
+        
+        .cta-section p {
+            font-size: 1.1rem;
+            color: #334155;
+            margin-bottom: 24px;
+        }
+        
+        /* Button styling matching trade page */
+        .btn-primary-large {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 16px 32px;
+            background: #dc2626;
+            border: 1px solid #dc2626;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 12px 32px rgba(220, 38, 38, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 44px rgba(220, 38, 38, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top bar -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
+                </div>
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="availability.html" class="nav-link">Availability</a>
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#spec" class="nav-link">Spec</a>
+                    <a href="#gallery" class="nav-link">Gallery</a>
+                    <a href="blog.html" class="nav-link">Blog</a>
+                    <a href="trade-partners.html" class="nav-link">Referrals</a>
+                    <a href="#contact" class="nav-link nav-cta">Contact</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; color: #dedede; margin-bottom: 12px; font-weight: 500;">
+                            <span style="width: 6px; height: 6px; border-radius: 999px; background: #e63946;"></span>
+                            LUXURY TEMPORARY KITCHEN
+                        </span>
+                    </div>
+                    <h1 class="hero-title" style="font-size: clamp(34px, 4.8vw, 48px); line-height: 1.1; margin-bottom: 16px; color: #ffffff; font-weight: 700;">
+                        Stay fully functioning<br />while your <span style="position: relative; display: inline-block; color: #e63946;">kitchen isn't.</span>
+                    </h1>
+                    <p class="hero-description" style="color: #ffffff; margin-bottom: 20px; font-size: clamp(1rem, 2vw, 1.15rem); line-height: 1.8; font-weight: 400;">
+                        A fully equipped temporary kitchen pod delivered to your driveway. Cook real meals, wash up properly, and keep your routine normal during renovations.
+                    </p>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <div style="border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 14px; background: rgba(30, 30, 30, 0.95); color: #ffffff; font-size: 13px; font-weight: 400;">
+                            <strong style="font-weight: 700;">Full oven</strong> & hob
+                        </div>
+                        <div style="border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 14px; background: rgba(30, 30, 30, 0.95); color: #ffffff; font-size: 13px; font-weight: 400;">
+                            <strong style="font-weight: 700;">Dishwasher</strong> & washing machine
+                        </div>
+                        <div style="border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 14px; background: rgba(30, 30, 30, 0.95); color: #ffffff; font-size: 13px; font-weight: 400;">
+                            <strong style="font-weight: 700;">Installed</strong> in 2-3 hours
+                        </div>
+                    </div>
+                    
+                    <div class="hero-actions" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <a href="availability.html" style="border-radius: 999px; padding: 13px 22px; background: #dc2626; border: 1px solid #dc2626; color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2); transition: all 0.2s ease;">
+                            Check availability
+                        </a>
+                        <a href="tel:+447342606655" style="border-radius: 999px; padding: 13px 22px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(13, 13, 13, 0.9); color: #dedede; font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.2s ease;">
+                            Call: 07342 606655
+                        </a>
+                    </div>
+                    <p style="font-size: 13px; color: #ffffff; opacity: 0.9;">
+                        Perfect for renovations, extensions, insurance claims, or any time your kitchen is out of action.
+                    </p>
+                </div>
+                <div class="hero-image">
+                    <img src="/assets/hero.jpg" alt="Luxury temporary kitchen pod" class="hero-photo">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Kitchen Rescue -->
+    <section class="content-block" id="why">
+        <h2>Why families choose Kitchen Rescue</h2>
+        <p class="section-intro">
+            No more takeaways, no washing dishes in the bathroom. Keep your family life running normally while your builders work.
+        </p>
+
+        <div class="grid-3">
+            <div class="card">
+                <h3>Cook real meals</h3>
+                <p>Full oven and hob mean you can cook proper meals – roasts, tray bakes, pasta – instead of relying on takeaways for weeks.</p>
+            </div>
+            <div class="card">
+                <h3>Wash up properly</h3>
+                <p>Full-size sink with hot water and a proper dishwasher, so you're not washing dishes in the bath.</p>
+            </div>
+            <div class="card">
+                <h3>Do the laundry as normal</h3>
+                <p>Built-in washing machine so you don't need laundrette visits while your kitchen is out.</p>
+            </div>
+            <div class="card">
+                <h3>Save money</h3>
+                <p>Weeks of takeaways add up fast. Most families save money by hiring a pod instead of eating out every day.</p>
+            </div>
+            <div class="card">
+                <h3>Keep your routine</h3>
+                <p>Kids can still have breakfast before school. You can meal prep on Sundays. Life stays normal.</p>
+            </div>
+            <div class="card">
+                <h3>Insurance friendly</h3>
+                <p>We can liaise with your loss adjuster and provide paperwork for authorisation.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- What's Inside -->
+    <section class="spec">
+        <div class="container">
+            <h2 style="color: #ffffff; font-size: clamp(26px, 3.2vw, 32px); margin-bottom: 12px;">What's inside the pod?</h2>
+            <p style="color: #dedede; font-size: 1rem; margin-bottom: 20px; line-height: 1.7;">
+                A complete working kitchen, ready to go from the moment we plug in.
+            </p>
+            
+            <ul class="list-inline">
+                <li>Full oven and hob</li>
+                <li>Fridge/freezer for fresh and frozen food</li>
+                <li>Sink with hot water and proper drainage</li>
+                <li>Full-size dishwasher</li>
+                <li>Washing machine for everyday laundry</li>
+                <li>Worktops and storage units</li>
+                <li>Lighting, sockets and ventilation</li>
+                <li>Easy-clean finishes throughout</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Gallery -->
+    <section id="gallery" class="gallery">
+        <div class="container">
+            <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; color: #0f172a;">See the pod inside and out</h2>
+            <p style="color: #6b7280; margin-bottom: 1rem;">Professional finish, fully equipped, ready to use from day one.</p>
+            
+            <div class="gallery-section">
+                <h3 style="font-size: 14px; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; font-weight: 600;">Pod Gallery</h3>
+                <div class="gallery-grid">
+                    <div class="gallery-item">
+                        <img src="/assets/hero.jpg" alt="Kitchen pod on trailer - outside view" loading="lazy">
+                        <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Exterior</p>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="/assets/Gallery 1a.png" alt="Kitchen pod interior - cooking area" loading="lazy">
+                        <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Interior - Cooking Area</p>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="/assets/Gallery 2a.png" alt="Kitchen pod interior - side view" loading="lazy">
+                        <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Interior - Side View</p>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="/assets/Gallery 3.png" alt="Kitchen pod interior - front view" loading="lazy">
+                        <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center; font-weight: 500;">Interior - Front View</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Specs & Requirements -->
+    <section class="spec">
+        <div class="container">
+            <h2 style="color: #ffffff; font-size: clamp(26px, 3.2vw, 32px); margin-bottom: 12px;">Specs & requirements</h2>
+            <p style="color: #dedede; font-size: 1rem; margin-bottom: 20px; line-height: 1.7;">
+                Simple setup. We handle all the connections.
+            </p>
+            
+            <ul class="list-inline">
+                <li><strong>Size:</strong> 3.6m x 1.8m x 2.2H (12' x 6' x 6'6")</li>
+                <li><strong>Power:</strong> Two double sockets (inside or out – we can sort extension leads)</li>
+                <li><strong>Water:</strong> An outside tap within 25 metres</li>
+                <li><strong>Drainage:</strong> A normal drain within 9 metres (we can pump if further)</li>
+                <li><strong>Install time:</strong> Typically 2–3 hours</li>
+                <li><strong>Access:</strong> Clear, level driveway on private land</li>
+                <li><strong>Surface:</strong> Tarmac, concrete, or firm gravel (gentle slope is fine)</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="content-block" id="how-it-works">
+        <h2>How it works — simple from start to finish</h2>
+        <p class="section-intro">
+            Book online, we deliver and install, you cook. It's that straightforward.
+        </p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">Step 1</div>
+                <div class="step-title">Check availability</div>
+                <p>Enter your postcode and dates. We'll show you live availability and give you an instant quote.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">Step 2</div>
+                <div class="step-title">Book online</div>
+                <p>Reserve your dates with a deposit. We'll confirm everything and send you a booking pack.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">Step 3</div>
+                <div class="step-title">We deliver & install</div>
+                <p>We bring the pod to your driveway and connect everything. Takes 2-3 hours, then you're ready to cook.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">Step 4</div>
+                <div class="step-title">We collect</div>
+                <p>When your kitchen's ready, we collect the pod. Simple removal in 1-2 hours.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="content-block" id="pricing">
+        <h2>Simple, transparent pricing</h2>
+        <p class="section-intro">
+            No hidden fees. Flexible hire from one week minimum.
+        </p>
+
+        <div class="pricing-card">
+            <h3>£499 per week</h3>
+            <p class="price">£499.00</p>
+            <p><strong>Includes:</strong> Full oven, hob, sink, fridge/freezer, dishwasher, washing machine, worktops, lighting, and all connections.</p>
+            <p><strong>Delivery & setup:</strong> From £350 (incl. VAT). Nationwide coverage – we'll give you a clear quote before you book.</p>
+            <p style="font-size: 14px; color: #64748b; margin-top: 16px;">Flexible hire terms. Extend if your project takes longer.</p>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="content-block cta-section">
+        <h2>Ready to book your temporary kitchen?</h2>
+        <p>Check live availability and get an instant quote in seconds.</p>
+        <a href="availability.html" class="btn-primary-large">Check Availability Now</a>
+        <p style="font-size: 14px; margin-top: 16px;">Or call us: <a href="tel:+447342606655" style="color: #dc2626; font-weight: 600;">07342 606655</a></p>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact" class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <h3 class="footer-title">Kitchen Rescue</h3>
+                    <p class="footer-description">Temporary kitchen pods for renovations, extensions, and insurance claims.</p>
+                </div>
+                <div class="footer-contact">
+                    <p><strong>Email:</strong> <a href="mailto:hello@thekitchenrescue.co.uk">hello@thekitchenrescue.co.uk</a></p>
+                    <p><strong>Phone:</strong> <a href="tel:+447342606655">07342 606655</a></p>
+                    <p><strong>Area:</strong> Hertfordshire, North London, Essex & nearby</p>
+                </div>
+                <div class="footer-legal">
+                    <p>&copy; 2025 Kitchen Rescue. All rights reserved.</p>
+                    <p><a href="index.html">Back to current site</a></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+
