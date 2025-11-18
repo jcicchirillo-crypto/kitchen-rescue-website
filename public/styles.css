@@ -1229,7 +1229,7 @@ html {
 }
 
 /* Content block styling for dark theme */
-section:not(.hero):not(.features) {
+section:not(.hero):not(.features):not(.spec):not(.gallery) {
     background: #ffffff;
     margin: 2rem auto;
     max-width: 1200px;
@@ -1240,7 +1240,7 @@ section:not(.hero):not(.features) {
 }
 
 @media (min-width: 768px) {
-    section:not(.hero):not(.features) {
+    section:not(.hero):not(.features):not(.spec):not(.gallery) {
         padding: 2.5rem 2rem;
     }
 }
@@ -1260,6 +1260,37 @@ section:not(.hero):not(.features) {
     .hero {
         padding: 3rem 2.5rem;
     }
+}
+
+/* Spec and Gallery sections get dark backgrounds */
+.spec,
+.gallery {
+    margin: 2rem auto;
+    max-width: 1200px;
+    border-radius: 18px;
+    background: linear-gradient(150deg, #141414 0%, #030303 70%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 35px 65px rgba(0, 0, 0, 0.55);
+    padding: 3rem 1rem;
+    color: #ffffff;
+}
+
+@media (min-width: 768px) {
+    .spec,
+    .gallery {
+        padding: 3rem 2.5rem;
+    }
+}
+
+.spec h2,
+.spec h4,
+.gallery h2 {
+    color: #ffffff;
+}
+
+.spec p,
+.gallery p {
+    color: #dedede;
 }
 
 /* Gallery styling to match trade pages */
