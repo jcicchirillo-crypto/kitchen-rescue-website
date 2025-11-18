@@ -593,8 +593,14 @@ body {
 
 /* Features Section */
 .features {
-    background-color: #f8fafc;
-    padding: 3.5rem 0;
+    background: linear-gradient(150deg, #141414 0%, #030303 70%);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 35px 65px rgba(0, 0, 0, 0.55);
+    margin: 2rem auto;
+    max-width: 1200px;
+    padding: 3rem 2rem;
+    color: #ffffff;
 }
 
 .section-title {
@@ -602,6 +608,7 @@ body {
     font-weight: 600;
     margin-bottom: 0.75rem;
     letter-spacing: -0.025em;
+    color: #ffffff;
 }
 
 @media (min-width: 768px) {
@@ -611,7 +618,7 @@ body {
 }
 
 .section-description {
-    color: #64748b;
+    color: #dedede;
     max-width: 32rem;
     margin-bottom: 2.5rem;
     line-height: 1.6;
