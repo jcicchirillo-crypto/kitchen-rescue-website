@@ -1229,7 +1229,7 @@ html {
 }
 
 /* Content block styling for dark theme */
-section:not(.hero) {
+section:not(.hero):not(.features) {
     background: #ffffff;
     margin: 2rem auto;
     max-width: 1200px;
@@ -1240,7 +1240,7 @@ section:not(.hero) {
 }
 
 @media (min-width: 768px) {
-    section:not(.hero) {
+    section:not(.hero):not(.features) {
         padding: 2.5rem 2rem;
     }
 }
