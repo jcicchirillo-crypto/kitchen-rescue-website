@@ -1283,14 +1283,27 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 }
 
 .spec h2,
+.spec h3,
 .spec h4,
-.gallery h2 {
-    color: #ffffff;
+.gallery h2,
+.gallery h3 {
+    color: #ffffff !important;
 }
 
 .spec p,
-.gallery p {
-    color: #dedede;
+.gallery p,
+.spec li,
+.gallery li {
+    color: #dedede !important;
+}
+
+.spec [style*="color: #111827"],
+.spec [style*="color: #374151"],
+.spec [style*="color: #6b7280"],
+.gallery [style*="color: #111827"],
+.gallery [style*="color: #374151"],
+.gallery [style*="color: #6b7280"] {
+    color: #ffffff !important;
 }
 
 /* Gallery styling to match trade pages */
