@@ -535,10 +535,10 @@ body {
     right: -1rem;
     background-color: #ffffff;
     color: #000000;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
     border-radius: 0.75rem;
     padding: 1rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(15, 23, 42, 0.08);
     min-width: 260px;
 }
 
@@ -1235,6 +1235,23 @@ section:not(.hero) {
 @media (min-width: 768px) {
     section:not(.hero) {
         padding: 2.5rem 2rem;
+    }
+}
+
+/* Hero section gets dark background like trade pages */
+.hero {
+    margin: 2rem auto;
+    max-width: 1200px;
+    border-radius: 18px;
+    background: linear-gradient(150deg, #141414 0%, #030303 70%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 35px 65px rgba(0, 0, 0, 0.55);
+    padding: 3rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .hero {
+        padding: 3rem 2.5rem;
     }
 }
 
