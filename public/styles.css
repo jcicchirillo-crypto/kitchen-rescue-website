@@ -379,13 +379,13 @@ body {
     display: grid;
     gap: 2.5rem;
     align-items: center;
-    padding: 3.5rem 0;
+    padding: 1.5rem 0;
 }
 
 @media (min-width: 768px) {
     .hero-content {
         grid-template-columns: 1fr 1fr;
-        padding: 5rem 0;
+        padding: 2rem 0;
     }
 }
 
@@ -533,12 +533,12 @@ body {
     position: absolute;
     bottom: -1rem;
     right: -1rem;
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #000000;
+    color: #ffffff;
     box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
     border-radius: 0.75rem;
     padding: 1rem;
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     min-width: 260px;
 }
 
@@ -546,6 +546,11 @@ body {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+.card-note {
+    color: #dedede;
 }
 
 .postcode-form {
@@ -1284,34 +1289,59 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 
 .spec h2,
 .spec h3,
-.spec h4,
 .gallery h2,
 .gallery h3 {
     color: #ffffff !important;
 }
 
-.spec p,
-.gallery p,
-.spec li,
-.gallery li {
+/* White boxes inside spec section need dark text */
+.spec [style*="background: white"],
+.spec [style*="background:#f9fafb"],
+.spec [style*="background: #f9fafb"],
+.spec [style*="background:#ffffff"] {
+    color: #111827 !important;
+}
+
+.spec [style*="background: white"] h4,
+.spec [style*="background:#f9fafb"] h4,
+.spec [style*="background: #f9fafb"] h4,
+.spec [style*="background:#ffffff"] h4 {
+    color: #111827 !important;
+}
+
+.spec [style*="background: white"] p,
+.spec [style*="background:#f9fafb"] p,
+.spec [style*="background: #f9fafb"] p,
+.spec [style*="background:#ffffff"] p {
+    color: #374151 !important;
+}
+
+/* Dark background text in spec */
+.spec p:not([style*="background"]),
+.spec li:not([style*="background"]) {
     color: #dedede !important;
 }
 
-.spec [style*="color: #111827"],
-.spec [style*="color: #374151"],
-.spec [style*="color: #6b7280"],
-.gallery [style*="color: #111827"],
-.gallery [style*="color: #374151"],
+.spec [style*="color: #111827"]:not([style*="background"]),
+.spec [style*="color: #374151"]:not([style*="background"]) {
+    color: #dedede !important;
+}
+
+/* Gallery text styling */
+.gallery p:not(.gallery-caption) {
+    color: #dedede !important;
+}
+
 .gallery [style*="color: #6b7280"] {
-    color: #ffffff !important;
+    color: #dedede !important;
 }
 
 /* Gallery styling to match trade pages */
 .gallery-section {
-    background: rgba(248, 250, 252, 0.5);
+    background: transparent;
     border-radius: 14px;
-    padding: 20px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    padding: 20px 0;
+    border: none;
     margin-top: 16px;
 }
 
