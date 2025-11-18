@@ -379,13 +379,13 @@ body {
     display: grid;
     gap: 2.5rem;
     align-items: center;
-    padding: 1.5rem 0;
+    padding: 0;
 }
 
 @media (min-width: 768px) {
     .hero-content {
         grid-template-columns: 1fr 1fr;
-        padding: 2rem 0;
+        padding: 0;
     }
 }
 
@@ -626,7 +626,8 @@ body {
     color: #dedede;
     max-width: 32rem;
     margin-bottom: 2.5rem;
-    line-height: 1.6;
+    line-height: 1.7;
+    font-size: 1rem;
 }
 
 .features-grid {
@@ -1252,18 +1253,18 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 
 /* Hero section gets dark background like trade pages */
 .hero {
-    margin: 2rem auto;
+    margin: 0 auto 2rem;
     max-width: 1200px;
     border-radius: 18px;
     background: linear-gradient(150deg, #141414 0%, #030303 70%);
     border: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: 0 35px 65px rgba(0, 0, 0, 0.55);
-    padding: 3rem 1rem;
+    padding: 1.5rem 1rem;
 }
 
 @media (min-width: 768px) {
     .hero {
-        padding: 3rem 2.5rem;
+        padding: 2rem 2.5rem;
     }
 }
 
@@ -1298,21 +1299,32 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 .spec [style*="background: white"],
 .spec [style*="background:#f9fafb"],
 .spec [style*="background: #f9fafb"],
-.spec [style*="background:#ffffff"] {
+.spec [style*="background:#ffffff"],
+.spec [style*="background:white"] {
     color: #111827 !important;
+}
+
+.spec [style*="background: white"] *,
+.spec [style*="background:#f9fafb"] *,
+.spec [style*="background: #f9fafb"] *,
+.spec [style*="background:#ffffff"] *,
+.spec [style*="background:white"] * {
+    color: inherit !important;
 }
 
 .spec [style*="background: white"] h4,
 .spec [style*="background:#f9fafb"] h4,
 .spec [style*="background: #f9fafb"] h4,
-.spec [style*="background:#ffffff"] h4 {
+.spec [style*="background:#ffffff"] h4,
+.spec [style*="background:white"] h4 {
     color: #111827 !important;
 }
 
 .spec [style*="background: white"] p,
 .spec [style*="background:#f9fafb"] p,
 .spec [style*="background: #f9fafb"] p,
-.spec [style*="background:#ffffff"] p {
+.spec [style*="background:#ffffff"] p,
+.spec [style*="background:white"] p {
     color: #374151 !important;
 }
 
@@ -1355,8 +1367,8 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 .gallery-item {
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
 }
 
 .gallery-item img {
@@ -1373,6 +1385,8 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     text-align: center;
     font-weight: 500;
     padding: 8px;
+    background: #ffffff;
+    border-radius: 0 0 12px 12px;
 }
 
 @media (max-width: 640px) {
