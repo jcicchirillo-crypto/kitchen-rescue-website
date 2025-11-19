@@ -247,6 +247,10 @@ body {
     color: #ffffff;
 }
 
+.header .container {
+    padding: 0 36px;
+}
+
 .header-content {
     display: flex;
     align-items: center;
