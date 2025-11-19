@@ -1089,6 +1089,18 @@ body {
     line-height: 1.5;
 }
 
+.footer-legal p:first-child {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    .footer-legal p:first-child {
+        white-space: normal;
+        font-size: 0.6rem;
+    }
+}
+
 .footer-legal p:not(:last-child) {
     margin-bottom: 0.5rem;
 }
