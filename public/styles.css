@@ -1025,9 +1025,7 @@ body {
 
 /* Footer */
 .footer {
-    max-width: 1080px;
-    margin: 0 auto 28px;
-    padding: 32px 28px 36px;
+    padding: 32px 0 36px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     background: transparent;
     color: #dedede;
