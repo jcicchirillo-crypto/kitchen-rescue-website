@@ -593,7 +593,7 @@ body {
     box-shadow: 0 35px 65px rgba(0, 0, 0, 0.55);
     max-width: 1080px;
     margin: 0 auto 28px;
-    padding: 32px 28px 36px;
+    padding: 32px 36px 36px;
     color: #ffffff;
 }
 
@@ -1031,6 +1031,10 @@ body {
     color: #dedede;
 }
 
+.footer .container {
+    padding: 0 36px;
+}
+
 .footer-content {
     display: grid;
     gap: 2rem;
@@ -1185,7 +1189,7 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     background: #ffffff;
     max-width: 1080px;
     margin: 0 auto 28px;
-    padding: 32px 28px 36px;
+    padding: 32px 36px 36px;
     border-radius: 18px;
     border: 1px solid rgba(17, 24, 39, 0.08);
     box-shadow: 0 30px 60px rgba(15, 15, 15, 0.3);
@@ -1212,7 +1216,7 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 .spec {
     max-width: 1080px;
     margin: 0 auto 28px;
-    padding: 32px 28px 36px;
+    padding: 32px 36px 36px;
     border-radius: 18px;
     background: linear-gradient(150deg, #141414 0%, #030303 70%);
     border: 1px solid rgba(255, 255, 255, 0.06);
