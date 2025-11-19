@@ -1274,6 +1274,7 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 .spec [style*="background:#ffffff"] p,
 .spec [style*="background:white"] p {
     color: #000000 !important;
+    font-weight: 600 !important;
 }
 
 /* Dark background text in spec */
