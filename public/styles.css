@@ -1263,14 +1263,6 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 }
 
 /* White boxes inside spec section need dark text */
-.spec [style*="background: white"],
-.spec [style*="background:#f9fafb"],
-.spec [style*="background: #f9fafb"],
-.spec [style*="background:#ffffff"],
-.spec [style*="background:white"] {
-    color: #111827 !important;
-}
-
 .spec [style*="background: white"] h4,
 .spec [style*="background:#f9fafb"] h4,
 .spec [style*="background: #f9fafb"] h4,
