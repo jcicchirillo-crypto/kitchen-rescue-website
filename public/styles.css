@@ -361,13 +361,6 @@ body {
 }
 
 /* Hero Section */
-.hero {
-    position: relative;
-    overflow: hidden;
-    background-color: #000000;
-    color: #ffffff;
-}
-
 .hero-content {
     display: grid;
     gap: 2.5rem;
@@ -677,10 +670,6 @@ body {
 }
 
 /* Spec Section */
-.spec {
-    padding: 3.5rem 0;
-}
-
 .spec-content {
     display: grid;
     gap: 3rem;
@@ -743,11 +732,6 @@ body {
 }
 
 /* Gallery Section */
-.gallery {
-    background-color: #f8fafc;
-    padding: 3.5rem 0;
-}
-
 .gallery-grid {
     display: grid;
     gap: 1rem;
@@ -1213,6 +1197,8 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 
 /* Hero section gets dark background like trade pages - exact match */
 .hero {
+    position: relative;
+    overflow: hidden;
     max-width: 1080px;
     margin: 0 auto 32px;
     padding: 48px 36px;
@@ -1220,6 +1206,7 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     background: linear-gradient(150deg, #141414 0%, #030303 70%);
     border: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: 0 35px 65px rgba(0, 0, 0, 0.55);
+    color: #ffffff;
 }
 
 @media (max-width: 820px) {
