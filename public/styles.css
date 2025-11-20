@@ -1249,7 +1249,7 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
 .gallery {
     max-width: 1080px;
     margin: 0 auto 28px;
-    padding: 32px 28px 36px;
+    padding: 32px 36px 36px;
     border-radius: 18px;
     background: #ffffff;
     border: 1px solid rgba(17, 24, 39, 0.08);
