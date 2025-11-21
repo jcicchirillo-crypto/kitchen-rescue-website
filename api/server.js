@@ -9,8 +9,10 @@ try {
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
+const { buildClientQuotePdf } = require('./lib/buildClientQuotePdf');
 
 // Initialize Stripe only if credentials are available
 let stripe = null;
@@ -933,6 +935,38 @@ app.post('/api/quote/send', async (req, res) => {
             referralCode = `TRADE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         }
         
+        // Build white-label client PDF (NO builder uplift shown to client)
+        let pdfAttachment = null;
+        let pdfUrl = null;
+        try {
+            const totalClientPrice = quote.totalBeforeUplift; // Key: client sees price WITHOUT builder margin
+            
+            const { filePath, publicUrl } = await buildClientQuotePdf({
+                builderName: builderName || 'Your Kitchen Installer',
+                builderLogoUrl: null, // Can be added later if builders upload logos
+                clientPostcode: postcode,
+                weeks,
+                baseHire: quote.basePrice,
+                deliveryFee: quote.deliveryPrice,
+                distanceMiles: quote.distanceMiles,
+                totalClientPrice,
+                startDate
+            });
+            
+            pdfUrl = publicUrl;
+            const pdfBuffer = await fsPromises.readFile(filePath);
+            pdfAttachment = {
+                filename: 'Temporary-Kitchen-Option.pdf',
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+            };
+            
+            console.log('PDF generated successfully:', publicUrl);
+        } catch (pdfError) {
+            console.error('Error generating PDF:', pdfError);
+            // Continue without PDF - don't fail the whole request
+        }
+        
         // Generate quote email HTML
         const quoteEmailHTML = `
             <!DOCTYPE html>
@@ -980,12 +1014,24 @@ app.post('/api/quote/send', async (req, res) => {
                                 <span>Distance:</span>
                                 <span>${quote.distanceMiles?.toFixed(1)} miles</span>
                             </div>
-                            ${builderUplift > 0 ? `<div class="quote-row"><span>Builder Uplift:</span><span>£${Number(builderUplift).toFixed(2)}</span></div>` : ''}
+                            ${builderUplift > 0 ? `<div class="quote-row"><span>Your uplift (not shown to client):</span><span>£${Number(builderUplift).toFixed(2)}</span></div>` : ''}
                             <div class="quote-row">
-                                <span>Total:</span>
-                                <span>£${quote.totalAfterUplift.toFixed(2)}</span>
+                                <span>Total to client (excl. uplift):</span>
+                                <span>£${quote.totalBeforeUplift.toFixed(2)}</span>
                             </div>
+                            ${builderUplift > 0 ? `<div class="quote-row" style="color: #dc2626;">
+                                <span>Your total (with uplift):</span>
+                                <span>£${quote.totalAfterUplift.toFixed(2)}</span>
+                            </div>` : ''}
                         </div>
+                        
+                        ${pdfAttachment ? `
+                        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                            <p style="margin: 0;"><strong>📎 Client PDF Attached</strong></p>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">A white-label client-friendly PDF is attached. You can include this in your quote pack - it shows the client price (no uplift) and has no Kitchen Rescue branding.</p>
+                            ${pdfUrl ? `<p style="margin: 5px 0 0 0; font-size: 0.85em; color: #6b7280;">Backup link: ${pdfUrl}</p>` : ''}
+                        </div>
+                        ` : ''}
                         
                         ${referralCode ? `
                         <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
@@ -1011,24 +1057,32 @@ app.post('/api/quote/send', async (req, res) => {
             const mailOptions = {
                 from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
                 to: builderEmail,
-                subject: `Your Kitchen Rescue Quote - ${postcode}`,
-                html: quoteEmailHTML
+                subject: `Kitchen Rescue Trade Quote – ${postcode}`,
+                html: quoteEmailHTML,
+                attachments: pdfAttachment ? [pdfAttachment] : []
             };
             
             try {
                 await transporter.sendMail(mailOptions);
                 console.log('Trade quote email sent successfully to:', builderEmail);
+                if (pdfAttachment) {
+                    console.log('PDF attached to email');
+                }
             } catch (emailError) {
                 console.error('Error sending trade quote email:', emailError.message);
                 return res.status(500).json({ error: 'Failed to send email' });
             }
         } else {
             console.log('Email not configured - quote details:', { builderName, builderEmail, postcode, quote, referralCode });
+            if (pdfUrl) {
+                console.log('PDF generated but email not configured. PDF URL:', pdfUrl);
+            }
         }
         
         res.json({
             success: true,
-            referralCode: referralCode || undefined
+            referralCode: referralCode || undefined,
+            pdfUrl: pdfUrl || undefined
         });
         
     } catch (error) {
