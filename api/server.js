@@ -1034,7 +1034,7 @@ app.post('/api/quote/send', async (req, res) => {
                         ${referralCode ? `
                         <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
                             <p style="margin: 0;"><strong>Your Referral Code: ${referralCode}</strong></p>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">You'll earn £50 per booking when your client uses this code!</p>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">You'll earn £50 per booking when your client uses this code during booking.</p>
                         </div>
                         ` : ''}
                         

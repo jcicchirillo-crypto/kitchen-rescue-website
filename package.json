@@ -9,7 +9,6 @@
     "build": "cd admin && npm install && npm run build"
   },
   "dependencies": {
-    "@sparticuz/chromium-min": "^141.0.0",
     "@supabase/supabase-js": "^2.76.1",
     "@vercel/kv": "^3.0.0",
     "cors": "^2.8.5",
@@ -18,7 +17,7 @@
     "intuit-oauth": "^4.2.1",
     "node-quickbooks": "^2.0.46",
     "nodemailer": "^6.10.1",
-    "puppeteer-core": "^24.31.0",
+    "pdf-lib": "^1.17.1",
     "stripe": "^14.0.0"
   },
   "devDependencies": {
