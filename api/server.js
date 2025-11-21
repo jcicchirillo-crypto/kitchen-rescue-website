@@ -9,6 +9,7 @@ try {
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
 const { buildClientQuotePdf } = require('./lib/buildClientQuotePdf');
@@ -931,7 +932,14 @@ app.post('/api/quote/send', async (req, res) => {
         // Generate referral code if requested
         let referralCode = null;
         if (includeReferral) {
-            referralCode = `TRADE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            referralCode =
+                'KR-' +
+                crypto
+                    .createHash('sha256')
+                    .update(builderEmail + Date.now().toString())
+                    .digest('hex')
+                    .slice(0, 8)
+                    .toUpperCase();
         }
         
         // Build white-label client PDF (NO builder uplift shown to client)
@@ -1077,7 +1085,7 @@ app.post('/api/quote/send', async (req, res) => {
         
         res.json({
             success: true,
-            referralCode: referralCode || undefined
+            referralCode
         });
         
     } catch (error) {
