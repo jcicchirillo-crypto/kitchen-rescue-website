@@ -17,6 +17,7 @@
     "intuit-oauth": "^4.2.1",
     "node-quickbooks": "^2.0.46",
     "nodemailer": "^6.10.1",
+    "puppeteer": "^24.31.0",
     "stripe": "^14.0.0"
   },
   "devDependencies": {
