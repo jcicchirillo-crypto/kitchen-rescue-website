@@ -1,15 +1,18 @@
 // PDF builder using Puppeteer Core with Chromium (Vercel-safe)
 const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
+const chromium = require('@sparticuz/chromium-min');
 const { renderClientQuoteHTML } = require('./pdfTemplates/clientQuoteTemplate');
 
 async function buildClientQuotePdf(params) {
   const html = renderClientQuoteHTML(params);
 
+  const execPath = await chromium.executablePath();
+  console.log('Chromium exec path:', execPath);
+
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath(),
+    executablePath: execPath,
     headless: chromium.headless,
   });
 
@@ -21,6 +24,8 @@ async function buildClientQuotePdf(params) {
     printBackground: true,
     margin: { top: '14mm', right: '12mm', bottom: '14mm', left: '12mm' }
   });
+
+  console.log('PDF bytes:', pdfBuffer.length);
 
   await browser.close();
 

@@ -9,7 +9,7 @@
     "build": "cd admin && npm install && npm run build"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^141.0.0",
+    "@sparticuz/chromium-min": "^141.0.0",
     "@supabase/supabase-js": "^2.76.1",
     "@vercel/kv": "^3.0.0",
     "cors": "^2.8.5",
