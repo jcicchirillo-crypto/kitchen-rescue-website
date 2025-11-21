@@ -32,5 +32,8 @@
     "payments"
   ],
   "author": "Kitchen Rescue",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": "20.x"
+  }
 }
