@@ -920,178 +920,144 @@ app.post('/api/quote/calculate', async (req, res) => {
     }
 });
 
-// Trade Quote Send Endpoint
+// Trade Quote Send Endpoint (BULLETPROOF)
 app.post('/api/quote/send', async (req, res) => {
-    try {
-        const { builderName, builderEmail, postcode, weeks, startDate, builderUplift, includeReferral, quote } = req.body;
-        
-        if (!builderEmail || !quote) {
-            return res.status(400).json({ error: 'Builder email and quote are required' });
-        }
-        
-        // Generate referral code if requested
-        let referralCode = null;
-        if (includeReferral) {
-            referralCode =
-                'KR-' +
-                crypto
-                    .createHash('sha256')
-                    .update(builderEmail + Date.now().toString())
-                    .digest('hex')
-                    .slice(0, 8)
-                    .toUpperCase();
-        }
-        
-        // Build white-label client PDF (NO builder uplift shown to client)
-        let pdfBuffer = null;
-        try {
-            const totalClientPrice = quote.totalBeforeUplift; // no trade uplift shown
-            
-            const result = await buildClientQuotePdf({
-                builderName: builderName || 'Your Kitchen Installer',
-                builderLogoUrl: null,
-                clientPostcode: postcode,
-                weeks,
-                baseHire: quote.basePrice,
-                deliveryFee: quote.deliveryPrice,
-                distanceMiles: quote.distanceMiles,
-                totalClientPrice,
-                startDate
-            });
-            
-            pdfBuffer = result.pdfBuffer;
-            console.log('PDF generated successfully as buffer');
-        } catch (pdfError) {
-            console.error('Error generating PDF:', pdfError);
-            // Continue without PDF - don't fail the whole request
-        }
-        
-        // Generate quote email HTML
-        const quoteEmailHTML = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: #dc2626; color: white; padding: 20px; text-align: center; }
-                    .content { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
-                    .quote-details { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
-                    .quote-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
-                    .quote-row:last-child { border-bottom: none; font-weight: bold; font-size: 1.1em; }
-                    .footer { text-align: center; color: #6b7280; font-size: 0.9em; margin-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>Kitchen Rescue - Trade Quote</h1>
-                    </div>
-                    <div class="content">
-                        <p>Hi ${builderName || 'Builder'},</p>
-                        <p>Here's your quote for your client:</p>
-                        
-                        <div class="quote-details">
-                            <div class="quote-row">
-                                <span>Customer Postcode:</span>
-                                <span>${postcode}</span>
-                            </div>
-                            <div class="quote-row">
-                                <span>Duration:</span>
-                                <span>${weeks} week${weeks > 1 ? 's' : ''}</span>
-                            </div>
-                            ${startDate ? `<div class="quote-row"><span>Start Date:</span><span>${startDate}</span></div>` : ''}
-                            <div class="quote-row">
-                                <span>Base Hire:</span>
-                                <span>£${quote.basePrice.toFixed(2)}</span>
-                            </div>
-                            <div class="quote-row">
-                                <span>Delivery & Collection:</span>
-                                <span>£${quote.deliveryPrice.toFixed(2)}</span>
-                            </div>
-                            <div class="quote-row">
-                                <span>Distance:</span>
-                                <span>${quote.distanceMiles?.toFixed(1)} miles</span>
-                            </div>
-                            ${builderUplift > 0 ? `<div class="quote-row"><span>Your uplift (not shown to client):</span><span>£${Number(builderUplift).toFixed(2)}</span></div>` : ''}
-                            <div class="quote-row">
-                                <span>Total to client (excl. uplift):</span>
-                                <span>£${quote.totalBeforeUplift.toFixed(2)}</span>
-                            </div>
-                            ${builderUplift > 0 ? `<div class="quote-row" style="color: #dc2626;">
-                                <span>Your total (with uplift):</span>
-                                <span>£${quote.totalAfterUplift.toFixed(2)}</span>
-                            </div>` : ''}
-                        </div>
-                        
-                        ${pdfBuffer ? `
-                        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
-                            <p style="margin: 0;"><strong>📎 Client PDF Attached</strong></p>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">A white-label client-friendly PDF is attached. You can include this in your quote pack - it shows the client price (no uplift) and has no Kitchen Rescue branding.</p>
-                        </div>
-                        ` : ''}
-                        
-                        ${referralCode ? `
-                        <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
-                            <p style="margin: 0;"><strong>Your Referral Code: ${referralCode}</strong></p>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">You'll earn £50 per booking when your client uses this code during booking.</p>
-                        </div>
-                        ` : ''}
-                        
-                        <p>This quote is valid for 30 days. Final booking will be handled directly by Kitchen Rescue.</p>
-                        
-                        <p>Best regards,<br>Kitchen Rescue Team</p>
-                    </div>
-                    <div class="footer">
-                        <p>Kitchen Rescue | hello@thekitchenrescue.co.uk | +44 7342 606655</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-        
-        // Send email if transporter is configured
-        if (transporter) {
-            const mailOptions = {
-                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
-                to: builderEmail,
-                subject: `Kitchen Rescue Trade Quote – ${postcode}`,
-                html: quoteEmailHTML,
-                attachments: pdfBuffer ? [
-                    {
-                        filename: 'Temporary-Kitchen-Option.pdf',
-                        content: pdfBuffer,
-                        contentType: 'application/pdf'
-                    }
-                ] : []
-            };
-            
-            try {
-                await transporter.sendMail(mailOptions);
-                console.log('Trade quote email sent successfully to:', builderEmail);
-                if (pdfBuffer) {
-                    console.log('PDF attached to email');
-                }
-            } catch (emailError) {
-                console.error('Error sending trade quote email:', emailError.message);
-                return res.status(500).json({ error: 'Failed to send email' });
-            }
-        } else {
-            console.log('Email not configured - quote details:', { builderName, builderEmail, postcode, quote, referralCode });
-            if (pdfBuffer) {
-                console.log('PDF generated but email not configured. PDF is ready as buffer.');
-            }
-        }
-        
-        res.json({
-            success: true,
-            referralCode
-        });
-        
-    } catch (error) {
-        console.error('Error sending trade quote:', error);
-        res.status(500).json({ error: 'Failed to send quote' });
+  try {
+    const {
+      builderName,
+      builderEmail,
+      postcode,
+      weeks,
+      startDate,
+      builderUplift = 0,
+      includeReferral = false,
+      quote,
+    } = req.body || {};
+
+    if (!builderEmail || !quote) {
+      return res.status(400).json({ error: 'Builder email and quote are required' });
     }
+
+    // --- Referral code: NEVER let it break the flow
+    let referralCode = null;
+    try {
+      if (includeReferral) {
+        // simple + safe
+        referralCode = 'KR-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+      }
+    } catch (refErr) {
+      console.error('Referral code error:', refErr);
+      referralCode = null;
+    }
+
+    // --- Build white-label client PDF (NO uplift shown to client)
+    let pdfBuffer = null;
+    try {
+      const totalClientPrice = quote.totalBeforeUplift; // key: no trade uplift
+
+      const result = await buildClientQuotePdf({
+        builderName: builderName || 'Your Kitchen Installer',
+        clientPostcode: postcode,
+        weeks,
+        baseHire: quote.basePrice,
+        deliveryFee: quote.deliveryPrice,
+        distanceMiles: quote.distanceMiles,
+        totalClientPrice,
+        startDate: startDate || null,
+      });
+
+      pdfBuffer = result?.pdfBuffer || null;
+      if (pdfBuffer) {
+        console.log('PDF generated bytes:', pdfBuffer.length);
+      } else {
+        console.log('PDF generation returned null buffer');
+      }
+    } catch (pdfErr) {
+      console.error('PDF generation error:', pdfErr);
+      pdfBuffer = null; // continue without PDF
+    }
+
+    // --- Email HTML (no clickable referral link to avoid NOT_FOUND)
+    const quoteEmailHTML = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
+        <div style="background:#dc2626;color:#fff;padding:18px;text-align:center;border-radius:8px;">
+          <h1 style="margin:0;font-size:20px;">Kitchen Rescue – Trade Quote</h1>
+        </div>
+
+        <div style="background:#f9fafb;padding:16px;border-radius:8px;margin-top:16px;">
+          <p>Hi ${builderName || 'Builder'},</p>
+          <p>Here's your quote for your client:</p>
+
+          <div style="background:#fff;padding:12px;border-radius:8px;margin:12px 0;">
+            <p><strong>Postcode:</strong> ${postcode}</p>
+            <p><strong>Duration:</strong> ${weeks} week(s)</p>
+            ${startDate ? `<p><strong>Start date:</strong> ${startDate}</p>` : ''}
+            <p><strong>Base hire:</strong> £${quote.basePrice.toFixed(2)}</p>
+            <p><strong>Delivery & collection:</strong> £${quote.deliveryPrice.toFixed(2)}</p>
+            <p><strong>Distance:</strong> ${quote.distanceMiles?.toFixed(1)} miles</p>
+            <p><strong>Total to client (excl. uplift):</strong> £${quote.totalBeforeUplift.toFixed(2)}</p>
+            ${
+              builderUplift > 0
+                ? `<p style="color:#dc2626;"><strong>Your total (with uplift):</strong> £${quote.totalAfterUplift.toFixed(2)}</p>`
+                : ''
+            }
+          </div>
+
+          ${
+            pdfBuffer
+              ? `<p style="background:#eff6ff;padding:10px;border-left:4px solid #3b82f6;border-radius:6px;">
+                   📎 A white-label client PDF is attached for your quote pack.
+                 </p>`
+              : `<p style="color:#666;font-size:13px;">
+                   (PDF not attached this time — we're still finalising the generator.)
+                 </p>`
+          }
+
+          ${
+            referralCode
+              ? `<p style="background:#ecfdf5;padding:10px;border-left:4px solid #10b981;border-radius:6px;">
+                   <strong>Your referral code:</strong> ${referralCode}<br/>
+                   You earn £50 per booking using this code.
+                 </p>`
+              : ''
+          }
+
+          <p>Quote valid for 30 days. Final booking handled directly by Kitchen Rescue.</p>
+          <p>Best regards,<br/>Kitchen Rescue Team</p>
+        </div>
+      </div>
+    `;
+
+    // --- Send email
+    if (!transporter) {
+      console.log('Email transporter not configured — skipping send.');
+      return res.json({ success: true, referralCode });
+    }
+
+    const mailOptions = {
+      from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+      to: builderEmail,
+      subject: `Kitchen Rescue Trade Quote – ${postcode}`,
+      html: quoteEmailHTML,
+      attachments: pdfBuffer
+        ? [
+            {
+              filename: 'Temporary-Kitchen-Option.pdf',
+              content: pdfBuffer,
+              contentType: 'application/pdf',
+            },
+          ]
+        : [],
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('Trade quote email sent to:', builderEmail);
+
+    return res.json({ success: true, referralCode });
+  } catch (err) {
+    console.error('SEND ENDPOINT CRASH:', err);
+    return res.status(500).json({ error: 'Failed to send quote' });
+  }
 });
 
 // Start server
