@@ -839,6 +839,204 @@ async function findOrCreateCustomer(booking) {
     }
 }
 
+// Trade Quote Calculation Endpoint
+app.post('/api/quote/calculate', async (req, res) => {
+    try {
+        const { postcode, weeks, builderUplift = 0, includeReferral = false, startDate } = req.body;
+        
+        if (!postcode || !weeks || weeks < 1) {
+            return res.status(400).json({ error: 'Postcode and weeks (minimum 1) are required' });
+        }
+        
+        // Calculate distance from postcode (using same logic as availability.html)
+        const postcodeArea = postcode.trim().toUpperCase().substring(0, 2);
+        const distanceMap = {
+            // Hertfordshire & nearby (0-50 miles)
+            'EN': 5, 'AL': 15, 'HP': 20, 'LU': 25, 'MK': 30, 'SG': 35, 'CB': 40, 'CM': 45, 'CO': 50,
+            // London areas (10-30 miles)
+            'E': 15, 'EC': 20, 'N': 10, 'NW': 12, 'SE': 18, 'SW': 20, 'W': 15, 'WC': 18,
+            'IG': 20, 'RM': 25, 'DA': 25, 'BR': 30, 'CR': 35, 'KT': 40, 'SM': 35, 'TW': 45,
+            'UB': 50, 'HA': 40, 'WD': 45,
+            // South East (50-100 miles)
+            'SL': 55, 'RG': 60, 'GU': 65, 'PO': 70, 'SO': 75, 'BH': 80, 'DT': 85, 'SP': 90, 'OX': 95,
+            // Midlands (100-150 miles)
+            'BA': 105, 'SN': 110, 'WR': 115, 'CV': 120, 'B': 125, 'DY': 130, 'WS': 135, 'WV': 140,
+            'ST': 145, 'TF': 150,
+            // North England (150-200 miles)
+            'SY': 155, 'HR': 160, 'LD': 165, 'NP': 170, 'CF': 175, 'SA': 180, 'LL': 185, 'CH': 190,
+            'L': 195, 'M': 200, 'SK': 205, 'OL': 210, 'BL': 215, 'PR': 220, 'FY': 225,
+            // North England & Scotland (200-300+ miles)
+            'BB': 230, 'BD': 235, 'HD': 240, 'HX': 245, 'LS': 250, 'S': 255, 'WF': 260,
+            'DN': 265, 'HU': 270, 'YO': 275, 'NE': 280, 'DH': 285, 'SR': 290, 'TS': 295,
+            'DL': 300, 'HG': 305, 'LA': 310, 'CA': 315, 'TD': 320, 'EH': 325, 'FK': 330,
+            'G': 335, 'KA': 340, 'KY': 345, 'ML': 350, 'PA': 355, 'PH': 360, 'AB': 365,
+            'DD': 370, 'IV': 375, 'KW': 380, 'ZE': 385
+        };
+        
+        const estimatedMiles = distanceMap[postcodeArea] || 100;
+        
+        // Calculate delivery/collection cost based on distance
+        const deliveryRates = [
+            { maxMiles: 50, price: 75 },
+            { maxMiles: 100, price: 100 },
+            { maxMiles: 150, price: 125 },
+            { maxMiles: 200, price: 150 },
+            { maxMiles: 300, price: 225 }
+        ];
+        
+        let individualDeliveryCost = deliveryRates[deliveryRates.length - 1].price;
+        for (const rate of deliveryRates) {
+            if (estimatedMiles <= rate.maxMiles) {
+                individualDeliveryCost = rate.price;
+                break;
+            }
+        }
+        
+        const deliveryPrice = individualDeliveryCost * 2; // Delivery + collection
+        
+        // Calculate base hire cost (£70/day or weekly rate)
+        const days = weeks * 7;
+        const basePrice = days * 70;
+        
+        // Calculate totals
+        const totalBeforeUplift = basePrice + deliveryPrice;
+        const totalAfterUplift = totalBeforeUplift + (Number(builderUplift) || 0);
+        
+        res.json({
+            basePrice,
+            deliveryPrice,
+            totalBeforeUplift,
+            totalAfterUplift,
+            distanceMiles: estimatedMiles,
+            weeks,
+            days
+        });
+        
+    } catch (error) {
+        console.error('Error calculating quote:', error);
+        res.status(500).json({ error: 'Failed to calculate quote' });
+    }
+});
+
+// Trade Quote Send Endpoint
+app.post('/api/quote/send', async (req, res) => {
+    try {
+        const { builderName, builderEmail, postcode, weeks, startDate, builderUplift, includeReferral, quote } = req.body;
+        
+        if (!builderEmail || !quote) {
+            return res.status(400).json({ error: 'Builder email and quote are required' });
+        }
+        
+        // Generate referral code if requested
+        let referralCode = null;
+        if (includeReferral) {
+            referralCode = `TRADE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        }
+        
+        // Generate quote email HTML
+        const quoteEmailHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: #dc2626; color: white; padding: 20px; text-align: center; }
+                    .content { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                    .quote-details { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                    .quote-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+                    .quote-row:last-child { border-bottom: none; font-weight: bold; font-size: 1.1em; }
+                    .footer { text-align: center; color: #6b7280; font-size: 0.9em; margin-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Kitchen Rescue - Trade Quote</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hi ${builderName || 'Builder'},</p>
+                        <p>Here's your quote for your client:</p>
+                        
+                        <div class="quote-details">
+                            <div class="quote-row">
+                                <span>Customer Postcode:</span>
+                                <span>${postcode}</span>
+                            </div>
+                            <div class="quote-row">
+                                <span>Duration:</span>
+                                <span>${weeks} week${weeks > 1 ? 's' : ''}</span>
+                            </div>
+                            ${startDate ? `<div class="quote-row"><span>Start Date:</span><span>${startDate}</span></div>` : ''}
+                            <div class="quote-row">
+                                <span>Base Hire:</span>
+                                <span>£${quote.basePrice.toFixed(2)}</span>
+                            </div>
+                            <div class="quote-row">
+                                <span>Delivery & Collection:</span>
+                                <span>£${quote.deliveryPrice.toFixed(2)}</span>
+                            </div>
+                            <div class="quote-row">
+                                <span>Distance:</span>
+                                <span>${quote.distanceMiles?.toFixed(1)} miles</span>
+                            </div>
+                            ${builderUplift > 0 ? `<div class="quote-row"><span>Builder Uplift:</span><span>£${Number(builderUplift).toFixed(2)}</span></div>` : ''}
+                            <div class="quote-row">
+                                <span>Total:</span>
+                                <span>£${quote.totalAfterUplift.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        
+                        ${referralCode ? `
+                        <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+                            <p style="margin: 0;"><strong>Your Referral Code: ${referralCode}</strong></p>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">You'll earn £50 per booking when your client uses this code!</p>
+                        </div>
+                        ` : ''}
+                        
+                        <p>This quote is valid for 30 days. Final booking will be handled directly by Kitchen Rescue.</p>
+                        
+                        <p>Best regards,<br>Kitchen Rescue Team</p>
+                    </div>
+                    <div class="footer">
+                        <p>Kitchen Rescue | hello@thekitchenrescue.co.uk | +44 7342 606655</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // Send email if transporter is configured
+        if (transporter) {
+            const mailOptions = {
+                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                to: builderEmail,
+                subject: `Your Kitchen Rescue Quote - ${postcode}`,
+                html: quoteEmailHTML
+            };
+            
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log('Trade quote email sent successfully to:', builderEmail);
+            } catch (emailError) {
+                console.error('Error sending trade quote email:', emailError.message);
+                return res.status(500).json({ error: 'Failed to send email' });
+            }
+        } else {
+            console.log('Email not configured - quote details:', { builderName, builderEmail, postcode, quote, referralCode });
+        }
+        
+        res.json({
+            success: true,
+            referralCode: referralCode || undefined
+        });
+        
+    } catch (error) {
+        console.error('Error sending trade quote:', error);
+        res.status(500).json({ error: 'Failed to send quote' });
+    }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

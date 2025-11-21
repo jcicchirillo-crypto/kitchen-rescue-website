@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trade Quick Quote • Kitchen Rescue</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="Quick quote builder for trade partners. Get instant quotes for your clients with referral codes."
+  />
+  <link rel="canonical" href="https://www.thekitchenrescue.co.uk/trade-quote.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap"
+    rel="stylesheet"
+  />
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QM819YH8XY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QM819YH8XY');
+  </script>
+
+  <style>
+    :root {
+      --bg: #040404;
+      --bg-alt: #191919;
+      --text: #ffffff;
+      --muted: #dedede;
+      --accent: #e63946;
+      --card-bg: #222222;
+      --border-soft: #3a3a3a;
+      --section-alt: #252525;
+      --max-width: 1080px;
+      --radius-xl: 18px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 0%, #1a1a1a 0%, #040404 50%, #010101 100%);
+      color: var(--text);
+      font-size: clamp(17px, 1.2vw, 19px);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(18px);
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.9),
+        rgba(0, 0, 0, 0.75)
+      );
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo img {
+      height: 32px;
+      width: auto;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      font-size: 12px;
+      color: var(--muted);
+      transition: color 0.2s ease;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    @media (max-width: 640px) {
+      .nav-links {
+        display: none;
+      }
+    }
+
+    .nav-cta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      margin-left: auto;
+    }
+
+    .btn-small {
+      border-radius: 999px;
+      padding: 7px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      background: rgba(20, 20, 20, 0.9);
+      transition: background 0.18s ease, border-color 0.18s ease,
+        transform 0.18s ease;
+      color: #fff;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-small.accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-small.accent:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-small:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    main {
+      flex: 1;
+      padding: 48px 20px;
+    }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+    }
+
+    .quote-section {
+      background: #ffffff;
+      border-radius: var(--radius-xl);
+      padding: 32px 36px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+      margin-bottom: 24px;
+    }
+
+    .quote-section h1 {
+      font-size: clamp(28px, 3vw, 36px);
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .quote-section p {
+      color: #475569;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      color: #0f172a;
+      background: #fff;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-group small {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      font-size: 14px;
+      color: #0f172a;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border: none;
+      border-radius: 999px;
+      padding: 13px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(230, 57, 70, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+
+    .quote-summary {
+      background: #f8fafc;
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      margin-top: 24px;
+    }
+
+    .quote-summary h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 16px;
+    }
+
+    .quote-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #334155;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .quote-row:last-child {
+      border-bottom: none;
+      font-weight: 700;
+      font-size: 16px;
+      color: #0f172a;
+      margin-top: 8px;
+      padding-top: 12px;
+    }
+
+    .email-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .email-section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 16px;
+    }
+
+    .success-message {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="nav-inner">
+        <div class="logo">
+          <a href="/index.html">
+            <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" />
+          </a>
+        </div>
+        <nav class="nav-links">
+          <a href="/index.html">Home</a>
+          <a href="/trade-partners.html">Trade Partners</a>
+          <a href="/availability.html">Availability</a>
+          <a href="/index.html#contact">Contact</a>
+        </nav>
+        <div class="nav-cta">
+          <a href="/trade-partners.html" class="btn-small">Back to Trade Page</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <div class="quote-section">
+          <h1>Trade Quick Quote</h1>
+          <p>Just pop in postcode + duration and we'll email you a quote you can paste into your client proposal.</p>
+
+          <form id="quoteForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="postcode">Customer Postcode *</label>
+                <input
+                  type="text"
+                  id="postcode"
+                  placeholder="e.g. EN11 8XX"
+                  required
+                  value=""
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="weeks">Duration (weeks) *</label>
+                <input
+                  type="number"
+                  id="weeks"
+                  min="1"
+                  required
+                  value="2"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="startDate">Start date (optional)</label>
+                <input
+                  type="date"
+                  id="startDate"
+                  value=""
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="builderUplift">Builder admin uplift (£)</label>
+                <input
+                  type="number"
+                  id="builderUplift"
+                  min="0"
+                  placeholder="0"
+                  value="0"
+                />
+                <small>Optional margin/admin cost you want included on top.</small>
+              </div>
+            </div>
+
+            <div class="checkbox-group">
+              <input
+                type="checkbox"
+                id="includeReferral"
+                checked
+              />
+              <label for="includeReferral">Generate my referral code (earns £50 per booking)</label>
+            </div>
+
+            <button
+              type="submit"
+              class="btn-primary"
+              id="calculateBtn"
+            >
+              Calculate Quote
+            </button>
+          </form>
+
+          <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+          <div id="quoteSummary" class="quote-summary" style="display: none;">
+            <h2>Quote Summary</h2>
+            <div id="quoteDetails"></div>
+
+            <div class="email-section">
+              <h3>Email Quote to Me</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="builderName">Builder name</label>
+                  <input
+                    type="text"
+                    id="builderName"
+                    placeholder="Your name"
+                    value=""
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="builderEmail">Builder email *</label>
+                  <input
+                    type="email"
+                    id="builderEmail"
+                    placeholder="your@email.com"
+                    required
+                    value=""
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn-primary"
+                id="sendEmailBtn"
+                style="background: #10b981; margin-top: 16px;"
+              >
+                Email Quote to Me
+              </button>
+              <div id="sendStatus" style="margin-top: 16px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const quoteForm = document.getElementById('quoteForm');
+    const calculateBtn = document.getElementById('calculateBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const quoteSummary = document.getElementById('quoteSummary');
+    const quoteDetails = document.getElementById('quoteDetails');
+    const sendEmailBtn = document.getElementById('sendEmailBtn');
+    const sendStatus = document.getElementById('sendStatus');
+
+    let currentQuote = null;
+
+    quoteForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const postcode = document.getElementById('postcode').value.trim();
+      const weeks = parseInt(document.getElementById('weeks').value);
+      const startDate = document.getElementById('startDate').value || null;
+      const builderUplift = parseFloat(document.getElementById('builderUplift').value) || 0;
+      const includeReferral = document.getElementById('includeReferral').checked;
+
+      if (!postcode || postcode.length < 5) {
+        showError('Please enter a valid postcode (minimum 5 characters)');
+        return;
+      }
+
+      if (!weeks || weeks < 1) {
+        showError('Please enter a valid number of weeks (minimum 1)');
+        return;
+      }
+
+      calculateBtn.disabled = true;
+      calculateBtn.textContent = 'Calculating...';
+      errorMessage.style.display = 'none';
+      quoteSummary.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/quote/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            postcode,
+            weeks,
+            builderUplift,
+            includeReferral,
+            startDate
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Quote calculation failed');
+        }
+
+        const quote = await response.json();
+        currentQuote = quote;
+        displayQuote(quote, builderUplift);
+        
+      } catch (err) {
+        showError(err.message || 'Something went wrong. Please try again.');
+      } finally {
+        calculateBtn.disabled = false;
+        calculateBtn.textContent = 'Calculate Quote';
+      }
+    });
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    function displayQuote(quote, builderUplift) {
+      quoteDetails.innerHTML = `
+        <div class="quote-row">
+          <span>Base hire</span>
+          <span>£${quote.basePrice.toFixed(2)}</span>
+        </div>
+        <div class="quote-row">
+          <span>Delivery / collection</span>
+          <span>£${quote.deliveryPrice.toFixed(2)}</span>
+        </div>
+        <div class="quote-row">
+          <span>Distance</span>
+          <span>${quote.distanceMiles?.toFixed(1) || 'N/A'} miles</span>
+        </div>
+        ${builderUplift > 0 ? `
+        <div class="quote-row">
+          <span>Builder uplift</span>
+          <span>£${Number(builderUplift).toFixed(2)}</span>
+        </div>
+        ` : ''}
+        <div class="quote-row">
+          <span>Total</span>
+          <span>£${quote.totalAfterUplift.toFixed(2)}</span>
+        </div>
+      `;
+
+      quoteSummary.style.display = 'block';
+      sendStatus.innerHTML = '';
+    }
+
+    sendEmailBtn.addEventListener('click', async () => {
+      if (!currentQuote) {
+        sendStatus.innerHTML = '<div class="error-message">Please calculate quote first.</div>';
+        return;
+      }
+
+      const builderEmail = document.getElementById('builderEmail').value.trim();
+      if (!builderEmail) {
+        sendStatus.innerHTML = '<div class="error-message">Please add builder email.</div>';
+        return;
+      }
+
+      const builderName = document.getElementById('builderName').value.trim();
+      const postcode = document.getElementById('postcode').value.trim();
+      const weeks = parseInt(document.getElementById('weeks').value);
+      const startDate = document.getElementById('startDate').value || null;
+      const builderUplift = parseFloat(document.getElementById('builderUplift').value) || 0;
+      const includeReferral = document.getElementById('includeReferral').checked;
+
+      sendEmailBtn.disabled = true;
+      sendEmailBtn.textContent = 'Sending...';
+      sendStatus.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/quote/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            builderName,
+            builderEmail,
+            postcode,
+            weeks,
+            startDate,
+            builderUplift,
+            includeReferral,
+            quote: currentQuote
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Email sending failed');
+        }
+
+        const data = await response.json();
+        
+        if (data.referralCode) {
+          sendStatus.innerHTML = `
+            <div class="success-message">
+              Quote sent! Referral code: <strong>${data.referralCode}</strong>
+            </div>
+          `;
+        } else {
+          sendStatus.innerHTML = `
+            <div class="success-message">
+              Quote sent successfully!
+            </div>
+          `;
+        }
+
+      } catch (err) {
+        sendStatus.innerHTML = `
+          <div class="error-message">
+            ${err.message || 'Could not send email. Please try again.'}
+          </div>
+        `;
+      } finally {
+        sendEmailBtn.disabled = false;
+        sendEmailBtn.textContent = 'Email Quote to Me';
+      }
+    });
+  </script>
+</body>
+</html>
+
