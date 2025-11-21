@@ -9,7 +9,6 @@ try {
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const fsPromises = require('fs').promises;
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
 const { buildClientQuotePdf } = require('./lib/buildClientQuotePdf');
@@ -936,14 +935,13 @@ app.post('/api/quote/send', async (req, res) => {
         }
         
         // Build white-label client PDF (NO builder uplift shown to client)
-        let pdfAttachment = null;
-        let pdfUrl = null;
+        let pdfBuffer = null;
         try {
-            const totalClientPrice = quote.totalBeforeUplift; // Key: client sees price WITHOUT builder margin
+            const totalClientPrice = quote.totalBeforeUplift; // no trade uplift shown
             
-            const { filePath, publicUrl } = await buildClientQuotePdf({
+            const result = await buildClientQuotePdf({
                 builderName: builderName || 'Your Kitchen Installer',
-                builderLogoUrl: null, // Can be added later if builders upload logos
+                builderLogoUrl: null,
                 clientPostcode: postcode,
                 weeks,
                 baseHire: quote.basePrice,
@@ -953,15 +951,8 @@ app.post('/api/quote/send', async (req, res) => {
                 startDate
             });
             
-            pdfUrl = publicUrl;
-            const pdfBuffer = await fsPromises.readFile(filePath);
-            pdfAttachment = {
-                filename: 'Temporary-Kitchen-Option.pdf',
-                content: pdfBuffer,
-                contentType: 'application/pdf'
-            };
-            
-            console.log('PDF generated successfully:', publicUrl);
+            pdfBuffer = result.pdfBuffer;
+            console.log('PDF generated successfully as buffer');
         } catch (pdfError) {
             console.error('Error generating PDF:', pdfError);
             // Continue without PDF - don't fail the whole request
@@ -1025,11 +1016,10 @@ app.post('/api/quote/send', async (req, res) => {
                             </div>` : ''}
                         </div>
                         
-                        ${pdfAttachment ? `
+                        ${pdfBuffer ? `
                         <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
                             <p style="margin: 0;"><strong>📎 Client PDF Attached</strong></p>
                             <p style="margin: 5px 0 0 0; font-size: 0.9em;">A white-label client-friendly PDF is attached. You can include this in your quote pack - it shows the client price (no uplift) and has no Kitchen Rescue branding.</p>
-                            ${pdfUrl ? `<p style="margin: 5px 0 0 0; font-size: 0.85em; color: #6b7280;">Backup link: ${pdfUrl}</p>` : ''}
                         </div>
                         ` : ''}
                         
@@ -1059,13 +1049,19 @@ app.post('/api/quote/send', async (req, res) => {
                 to: builderEmail,
                 subject: `Kitchen Rescue Trade Quote – ${postcode}`,
                 html: quoteEmailHTML,
-                attachments: pdfAttachment ? [pdfAttachment] : []
+                attachments: pdfBuffer ? [
+                    {
+                        filename: 'Temporary-Kitchen-Option.pdf',
+                        content: pdfBuffer,
+                        contentType: 'application/pdf'
+                    }
+                ] : []
             };
             
             try {
                 await transporter.sendMail(mailOptions);
                 console.log('Trade quote email sent successfully to:', builderEmail);
-                if (pdfAttachment) {
+                if (pdfBuffer) {
                     console.log('PDF attached to email');
                 }
             } catch (emailError) {
@@ -1074,15 +1070,14 @@ app.post('/api/quote/send', async (req, res) => {
             }
         } else {
             console.log('Email not configured - quote details:', { builderName, builderEmail, postcode, quote, referralCode });
-            if (pdfUrl) {
-                console.log('PDF generated but email not configured. PDF URL:', pdfUrl);
+            if (pdfBuffer) {
+                console.log('PDF generated but email not configured. PDF is ready as buffer.');
             }
         }
         
         res.json({
             success: true,
-            referralCode: referralCode || undefined,
-            pdfUrl: pdfUrl || undefined
+            referralCode: referralCode || undefined
         });
         
     } catch (error) {

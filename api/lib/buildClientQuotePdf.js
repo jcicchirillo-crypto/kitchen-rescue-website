@@ -1,29 +1,22 @@
-// PDF builder using Puppeteer
-const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs').promises;
+// PDF builder using Puppeteer Core with Chromium (Vercel-safe)
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 const { renderClientQuoteHTML } = require('./pdfTemplates/clientQuoteTemplate');
 
 async function buildClientQuotePdf(params) {
   const html = renderClientQuoteHTML(params);
 
   const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
 
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: 'networkidle0' });
 
-  const fileName = `client-quote-${Date.now()}.pdf`;
-  const quotesDir = path.join(process.cwd(), 'public', 'quotes');
-  const filePath = path.join(quotesDir, fileName);
-
-  // Ensure folder exists
-  await fs.mkdir(quotesDir, { recursive: true });
-
-  await page.pdf({
-    path: filePath,
+  const pdfBuffer = await page.pdf({
     format: 'A4',
     printBackground: true,
     margin: { top: '14mm', right: '12mm', bottom: '14mm', left: '12mm' }
@@ -31,9 +24,8 @@ async function buildClientQuotePdf(params) {
 
   await browser.close();
 
-  // Public URL you can store/send
-  const publicUrl = `/quotes/${fileName}`;
-  return { filePath, publicUrl };
+  // IMPORTANT: on Vercel we return a BUFFER (not a file path)
+  return { pdfBuffer };
 }
 
 module.exports = { buildClientQuotePdf };
