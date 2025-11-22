@@ -418,18 +418,6 @@
                   value=""
                 />
               </div>
-
-              <div class="form-group">
-                <label for="builderUplift">Builder admin uplift (£)</label>
-                <input
-                  type="number"
-                  id="builderUplift"
-                  min="0"
-                  placeholder="0"
-                  value="0"
-                />
-                <small>Optional margin/admin cost you want included on top.</small>
-              </div>
             </div>
 
             <div class="checkbox-group">
@@ -512,7 +500,6 @@
       const postcode = document.getElementById('postcode').value.trim();
       const weeks = parseInt(document.getElementById('weeks').value);
       const startDate = document.getElementById('startDate').value || null;
-      const builderUplift = parseFloat(document.getElementById('builderUplift').value) || 0;
       const includeReferral = document.getElementById('includeReferral').checked;
 
       if (!postcode || postcode.length < 5) {
@@ -537,7 +524,6 @@
           body: JSON.stringify({
             postcode,
             weeks,
-            builderUplift,
             includeReferral,
             startDate
           })
@@ -550,7 +536,7 @@
 
         const quote = await response.json();
         currentQuote = quote;
-        displayQuote(quote, builderUplift);
+        displayQuote(quote);
         
       } catch (err) {
         showError(err.message || 'Something went wrong. Please try again.');
@@ -565,7 +551,7 @@
       errorMessage.style.display = 'block';
     }
 
-    function displayQuote(quote, builderUplift) {
+    function displayQuote(quote) {
       quoteDetails.innerHTML = `
         <div class="quote-row">
           <span>Base hire</span>
@@ -579,15 +565,9 @@
           <span>Distance</span>
           <span>${quote.distanceMiles?.toFixed(1) || 'N/A'} miles</span>
         </div>
-        ${builderUplift > 0 ? `
-        <div class="quote-row">
-          <span>Builder uplift</span>
-          <span>£${Number(builderUplift).toFixed(2)}</span>
-        </div>
-        ` : ''}
         <div class="quote-row">
           <span>Total</span>
-          <span>£${quote.totalAfterUplift.toFixed(2)}</span>
+          <span>£${quote.total.toFixed(2)}</span>
         </div>
       `;
 
@@ -611,7 +591,6 @@
       const postcode = document.getElementById('postcode').value.trim();
       const weeks = parseInt(document.getElementById('weeks').value);
       const startDate = document.getElementById('startDate').value || null;
-      const builderUplift = parseFloat(document.getElementById('builderUplift').value) || 0;
       const includeReferral = document.getElementById('includeReferral').checked;
 
       sendEmailBtn.disabled = true;
@@ -628,7 +607,6 @@
             postcode,
             weeks,
             startDate,
-            builderUplift,
             includeReferral,
             quote: currentQuote
           })
