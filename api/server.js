@@ -949,6 +949,34 @@ app.post('/api/quote/send', async (req, res) => {
 
     // PDF generation removed - builders can add their own uplift to quotes
 
+    // --- Save builder info to admin area
+    try {
+      const bookingId = `trade-quote-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const tradeQuoteBooking = {
+        id: bookingId,
+        name: builderName || 'Trade Partner',
+        email: builderEmail,
+        postcode: postcode || '',
+        phone: '',
+        source: 'trade-quote',
+        status: 'Trade Quote Request',
+        totalCost: quote.total,
+        dailyCost: quote.basePrice / (weeks * 7),
+        deliveryCost: quote.deliveryPrice / 2,
+        collectionCost: quote.deliveryPrice / 2,
+        days: weeks * 7,
+        notes: `Quote requested from trade quote builder. Duration: ${weeks} week(s).${startDate ? ` Start date: ${startDate}.` : ''}${referralCode ? ` Referral code: ${referralCode}` : ''}`,
+        timestamp: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+      
+      await addBooking(tradeQuoteBooking);
+      console.log('Trade quote builder info saved to admin:', builderEmail);
+    } catch (saveErr) {
+      console.error('Error saving trade quote builder info:', saveErr);
+      // Don't fail the request if saving fails
+    }
+
     // --- Email HTML (no clickable referral link to avoid NOT_FOUND)
         const quoteEmailHTML = `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
