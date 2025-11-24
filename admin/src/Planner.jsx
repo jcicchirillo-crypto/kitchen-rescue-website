@@ -31,38 +31,38 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, projectColor }) {
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task)}
-      className={`p-3 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
+      className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
       } ${projectColor || "bg-gray-100"}`}
     >
-      <div className="flex items-start gap-2">
-        <button onClick={() => onToggle(task.id)} className="mt-0.5">
+      <div className="flex items-start gap-1.5">
+        <button onClick={() => onToggle(task.id)} className="mt-0.5 flex-shrink-0">
           {task.completed ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
           ) : (
-            <Circle className="h-5 w-5 text-gray-400" />
+            <Circle className="h-4 w-4 text-gray-400" />
           )}
         </button>
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">{task.title}</div>
+          <div className="font-medium text-xs leading-tight">{task.title}</div>
           {task.description && (
-            <div className="text-xs text-gray-600 mt-1">{task.description}</div>
+            <div className="text-[10px] text-gray-600 mt-0.5 line-clamp-1">{task.description}</div>
           )}
-          <div className="flex items-center gap-2 mt-1">
-            <Badge className={priority.color} style={{ fontSize: "10px", padding: "2px 6px" }}>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Badge className={priority.color} style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
               {priority.name}
             </Badge>
           </div>
         </div>
-        <button onClick={() => onDelete(task.id)} className="text-gray-400 hover:text-red-500">
-          <X className="h-4 w-4" />
+        <button onClick={() => onDelete(task.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+          <X className="h-3 w-3" />
         </button>
       </div>
     </div>
   );
 }
 
-function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects }) {
+function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart }) {
   const dayTasks = tasks.filter(t => t.date && isSameDay(new Date(t.date), day));
   const isTodayDate = isToday(day);
 
@@ -89,10 +89,12 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
           return (
             <div
               key={task.id}
-              className={`text-[10px] px-2 py-1 rounded truncate ${projectColor} ${
+              draggable
+              onDragStart={(e) => onDragStart(e, task)}
+              className={`text-[10px] px-2 py-1 rounded truncate cursor-move ${projectColor} ${
                 task.completed ? "opacity-60 line-through" : ""
-              }`}
-              title={`${task.project} - ${task.title} (${priority.name} priority)`}
+              } hover:shadow-sm transition-shadow`}
+              title={`${task.project} - ${task.title} (${priority.name} priority) - Drag to move`}
             >
               {task.title}
             </div>
@@ -103,7 +105,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   );
 }
 
-function WeekView({ week, tasks, onDrop, onDragOver, projects }) {
+function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart }) {
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
@@ -123,13 +125,14 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects }) {
           isCurrentMonth={true}
           view="week"
           projects={projects}
+          onDragStart={onDragStart}
         />
       ))}
     </div>
   );
 }
 
-function MonthView({ month, tasks, onDrop, onDragOver, projects }) {
+function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
   const startDay = startOfWeek(firstDay);
@@ -153,6 +156,7 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects }) {
           isCurrentMonth={day >= firstDay && day <= endOfMonth(month)}
           view="month"
           projects={projects}
+          onDragStart={onDragStart}
         />
       ))}
     </div>
@@ -549,11 +553,11 @@ export default function Planner() {
                 if (totalTasks === 0 && !showAddTask) return null;
 
                 return (
-                  <div key={project} className="space-y-3">
-                    <h2 className="text-base font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-                      <span className={`w-4 h-4 rounded ${getProjectColor(project).split(" ")[0]}`}></span>
+                  <div key={project} className="space-y-2">
+                    <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 border-b pb-1">
+                      <span className={`w-3 h-3 rounded ${getProjectColor(project).split(" ")[0]}`}></span>
                       {project}
-                      <span className="text-sm font-normal text-gray-500">({totalTasks})</span>
+                      <span className="text-xs font-normal text-gray-500">({totalTasks})</span>
                     </h2>
                     
                     {PRIORITY_LEVELS.map((priority) => {
@@ -561,12 +565,12 @@ export default function Planner() {
                       if (priorityTasks.length === 0) return null;
                       
                       return (
-                        <div key={priority.id} className="ml-4 space-y-2">
-                          <h3 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                        <div key={priority.id} className="ml-4 space-y-1">
+                          <h3 className="text-xs font-semibold text-gray-600 flex items-center gap-2">
                             <span className={`w-2 h-2 rounded ${priority.color.split(" ")[0]}`}></span>
                             {priority.name} Priority ({priorityTasks.length})
                           </h3>
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             {priorityTasks.map((task) => (
                               <TaskItem
                                 key={task.id}
@@ -652,6 +656,7 @@ export default function Planner() {
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   projects={projects}
+                  onDragStart={handleDragStart}
                 />
               ) : (
                 <MonthView
@@ -660,6 +665,7 @@ export default function Planner() {
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   projects={projects}
+                  onDragStart={handleDragStart}
                 />
               )}
             </CardContent>
