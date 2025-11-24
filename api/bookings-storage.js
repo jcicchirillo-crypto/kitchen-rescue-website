@@ -38,14 +38,37 @@ async function getAllBookings() {
             if (data && data.length > 0) {
                 console.log('Sample booking:', {
                     id: data[0].id,
-                    name: data[0].name,
-                    email: data[0].email,
-                    source: data[0].source,
+                    booking_reference: data[0].booking_reference,
+                    customer_name: data[0].customer_name,
+                    customer_email: data[0].customer_email,
                     status: data[0].status
                 });
             }
             
-            return data || [];
+            // Map Supabase schema to expected format for admin
+            const mappedData = (data || []).map(booking => ({
+                id: booking.booking_reference || booking.id,
+                name: booking.customer_name,
+                email: booking.customer_email,
+                phone: booking.customer_phone,
+                postcode: booking.postcode,
+                selectedDates: Array.isArray(booking.selected_dates) ? booking.selected_dates : (booking.selected_dates ? [booking.selected_dates] : []),
+                startDate: booking.delivery_date ? new Date(booking.delivery_date).toISOString() : null,
+                endDate: booking.delivery_date && booking.hire_length ? new Date(new Date(booking.delivery_date).getTime() + (booking.hire_length - 1) * 24 * 60 * 60 * 1000).toISOString() : null,
+                days: booking.hire_length,
+                dailyCost: booking.daily_cost,
+                deliveryCost: booking.delivery_cost,
+                collectionCost: booking.collection_cost,
+                totalCost: booking.total_cost,
+                notes: booking.notes,
+                status: booking.status,
+                source: 'quote', // Default since not in schema
+                pod: '16ft Pod', // Default since not in schema
+                createdAt: booking.created_at,
+                timestamp: booking.created_at
+            }));
+            
+            return mappedData;
         } catch (error) {
             console.error('❌ Exception reading from Supabase:', error);
             console.error('Error stack:', error.stack);
@@ -98,28 +121,28 @@ async function addBooking(newBooking) {
     if (useSupabase && supabase) {
         try {
             // Prepare booking data for Supabase
-            // Map to match Supabase schema exactly
+            // Map to match ACTUAL Supabase schema (customer_name, customer_email, etc.)
             const bookingData = {
-                id: newBooking.id,
-                timestamp: newBooking.timestamp || new Date().toISOString(),
-                name: newBooking.name,
-                email: newBooking.email,
-                phone: newBooking.phone || null,
+                // id is UUID in Supabase, but we're using text ID - let Supabase generate UUID or convert
+                // For now, we'll let Supabase generate the UUID and use booking_reference for our ID
+                booking_reference: newBooking.id,
+                customer_name: newBooking.name,
+                customer_email: newBooking.email,
+                customer_phone: newBooking.phone || null,
+                delivery_address: null, // Not provided in quote form
                 postcode: newBooking.postcode || null,
-                selectedDates: Array.isArray(newBooking.selectedDates) ? newBooking.selectedDates : [],
-                startDate: newBooking.startDate || null,
-                endDate: newBooking.endDate || null,
-                days: newBooking.days ? Number(newBooking.days) : null,
-                dailyCost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
-                deliveryCost: newBooking.deliveryCost ? Number(newBooking.deliveryCost) : null,
-                collectionCost: newBooking.collectionCost ? Number(newBooking.collectionCost) : null,
-                totalCost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
+                delivery_date: newBooking.startDate ? new Date(newBooking.startDate).toISOString().split('T')[0] : null,
+                hire_length: newBooking.days ? Number(newBooking.days) : null,
+                selected_dates: Array.isArray(newBooking.selectedDates) ? newBooking.selectedDates : [],
                 notes: newBooking.notes || null,
+                daily_cost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
+                delivery_cost: newBooking.deliveryCost ? Number(newBooking.deliveryCost) : null,
+                collection_cost: newBooking.collectionCost ? Number(newBooking.collectionCost) : null,
+                total_cost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
                 status: newBooking.status || 'Awaiting deposit',
-                source: newBooking.source || null,
-                pod: newBooking.pod || null,
-                // Use createdAt (matches Supabase schema)
-                createdAt: newBooking.createdAt || newBooking.created_at || new Date().toISOString(),
+                deposit_paid: false,
+                // created_at will be set automatically by Supabase
+                // updated_at will be set automatically by Supabase
             };
             
             // Remove any null/undefined values that might cause issues
@@ -138,11 +161,17 @@ async function addBooking(newBooking) {
             console.log('📋 Booking data keys:', Object.keys(bookingData));
             console.log('📋 Full booking data:', JSON.stringify(bookingData, null, 2));
             
+            // Try the insert
+            console.log('🔍 Calling supabase.from("bookings").insert()...');
             const { data, error } = await supabase
                 .from('bookings')
                 .insert([bookingData])
                 .select()
                 .single();
+            
+            console.log('🔍 Insert response received');
+            console.log('  data:', data ? 'Present' : 'null');
+            console.log('  error:', error ? 'Present' : 'null');
             
             if (error) {
                 console.error('========================================');

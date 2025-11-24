@@ -143,9 +143,10 @@ function KitchenRescueAdmin() {
       if (data.length > 0) {
         console.log('Sample booking:', data[0]);
       }
+      // Data is already mapped from Supabase schema in bookings-storage.js
       const mappedBookings = data.map(b => ({
         ...b,
-        startDate: b.startDate || b.selectedDates?.[0] || new Date().toISOString(),
+        startDate: b.startDate || b.delivery_date || b.selectedDates?.[0] || new Date().toISOString(),
         endDate: b.endDate || b.selectedDates?.[b.selectedDates?.length - 1] || new Date().toISOString(),
       }));
       console.log('📊 Mapped bookings:', mappedBookings.length);
