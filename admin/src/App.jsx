@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -195,6 +195,10 @@ function KitchenRescueAdmin() {
             <Input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search bookings..." className="pl-8"/>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={fetchBookings} className="gap-2">
+              <RefreshCw className="h-4 w-4"/>
+              Refresh
+            </Button>
             <Button variant="outline" size="icon" onClick={()=>setMonth(subMonths(month,1))}><ChevronLeft className="h-4 w-4"/></Button>
             <div className="px-2 text-sm font-medium w-44 text-center">{format(month, "MMMM yyyy")}</div>
             <Button variant="outline" size="icon" onClick={()=>setMonth(addMonths(month,1))}><ChevronRight className="h-4 w-4"/></Button>
@@ -249,13 +253,14 @@ function KitchenRescueAdmin() {
           </CardHeader>
           <CardContent>
             <Table>
-              <TableHeader>
+                <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Postcode</TableHead>
                   <TableHead>Booking</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -266,7 +271,12 @@ function KitchenRescueAdmin() {
                     <TableCell className="text-xs flex items-center gap-1"><Mail className="h-3 w-3"/>{b.email}</TableCell>
                     <TableCell className="text-xs">{b.phone}</TableCell>
                     <TableCell className="text-xs">{b.postcode}</TableCell>
-                    <TableCell className="text-xs">{b.pod}<div className="text-slate-400">{format(new Date(b.startDate), "d MMM")} – {format(new Date(b.endDate), "d MMM")}</div></TableCell>
+                    <TableCell className="text-xs">{b.pod || 'N/A'}<div className="text-slate-400">{b.startDate ? format(new Date(b.startDate), "d MMM") : 'N/A'} – {b.endDate ? format(new Date(b.endDate), "d MMM") : 'N/A'}</div></TableCell>
+                    <TableCell>
+                      {b.source === 'quote' && <Badge className="bg-blue-100 text-blue-700">Quote Request</Badge>}
+                      {b.source === 'trade-quote' && <Badge className="bg-purple-100 text-purple-700">Trade Quote</Badge>}
+                      {!b.source && <Badge className="bg-gray-100 text-gray-700">Direct</Badge>}
+                    </TableCell>
                     <TableCell>
                       <Badge className={STATUS_MAP[b.status]?.color}>{b.status}</Badge>
                     </TableCell>
