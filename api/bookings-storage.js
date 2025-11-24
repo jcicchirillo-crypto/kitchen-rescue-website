@@ -1,31 +1,15 @@
 const fs = require('fs');
 const path = require('path');
+const { supabaseAdmin } = require('./lib/supabaseAdmin');
 
-// Try to use Supabase if available, otherwise fall back to file system for local dev
-let supabase = null;
-let useSupabase = false;
+// Use admin client if available (bypasses RLS)
+const supabase = supabaseAdmin;
+const useSupabase = !!supabaseAdmin;
 
-try {
-    // Only use Supabase if credentials are available
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-        const { createClient } = require('@supabase/supabase-js');
-        supabase = createClient(
-            process.env.SUPABASE_URL,
-            process.env.SUPABASE_KEY
-        );
-        useSupabase = true;
-        console.log('✅ Using Supabase for bookings storage');
-        console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Set' : 'Missing');
-        console.log('Supabase Key:', process.env.SUPABASE_KEY ? 'Set' : 'Missing');
-    } else {
-        console.log('⚠️ Supabase credentials not found:');
-        console.log('  SUPABASE_URL:', process.env.SUPABASE_URL ? 'Set' : 'MISSING');
-        console.log('  SUPABASE_KEY:', process.env.SUPABASE_KEY ? 'Set' : 'MISSING');
-        console.log('⚠️ Falling back to file system (will not work on Vercel!)');
-    }
-} catch (error) {
-    console.error('❌ Error initializing Supabase:', error.message);
-    console.log('⚠️ Falling back to file system (will not work on Vercel!)');
+if (useSupabase) {
+    console.log('✅ Using Supabase admin client for bookings storage (bypasses RLS)');
+} else {
+    console.log('⚠️ Supabase admin client not available - falling back to file system (will not work on Vercel!)');
 }
 
 const BOOKINGS_KEY = 'bookings';
@@ -34,22 +18,41 @@ const BOOKINGS_KEY = 'bookings';
 async function getAllBookings() {
     if (useSupabase && supabase) {
         try {
+            console.log('📥 Fetching bookings from Supabase (admin client)...');
             const { data, error } = await supabase
                 .from('bookings')
                 .select('*')
                 .order('created_at', { ascending: false });
             
             if (error) {
-                console.error('Error fetching from Supabase:', error);
+                console.error('❌❌❌ SUPABASE SELECT ERROR ❌❌❌');
+                console.error('Error object:', JSON.stringify(error, null, 2));
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+                console.error('Error details:', error.details);
+                console.error('Error hint:', error.hint);
                 return [];
+            }
+            
+            console.log(`✅ Fetched ${data?.length || 0} bookings from Supabase`);
+            if (data && data.length > 0) {
+                console.log('Sample booking:', {
+                    id: data[0].id,
+                    name: data[0].name,
+                    email: data[0].email,
+                    source: data[0].source,
+                    status: data[0].status
+                });
             }
             
             return data || [];
         } catch (error) {
-            console.error('Error reading from Supabase:', error);
+            console.error('❌ Exception reading from Supabase:', error);
+            console.error('Error stack:', error.stack);
             return [];
         }
     } else {
+        console.log('⚠️ Using file system (Supabase admin client not available)');
         // Fall back to file system for local development
         const bookingsPath = path.join(__dirname, '..', 'bookings.json');
         try {
@@ -103,8 +106,9 @@ async function addBooking(newBooking) {
                 }
             });
             
-            console.log('Attempting to save booking to Supabase:', bookingData.id);
-            console.log('Booking data keys:', Object.keys(bookingData));
+            console.log('💾 Attempting to save booking to Supabase:', bookingData.id);
+            console.log('📋 Booking data keys:', Object.keys(bookingData));
+            console.log('📋 Booking data sample:', JSON.stringify(bookingData).substring(0, 200));
             
             const { data, error } = await supabase
                 .from('bookings')
@@ -113,15 +117,18 @@ async function addBooking(newBooking) {
                 .single();
             
             if (error) {
-                console.error('❌ Supabase insert error:', error);
+                console.error('❌❌❌ SUPABASE INSERT ERROR ❌❌❌');
+                console.error('Error object:', JSON.stringify(error, null, 2));
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
                 console.error('Error details:', error.details);
                 console.error('Error hint:', error.hint);
+                console.error('Full error:', error);
                 return false;
             }
             
-            console.log('✅ Booking saved to Supabase successfully:', data?.id);
+            console.log('✅✅✅ Booking saved to Supabase successfully:', data?.id);
+            console.log('Saved booking data:', JSON.stringify(data).substring(0, 200));
             return true;
         } catch (error) {
             console.error('❌ Exception saving to Supabase:', error);

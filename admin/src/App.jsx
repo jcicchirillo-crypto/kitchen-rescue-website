@@ -139,11 +139,19 @@ function KitchenRescueAdmin() {
     });
     if (res.ok) {
       const data = await res.json();
-      setBookings(data.map(b => ({
+      console.log('📥 Admin received bookings:', data.length);
+      if (data.length > 0) {
+        console.log('Sample booking:', data[0]);
+      }
+      const mappedBookings = data.map(b => ({
         ...b,
         startDate: b.startDate || b.selectedDates?.[0] || new Date().toISOString(),
         endDate: b.endDate || b.selectedDates?.[b.selectedDates?.length - 1] || new Date().toISOString(),
-      })));
+      }));
+      console.log('📊 Mapped bookings:', mappedBookings.length);
+      setBookings(mappedBookings);
+    } else {
+      console.error('❌ Failed to fetch bookings:', res.status, res.statusText);
     }
   };
 

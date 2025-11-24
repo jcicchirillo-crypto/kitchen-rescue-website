@@ -428,21 +428,28 @@ app.post('/send-quote-email', async (req, res) => {
             pod: '16ft Pod'
         };
         
-        console.log('💾 Attempting to save quote as booking:', newBooking.id);
-        console.log('Booking details:', {
+        console.log('💾💾💾 Attempting to save quote as booking:', newBooking.id);
+        console.log('📋 Booking details:', {
             name: newBooking.name,
             email: newBooking.email,
             postcode: newBooking.postcode,
-            totalCost: newBooking.totalCost
+            totalCost: newBooking.totalCost,
+            source: newBooking.source,
+            status: newBooking.status
         });
+        console.log('📋 Full booking object keys:', Object.keys(newBooking));
         
         // Save new booking to database
+        console.log('🔍 About to call addBooking...');
         const saved = await addBooking(newBooking);
+        console.log('🔍 addBooking returned:', saved);
         if (saved) {
-            console.log('✅ Quote saved as booking successfully:', newBooking.id);
+            console.log('✅✅✅ Quote saved as booking successfully:', newBooking.id);
         } else {
-            console.error('❌ FAILED to save quote to database:', newBooking.id);
-            console.error('This quote request was NOT saved to admin system!');
+            console.error('❌❌❌ CRITICAL: FAILED to save quote to database:', newBooking.id);
+            console.error('❌❌❌ This quote request was NOT saved to admin system!');
+            console.error('❌❌❌ Check Supabase error logs above for details!');
+            console.error('❌❌❌ Common issues: RLS policies, missing columns, or wrong data types');
             // Still send email even if save fails
         }
         
@@ -697,10 +704,12 @@ const authenticateAdmin = (req, res, next) => {
 // Get all bookings
 app.get('/api/bookings', authenticateAdmin, async (req, res) => {
     try {
+        console.log('📥 Admin requesting bookings...');
         const bookings = await getAllBookings();
+        console.log(`✅ Returning ${bookings.length} bookings to admin`);
         res.json(bookings);
     } catch (error) {
-        console.error('Error fetching bookings:', error);
+        console.error('❌ Error fetching bookings:', error);
         res.json([]);
     }
 });
