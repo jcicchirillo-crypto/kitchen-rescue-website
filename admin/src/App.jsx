@@ -1,12 +1,14 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Badge } from "./components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/table";
+import Planner from "./Planner";
 import "./App.css";
 
 const STATUS_MAP = {
@@ -116,7 +118,7 @@ function LoginForm({ onLogin }) {
   );
 }
 
-export default function KitchenRescueAdmin() {
+function KitchenRescueAdmin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [month, setMonth] = useState(new Date());
   const [query, setQuery] = useState("");
@@ -164,6 +166,12 @@ export default function KitchenRescueAdmin() {
             <span className="font-semibold">Kitchen Rescue — Admin</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Link to="/planner">
+              <Button variant="outline" size="sm" className="gap-2">
+                <ListTodo className="h-4 w-4" />
+                Task Planner
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon"><Settings className="h-4 w-4"/></Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => {
               localStorage.removeItem("adminToken");
@@ -270,5 +278,16 @@ export default function KitchenRescueAdmin() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<KitchenRescueAdmin />} />
+        <Route path="/planner" element={<Planner />} />
+      </Routes>
+    </Router>
   );
 }
