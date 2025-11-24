@@ -1,29 +1,39 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Badge } from "./components/ui/badge";
 
-const TASK_CATEGORIES = [
-  { id: "deliveries", name: "Deliveries", color: "bg-blue-100 text-blue-700 border-blue-300" },
-  { id: "collections", name: "Collections", color: "bg-purple-100 text-purple-700 border-purple-300" },
-  { id: "maintenance", name: "Maintenance", color: "bg-orange-100 text-orange-700 border-orange-300" },
-  { id: "admin", name: "Admin", color: "bg-green-100 text-green-700 border-green-300" },
-  { id: "follow-up", name: "Follow-ups", color: "bg-pink-100 text-pink-700 border-pink-300" },
-  { id: "other", name: "Other", color: "bg-gray-100 text-gray-700 border-gray-300" },
+const PRIORITY_LEVELS = [
+  { id: "high", name: "High", color: "bg-red-100 text-red-700 border-red-300" },
+  { id: "medium", name: "Medium", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
+  { id: "low", name: "Low", color: "bg-green-100 text-green-700 border-green-300" },
 ];
 
-function TaskItem({ task, onToggle, onDelete, onDragStart }) {
+const PROJECT_COLORS = [
+  "bg-blue-100 text-blue-700 border-blue-300",
+  "bg-purple-100 text-purple-700 border-purple-300",
+  "bg-orange-100 text-orange-700 border-orange-300",
+  "bg-pink-100 text-pink-700 border-pink-300",
+  "bg-indigo-100 text-indigo-700 border-indigo-300",
+  "bg-teal-100 text-teal-700 border-teal-300",
+];
+
+const DEFAULT_PROJECTS = ["Kitchen Rescue", "Sun Tan Business", "House Build"];
+
+function TaskItem({ task, onToggle, onDelete, onDragStart, projectColor }) {
+  const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
+  
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task)}
       className={`p-3 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
-      } ${TASK_CATEGORIES.find(c => c.id === task.category)?.color || "bg-gray-100"}`}
+      } ${projectColor || "bg-gray-100"}`}
     >
       <div className="flex items-start gap-2">
         <button onClick={() => onToggle(task.id)} className="mt-0.5">
@@ -38,6 +48,11 @@ function TaskItem({ task, onToggle, onDelete, onDragStart }) {
           {task.description && (
             <div className="text-xs text-gray-600 mt-1">{task.description}</div>
           )}
+          <div className="flex items-center gap-2 mt-1">
+            <Badge className={priority.color} style={{ fontSize: "10px", padding: "2px 6px" }}>
+              {priority.name}
+            </Badge>
+          </div>
         </div>
         <button onClick={() => onDelete(task.id)} className="text-gray-400 hover:text-red-500">
           <X className="h-4 w-4" />
@@ -47,9 +62,14 @@ function TaskItem({ task, onToggle, onDelete, onDragStart }) {
   );
 }
 
-function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view }) {
+function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects }) {
   const dayTasks = tasks.filter(t => t.date && isSameDay(new Date(t.date), day));
   const isTodayDate = isToday(day);
+
+  const getProjectColor = (projectName) => {
+    const index = projects.indexOf(projectName);
+    return PROJECT_COLORS[index % PROJECT_COLORS.length] || "bg-gray-100 text-gray-700 border-gray-300";
+  };
 
   return (
     <div
@@ -63,22 +83,27 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view }) {
         {format(day, "d")}
       </div>
       <div className="space-y-1">
-        {dayTasks.map((task) => (
-          <div
-            key={task.id}
-            className={`text-[10px] px-2 py-1 rounded truncate ${
-              TASK_CATEGORIES.find(c => c.id === task.category)?.color || "bg-gray-100"
-            } ${task.completed ? "opacity-60 line-through" : ""}`}
-          >
-            {task.title}
-          </div>
-        ))}
+        {dayTasks.map((task) => {
+          const projectColor = getProjectColor(task.project);
+          const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
+          return (
+            <div
+              key={task.id}
+              className={`text-[10px] px-2 py-1 rounded truncate ${projectColor} ${
+                task.completed ? "opacity-60 line-through" : ""
+              }`}
+              title={`${task.project} - ${task.title} (${priority.name} priority)`}
+            >
+              {task.title}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function WeekView({ week, tasks, onDrop, onDragOver }) {
+function WeekView({ week, tasks, onDrop, onDragOver, projects }) {
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
@@ -97,13 +122,14 @@ function WeekView({ week, tasks, onDrop, onDragOver }) {
           onDragOver={onDragOver}
           isCurrentMonth={true}
           view="week"
+          projects={projects}
         />
       ))}
     </div>
   );
 }
 
-function MonthView({ month, tasks, onDrop, onDragOver }) {
+function MonthView({ month, tasks, onDrop, onDragOver, projects }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
   const startDay = startOfWeek(firstDay);
@@ -126,6 +152,7 @@ function MonthView({ month, tasks, onDrop, onDragOver }) {
           onDragOver={onDragOver}
           isCurrentMonth={day >= firstDay && day <= endOfMonth(month)}
           view="month"
+          projects={projects}
         />
       ))}
     </div>
@@ -134,23 +161,61 @@ function MonthView({ month, tasks, onDrop, onDragOver }) {
 
 export default function Planner() {
   const [tasks, setTasks] = useState([]);
-  const [view, setView] = useState("week"); // "week" or "month"
+  const [projects, setProjects] = useState(DEFAULT_PROJECTS);
+  const [view, setView] = useState("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddTask, setShowAddTask] = useState(false);
-  const [newTask, setNewTask] = useState({ title: "", description: "", category: "other" });
+  const [showManageProjects, setShowManageProjects] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "" });
   const [draggedTask, setDraggedTask] = useState(null);
 
-  // Load tasks from localStorage
+  // Load tasks and projects from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("planner-tasks");
-    if (saved) {
+    const savedTasks = localStorage.getItem("planner-tasks");
+    const savedProjects = localStorage.getItem("planner-projects");
+    
+    if (savedTasks) {
       try {
-        setTasks(JSON.parse(saved));
+        const parsed = JSON.parse(savedTasks);
+        // Migrate old tasks: add project if missing, convert category to priority
+        const migrated = parsed.map(task => {
+          if (!task.project) {
+            task.project = DEFAULT_PROJECTS[0]; // Default to first project
+          }
+          if (task.category && !task.priority) {
+            // Convert old category to medium priority
+            task.priority = "medium";
+            delete task.category;
+          }
+          if (!task.priority) {
+            task.priority = "medium";
+          }
+          return task;
+        });
+        setTasks(migrated);
       } catch (e) {
         console.error("Error loading tasks:", e);
       }
     }
+    
+    if (savedProjects) {
+      try {
+        setProjects(JSON.parse(savedProjects));
+      } catch (e) {
+        console.error("Error loading projects:", e);
+      }
+    } else {
+      setProjects(DEFAULT_PROJECTS);
+    }
   }, []);
+
+  // Set default project for new task
+  useEffect(() => {
+    if (projects.length > 0 && !newTask.project) {
+      setNewTask(prev => ({ ...prev, project: projects[0] }));
+    }
+  }, [projects]);
 
   // Save tasks to localStorage
   useEffect(() => {
@@ -159,19 +224,27 @@ export default function Planner() {
     }
   }, [tasks]);
 
+  // Save projects to localStorage
+  useEffect(() => {
+    if (projects.length > 0) {
+      localStorage.setItem("planner-projects", JSON.stringify(projects));
+    }
+  }, [projects]);
+
   const addTask = () => {
-    if (!newTask.title.trim()) return;
+    if (!newTask.title.trim() || !newTask.project) return;
     const task = {
       id: Date.now().toString(),
       title: newTask.title,
       description: newTask.description,
-      category: newTask.category,
+      priority: newTask.priority,
+      project: newTask.project,
       completed: false,
       date: null,
       createdAt: new Date().toISOString(),
     };
     setTasks([...tasks, task]);
-    setNewTask({ title: "", description: "", category: "other" });
+    setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "" });
     setShowAddTask(false);
   };
 
@@ -181,6 +254,24 @@ export default function Planner() {
 
   const deleteTask = (id) => {
     setTasks(tasks.filter(t => t.id !== id));
+  };
+
+  const addProject = () => {
+    if (!newProjectName.trim() || projects.includes(newProjectName.trim())) return;
+    setProjects([...projects, newProjectName.trim()]);
+    setNewProjectName("");
+  };
+
+  const removeProject = (projectName) => {
+    const projectTasks = tasks.filter(t => t.project === projectName && !t.completed);
+    if (projectTasks.length > 0) {
+      if (!confirm(`This project has ${projectTasks.length} active task(s). Are you sure you want to remove it?`)) {
+        return;
+      }
+      // Remove tasks or reassign them
+      setTasks(tasks.filter(t => t.project !== projectName));
+    }
+    setProjects(projects.filter(p => p !== projectName));
   };
 
   const handleDragStart = (e, task) => {
@@ -213,13 +304,41 @@ export default function Planner() {
     return tasks.filter(t => !t.date && !t.completed);
   }, [tasks]);
 
-  const tasksByCategory = useMemo(() => {
+  const tasksByProjectAndPriority = useMemo(() => {
     const grouped = {};
-    TASK_CATEGORIES.forEach(cat => {
-      grouped[cat.id] = unassignedTasks.filter(t => t.category === cat.id);
+    projects.forEach(project => {
+      grouped[project] = {
+        high: [],
+        medium: [],
+        low: [],
+      };
+      unassignedTasks
+        .filter(t => t.project === project)
+        .forEach(task => {
+          const priority = task.priority || "medium";
+          if (grouped[project][priority]) {
+            grouped[project][priority].push(task);
+          }
+        });
     });
     return grouped;
-  }, [unassignedTasks]);
+  }, [unassignedTasks, projects]);
+
+  const getProjectColor = (projectName) => {
+    const index = projects.indexOf(projectName);
+    return PROJECT_COLORS[index % PROJECT_COLORS.length] || "bg-gray-100 text-gray-700 border-gray-300";
+  };
+
+  const todaysTasksByProject = useMemo(() => {
+    const grouped = {};
+    todaysTasks.forEach(task => {
+      if (!grouped[task.project]) {
+        grouped[task.project] = [];
+      }
+      grouped[task.project].push(task);
+    });
+    return grouped;
+  }, [todaysTasks]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -230,6 +349,10 @@ export default function Planner() {
             <span className="font-semibold">Task Planner</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowManageProjects(!showManageProjects)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Manage Projects
+            </Button>
             <Link to="/">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -247,6 +370,57 @@ export default function Planner() {
       </header>
 
       <main className="mx-auto max-w-7xl p-4">
+        {/* Manage Projects Modal */}
+        {showManageProjects && (
+          <Card className="mb-4 bg-white border-2 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Manage Projects</span>
+                <Button variant="ghost" size="sm" onClick={() => setShowManageProjects(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="New project name"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && addProject()}
+                  />
+                  <Button onClick={addProject}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {projects.map((project) => (
+                    <div
+                      key={project}
+                      className="flex items-center justify-between p-2 rounded border"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded ${getProjectColor(project).split(" ")[0]}`}></span>
+                        <span className="font-medium">{project}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeProject(project)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Today's Summary */}
         <Card className="mb-4 bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
           <CardHeader>
@@ -259,30 +433,43 @@ export default function Planner() {
             {todaysTasks.length === 0 ? (
               <p className="text-gray-500 text-sm">No tasks scheduled for today. Enjoy your day!</p>
             ) : (
-              <div className="space-y-2">
-                {todaysTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`p-3 rounded-lg border-2 flex items-center gap-2 ${
-                      task.completed ? "opacity-60 line-through" : ""
-                    } ${TASK_CATEGORIES.find(c => c.id === task.category)?.color || "bg-gray-100"}`}
-                  >
-                    <button onClick={() => toggleTask(task.id)}>
-                      {task.completed ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                    <div className="flex-1">
-                      <div className="font-medium">{task.title}</div>
-                      {task.description && (
-                        <div className="text-xs text-gray-600">{task.description}</div>
-                      )}
+              <div className="space-y-4">
+                {Object.entries(todaysTasksByProject).map(([project, projectTasks]) => (
+                  <div key={project}>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <span className={`w-3 h-3 rounded ${getProjectColor(project).split(" ")[0]}`}></span>
+                      {project}
+                    </h3>
+                    <div className="space-y-2">
+                      {projectTasks.map((task) => {
+                        const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
+                        return (
+                          <div
+                            key={task.id}
+                            className={`p-3 rounded-lg border-2 flex items-center gap-2 ${
+                              task.completed ? "opacity-60 line-through" : ""
+                            } ${getProjectColor(task.project)}`}
+                          >
+                            <button onClick={() => toggleTask(task.id)}>
+                              {task.completed ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-gray-400" />
+                              )}
+                            </button>
+                            <div className="flex-1">
+                              <div className="font-medium">{task.title}</div>
+                              {task.description && (
+                                <div className="text-xs text-gray-600">{task.description}</div>
+                              )}
+                            </div>
+                            <Badge className={priority.color}>
+                              {priority.name}
+                            </Badge>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <Badge className={TASK_CATEGORIES.find(c => c.id === task.category)?.color}>
-                      {TASK_CATEGORIES.find(c => c.id === task.category)?.name}
-                    </Badge>
                   </div>
                 ))}
               </div>
@@ -291,7 +478,7 @@ export default function Planner() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Tasks by Category */}
+          {/* Tasks by Project and Priority */}
           <Card className="lg:col-span-1">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -305,7 +492,7 @@ export default function Planner() {
               </div>
               <CardDescription>Drag tasks to calendar to schedule them</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6 max-h-[600px] overflow-y-auto">
               {showAddTask && (
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="pt-4">
@@ -322,12 +509,23 @@ export default function Planner() {
                       />
                       <select
                         className="w-full px-3 py-2 border rounded-md text-sm"
-                        value={newTask.category}
-                        onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+                        value={newTask.project}
+                        onChange={(e) => setNewTask({ ...newTask, project: e.target.value })}
                       >
-                        {TASK_CATEGORIES.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
+                        {projects.map((project) => (
+                          <option key={project} value={project}>
+                            {project}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                        value={newTask.priority}
+                        onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                      >
+                        {PRIORITY_LEVELS.map((priority) => (
+                          <option key={priority.id} value={priority.id}>
+                            {priority.name} Priority
                           </option>
                         ))}
                       </select>
@@ -344,26 +542,45 @@ export default function Planner() {
                 </Card>
               )}
 
-              {TASK_CATEGORIES.map((category) => {
-                const categoryTasks = tasksByCategory[category.id] || [];
-                if (categoryTasks.length === 0 && !showAddTask) return null;
+              {projects.map((project) => {
+                const projectTasks = tasksByProjectAndPriority[project] || { high: [], medium: [], low: [] };
+                const totalTasks = projectTasks.high.length + projectTasks.medium.length + projectTasks.low.length;
+                
+                if (totalTasks === 0 && !showAddTask) return null;
+
                 return (
-                  <div key={category.id}>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded ${category.color.split(" ")[0]}`}></span>
-                      {category.name} ({categoryTasks.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {categoryTasks.map((task) => (
-                        <TaskItem
-                          key={task.id}
-                          task={task}
-                          onToggle={toggleTask}
-                          onDelete={deleteTask}
-                          onDragStart={handleDragStart}
-                        />
-                      ))}
-                    </div>
+                  <div key={project} className="space-y-3">
+                    <h2 className="text-base font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
+                      <span className={`w-4 h-4 rounded ${getProjectColor(project).split(" ")[0]}`}></span>
+                      {project}
+                      <span className="text-sm font-normal text-gray-500">({totalTasks})</span>
+                    </h2>
+                    
+                    {PRIORITY_LEVELS.map((priority) => {
+                      const priorityTasks = projectTasks[priority.id] || [];
+                      if (priorityTasks.length === 0) return null;
+                      
+                      return (
+                        <div key={priority.id} className="ml-4 space-y-2">
+                          <h3 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded ${priority.color.split(" ")[0]}`}></span>
+                            {priority.name} Priority ({priorityTasks.length})
+                          </h3>
+                          <div className="space-y-2">
+                            {priorityTasks.map((task) => (
+                              <TaskItem
+                                key={task.id}
+                                task={task}
+                                onToggle={toggleTask}
+                                onDelete={deleteTask}
+                                onDragStart={handleDragStart}
+                                projectColor={getProjectColor(task.project)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -434,6 +651,7 @@ export default function Planner() {
                   tasks={tasks}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
+                  projects={projects}
                 />
               ) : (
                 <MonthView
@@ -441,6 +659,7 @@ export default function Planner() {
                   tasks={tasks}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
+                  projects={projects}
                 />
               )}
             </CardContent>
@@ -450,4 +669,3 @@ export default function Planner() {
     </div>
   );
 }
-
