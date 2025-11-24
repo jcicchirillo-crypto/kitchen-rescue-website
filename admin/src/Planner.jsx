@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2 } from "lucide-react";
@@ -239,6 +239,7 @@ export default function Planner() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "" });
   const [draggedTask, setDraggedTask] = useState(null);
+  const rolloverChecked = useRef(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -287,6 +288,45 @@ export default function Planner() {
       setProjects(DEFAULT_PROJECTS);
     }
   }, []);
+
+  // Auto-rollover incomplete tasks from past dates to today
+  useEffect(() => {
+    if (!isLoggedIn || rolloverChecked.current) return;
+
+    const today = format(new Date(), "yyyy-MM-dd");
+    const lastRolloverDate = localStorage.getItem("planner-last-rollover");
+    
+    // Only rollover once per day
+    if (lastRolloverDate === today) {
+      rolloverChecked.current = true;
+      return;
+    }
+
+    // Check for incomplete tasks from past dates
+    setTasks(currentTasks => {
+      const hasIncompletePastTasks = currentTasks.some(
+        task => task.date && !task.completed && task.date < today
+      );
+
+      if (!hasIncompletePastTasks) {
+        rolloverChecked.current = true;
+        localStorage.setItem("planner-last-rollover", today);
+        return currentTasks;
+      }
+
+      const updatedTasks = currentTasks.map(task => {
+        // If task has a date in the past and is not completed, move it to today
+        if (task.date && !task.completed && task.date < today) {
+          return { ...task, date: today };
+        }
+        return task;
+      });
+      
+      rolloverChecked.current = true;
+      localStorage.setItem("planner-last-rollover", today);
+      return updatedTasks;
+    });
+  }, [isLoggedIn]); // Run once when user logs in
 
   // Set default project for new task
   useEffect(() => {
