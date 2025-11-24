@@ -6,6 +6,11 @@ try {
 } catch (error) {
     console.log('dotenv not available, using system environment variables - force redeploy');
 }
+
+// Check Supabase admin client initialization
+const { supabaseAdmin } = require('./lib/supabaseAdmin');
+console.log('🔍 Server startup - Supabase admin client available:', !!supabaseAdmin);
+
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
@@ -446,10 +451,13 @@ app.post('/send-quote-email', async (req, res) => {
         if (saved) {
             console.log('✅✅✅ Quote saved as booking successfully:', newBooking.id);
         } else {
-            console.error('❌❌❌ CRITICAL: FAILED to save quote to database:', newBooking.id);
+            console.error('========================================');
+            console.error('❌❌❌ CRITICAL: FAILED to save quote to database');
+            console.error('❌❌❌ Booking ID:', newBooking.id);
             console.error('❌❌❌ This quote request was NOT saved to admin system!');
-            console.error('❌❌❌ Check Supabase error logs above for details!');
+            console.error('❌❌❌ Look for "SUPABASE INSERT ERROR" above for details');
             console.error('❌❌❌ Common issues: RLS policies, missing columns, or wrong data types');
+            console.error('========================================');
             // Still send email even if save fails
         }
         

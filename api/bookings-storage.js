@@ -88,6 +88,13 @@ async function saveAllBookings(bookings) {
 
 // Add a new booking
 async function addBooking(newBooking) {
+    console.log('========================================');
+    console.log('🔍 addBooking called');
+    console.log('  useSupabase:', useSupabase);
+    console.log('  supabase available:', !!supabase);
+    console.log('  supabaseAdmin type:', typeof supabase);
+    console.log('========================================');
+    
     if (useSupabase && supabase) {
         try {
             // Prepare booking data for Supabase
@@ -106,9 +113,9 @@ async function addBooking(newBooking) {
                 }
             });
             
-            console.log('💾 Attempting to save booking to Supabase:', bookingData.id);
+            console.log('💾 Attempting to save booking to Supabase (admin client):', bookingData.id);
             console.log('📋 Booking data keys:', Object.keys(bookingData));
-            console.log('📋 Booking data sample:', JSON.stringify(bookingData).substring(0, 200));
+            console.log('📋 Full booking data:', JSON.stringify(bookingData, null, 2));
             
             const { data, error } = await supabase
                 .from('bookings')
@@ -124,19 +131,25 @@ async function addBooking(newBooking) {
                 console.error('Error details:', error.details);
                 console.error('Error hint:', error.hint);
                 console.error('Full error:', error);
+                // Also log to response for visibility
+                console.error('=== THIS ERROR NEEDS TO BE FIXED ===');
                 return false;
             }
             
             console.log('✅✅✅ Booking saved to Supabase successfully:', data?.id);
-            console.log('Saved booking data:', JSON.stringify(data).substring(0, 200));
+            console.log('Saved booking data:', JSON.stringify(data, null, 2));
             return true;
         } catch (error) {
             console.error('❌ Exception saving to Supabase:', error);
+            console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);
             return false;
         }
     } else {
-        console.log('⚠️ Supabase not available - attempting file system save (will fail on Vercel)');
+        console.error('⚠️⚠️⚠️ Supabase admin client NOT available!');
+        console.error('  useSupabase:', useSupabase);
+        console.error('  supabase:', !!supabase);
+        console.error('⚠️ Attempting file system save (will fail on Vercel)');
         // Fall back to file system
         const bookings = await getAllBookings();
         bookings.push(newBooking);
