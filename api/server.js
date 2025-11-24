@@ -382,10 +382,11 @@ app.post('/send-quote-email', async (req, res) => {
         }
         
         // Send notification email to business
+        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
         const businessMailOptions = {
             from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER,
-            subject: `New Quote Request from ${name}`,
+            to: adminEmail,
+            subject: `📧 New Quote Request - ${name} (${postcode})`,
             html: generateBusinessNotificationHTML({
                 name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyCost, deliveryCost, collectionCost, totalCost
             })
@@ -393,7 +394,7 @@ app.post('/send-quote-email', async (req, res) => {
         
         try {
             await transporter.sendMail(businessMailOptions);
-            console.log('Business notification email sent successfully');
+            console.log('Business notification email sent successfully to:', adminEmail);
         } catch (emailError) {
             console.error('Error sending business email:', emailError.message);
         }
@@ -545,6 +546,9 @@ function generateQuoteEmailHTML(data) {
 
 // Generate business notification email HTML
 function generateBusinessNotificationHTML(data) {
+    const money = (n) => `£${Number(n).toFixed(2)}`;
+    const totalWithVAT = (data.totalCost * 1.2).toFixed(2);
+    
     return `
     <!DOCTYPE html>
     <html>
@@ -552,38 +556,110 @@ function generateBusinessNotificationHTML(data) {
         <meta charset="UTF-8">
         <title>New Quote Request</title>
         <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; }
             .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
             .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-            .customer-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
-            .quote-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
+            .section h3 { margin-top: 0; color: #dc2626; }
+            .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+            .detail-row:last-child { border-bottom: none; }
+            .detail-label { font-weight: 600; color: #374151; }
+            .detail-value { color: #6b7280; }
+            .total-box { background: #fef2f2; padding: 15px; border-radius: 8px; margin-top: 15px; border: 2px solid #dc2626; }
+            .total-box .amount { font-size: 24px; font-weight: bold; color: #dc2626; }
+            .action-box { background: #eff6ff; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #3b82f6; }
+            .dates-list { font-size: 0.9em; color: #6b7280; margin-top: 5px; }
         </style>
     </head>
     <body>
         <div class="header">
-            <h1>📧 New Quote Request</h1>
-            <p>Customer has requested a quote via the website</p>
+            <h1 style="margin: 0;">📧 New Quote Request</h1>
+            <p style="margin: 10px 0 0 0;">Customer has requested a quote via the website</p>
         </div>
         
         <div class="content">
-            <div class="customer-details">
+            <div class="section">
                 <h3>👤 Customer Details</h3>
-                <p><strong>Name:</strong> ${data.name}</p>
-                <p><strong>Email:</strong> ${data.email}</p>
-                ${data.phone ? `<p><strong>Phone:</strong> ${data.phone}</p>` : ''}
-                <p><strong>Postcode:</strong> ${data.postcode}</p>
-                ${data.notes ? `<p><strong>Notes:</strong> ${data.notes}</p>` : ''}
+                <div class="detail-row">
+                    <span class="detail-label">Name:</span>
+                    <span class="detail-value">${data.name}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value"><a href="mailto:${data.email}">${data.email}</a></span>
+                </div>
+                ${data.phone ? `
+                <div class="detail-row">
+                    <span class="detail-label">Phone:</span>
+                    <span class="detail-value"><a href="tel:${data.phone}">${data.phone}</a></span>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                    <span class="detail-label">Postcode:</span>
+                    <span class="detail-value">${data.postcode}</span>
+                </div>
+                ${data.notes ? `
+                <div class="detail-row">
+                    <span class="detail-label">Notes:</span>
+                    <span class="detail-value">${data.notes}</span>
+                </div>
+                ` : ''}
             </div>
             
-            <div class="quote-details">
-                <h3>📅 Quote Details</h3>
-                <p><strong>Dates:</strong> ${data.startDate} to ${data.endDate}</p>
-                <p><strong>Duration:</strong> ${data.days} day${data.days > 1 ? 's' : ''}</p>
-                <p><strong>Total Cost:</strong> £${data.totalCost} + VAT</p>
-                <p><strong>Selected Dates:</strong> ${data.selectedDates.join(', ')}</p>
+            <div class="section">
+                <h3>📅 Booking Details</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Start Date:</span>
+                    <span class="detail-value">${data.startDate}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">End Date:</span>
+                    <span class="detail-value">${data.endDate}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Duration:</span>
+                    <span class="detail-value">${data.days} day${data.days > 1 ? 's' : ''}</span>
+                </div>
+                <div class="dates-list">
+                    <strong>Selected Dates:</strong><br/>
+                    ${data.selectedDates.slice(0, 10).join(', ')}${data.selectedDates.length > 10 ? ` ... and ${data.selectedDates.length - 10} more` : ''}
+                </div>
             </div>
             
-            <p><strong>Action Required:</strong> Follow up with customer within 24 hours.</p>
+            <div class="section">
+                <h3>💰 Pricing Breakdown</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Daily Hire (${data.days} days × £70):</span>
+                    <span class="detail-value">${money(data.dailyCost)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Delivery:</span>
+                    <span class="detail-value">${money(data.deliveryCost)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Collection:</span>
+                    <span class="detail-value">${money(data.collectionCost)}</span>
+                </div>
+                <div class="total-box">
+                    <div class="detail-row" style="border-bottom: none;">
+                        <span class="detail-label" style="font-size: 18px;">Subtotal:</span>
+                        <span class="detail-value" style="font-size: 18px; font-weight: 600;">${money(data.totalCost)}</span>
+                    </div>
+                    <div class="detail-row" style="border-bottom: none; margin-top: 8px;">
+                        <span class="detail-label" style="font-size: 18px;">VAT (20%):</span>
+                        <span class="detail-value" style="font-size: 18px;">${money(data.totalCost * 0.2)}</span>
+                    </div>
+                    <div class="detail-row" style="border-bottom: none; margin-top: 12px; padding-top: 12px; border-top: 2px solid #dc2626;">
+                        <span class="detail-label" style="font-size: 20px;">Total (inc. VAT):</span>
+                        <span class="amount">${money(totalWithVAT)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-box">
+                <p style="margin: 0;"><strong>✅ Action Required:</strong> This quote has been saved to your admin system. Follow up with the customer within 24 hours.</p>
+                <p style="margin: 10px 0 0 0; font-size: 0.9em;">You can view and manage this quote in your admin dashboard.</p>
+            </div>
         </div>
     </body>
     </html>
