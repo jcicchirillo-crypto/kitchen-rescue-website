@@ -6,6 +6,7 @@ import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Badge } from "./components/ui/badge";
+import { Label } from "./components/ui/label";
 
 const PRIORITY_LEVELS = [
   { id: "high", name: "High", color: "bg-red-100 text-red-700 border-red-300" },
@@ -163,7 +164,72 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart }) 
   );
 }
 
+function LoginForm({ onLogin }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem("adminToken", data.token);
+      onLogin();
+    } else {
+      setError("Invalid credentials");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Task Planner</CardTitle>
+          <CardDescription>Sign in to access your planner</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="planner-username">Username</Label>
+              <Input
+                id="planner-username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="planner-password">Password</Label>
+              <Input
+                id="planner-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <div className="text-sm text-red-500">{error}</div>}
+            <Button className="w-full" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Planner() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState(DEFAULT_PROJECTS);
   const [view, setView] = useState("week");
@@ -173,6 +239,14 @@ export default function Planner() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "" });
   const [draggedTask, setDraggedTask] = useState(null);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   // Load tasks and projects from localStorage
   useEffect(() => {
@@ -343,6 +417,10 @@ export default function Planner() {
     });
     return grouped;
   }, [todaysTasks]);
+
+  if (!isLoggedIn) {
+    return <LoginForm onLogin={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
