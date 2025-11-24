@@ -98,18 +98,39 @@ async function addBooking(newBooking) {
     if (useSupabase && supabase) {
         try {
             // Prepare booking data for Supabase
+            // Map to match Supabase schema exactly
             const bookingData = {
-                ...newBooking,
-                // Ensure created_at is set (Supabase expects this)
-                created_at: newBooking.created_at || newBooking.createdAt || new Date().toISOString(),
-                // Keep timestamp for compatibility
+                id: newBooking.id,
                 timestamp: newBooking.timestamp || new Date().toISOString(),
+                name: newBooking.name,
+                email: newBooking.email,
+                phone: newBooking.phone || null,
+                postcode: newBooking.postcode || null,
+                selectedDates: Array.isArray(newBooking.selectedDates) ? newBooking.selectedDates : [],
+                startDate: newBooking.startDate || null,
+                endDate: newBooking.endDate || null,
+                days: newBooking.days ? Number(newBooking.days) : null,
+                dailyCost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
+                deliveryCost: newBooking.deliveryCost ? Number(newBooking.deliveryCost) : null,
+                collectionCost: newBooking.collectionCost ? Number(newBooking.collectionCost) : null,
+                totalCost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
+                notes: newBooking.notes || null,
+                status: newBooking.status || 'Awaiting deposit',
+                source: newBooking.source || null,
+                pod: newBooking.pod || null,
+                // Use createdAt (matches Supabase schema)
+                createdAt: newBooking.createdAt || newBooking.created_at || new Date().toISOString(),
             };
             
-            // Remove any undefined values
+            // Remove any null/undefined values that might cause issues
             Object.keys(bookingData).forEach(key => {
-                if (bookingData[key] === undefined) {
-                    delete bookingData[key];
+                if (bookingData[key] === undefined || bookingData[key] === '') {
+                    // Keep empty strings as null for optional fields
+                    if (bookingData[key] === '') {
+                        bookingData[key] = null;
+                    } else {
+                        delete bookingData[key];
+                    }
                 }
             });
             
@@ -124,15 +145,18 @@ async function addBooking(newBooking) {
                 .single();
             
             if (error) {
+                console.error('========================================');
                 console.error('❌❌❌ SUPABASE INSERT ERROR ❌❌❌');
-                console.error('Error object:', JSON.stringify(error, null, 2));
+                console.error('========================================');
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
                 console.error('Error details:', error.details);
                 console.error('Error hint:', error.hint);
-                console.error('Full error:', error);
-                // Also log to response for visibility
-                console.error('=== THIS ERROR NEEDS TO BE FIXED ===');
+                console.error('Full error object:', JSON.stringify(error, null, 2));
+                console.error('========================================');
+                console.error('Data we tried to insert:');
+                console.error(JSON.stringify(bookingData, null, 2));
+                console.error('========================================');
                 return false;
             }
             

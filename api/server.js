@@ -333,8 +333,7 @@ app.post('/send-quote-email', async (req, res) => {
             const newBooking = {
                 id: `KR-${Date.now()}`,
                 timestamp: new Date().toISOString(),
-                created_at: new Date().toISOString(), // Supabase expects this
-                createdAt: new Date().toISOString(), // Also include for compatibility
+                createdAt: new Date().toISOString(), // Matches Supabase schema (createdAt, not created_at)
                 name,
                 email,
                 phone: phone || '',
@@ -413,8 +412,7 @@ app.post('/send-quote-email', async (req, res) => {
         const newBooking = {
             id: `KR-${Date.now()}`,
             timestamp: new Date().toISOString(),
-            created_at: new Date().toISOString(), // Supabase expects this
-            createdAt: new Date().toISOString(), // Also include for compatibility
+            createdAt: new Date().toISOString(), // Matches Supabase schema (createdAt, not created_at)
             name,
             email,
             phone: phone || '',
@@ -443,6 +441,7 @@ app.post('/send-quote-email', async (req, res) => {
             status: newBooking.status
         });
         console.log('📋 Full booking object keys:', Object.keys(newBooking));
+        console.log('📋 Full booking object:', JSON.stringify(newBooking, null, 2));
         
         // Save new booking to database
         console.log('🔍 About to call addBooking...');
