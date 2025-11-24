@@ -328,30 +328,35 @@ app.post('/send-quote-email', async (req, res) => {
             const newBooking = {
                 id: `KR-${Date.now()}`,
                 timestamp: new Date().toISOString(),
+                created_at: new Date().toISOString(), // Supabase expects this
+                createdAt: new Date().toISOString(), // Also include for compatibility
                 name,
                 email,
                 phone: phone || '',
                 postcode,
-                selectedDates,
+                selectedDates: selectedDates || [],
                 startDate,
                 endDate,
                 days,
-                dailyCost,
-                deliveryCost,
-                collectionCost,
-                totalCost,
+                dailyCost: Number(dailyCost) || 0,
+                deliveryCost: Number(deliveryCost) || 0,
+                collectionCost: Number(collectionCost) || 0,
+                totalCost: Number(totalCost) || 0,
                 notes: notes || '',
                 status: 'Awaiting deposit',
                 source: 'quote',
                 pod: '16ft Pod'
             };
             
+            console.log('💾 Attempting to save quote as booking (no email config):', newBooking.id);
+            
             // Save new booking to database
             const saved = await addBooking(newBooking);
             if (saved) {
-                console.log('Quote saved as booking:', newBooking.id);
+                console.log('✅ Quote saved as booking successfully:', newBooking.id);
             } else {
-                console.log('Failed to save quote to database');
+                console.error('❌ FAILED to save quote to database:', newBooking.id);
+                console.error('This quote request was NOT saved to admin system!');
             }
             
             return res.json({ 
@@ -403,30 +408,42 @@ app.post('/send-quote-email', async (req, res) => {
         const newBooking = {
             id: `KR-${Date.now()}`,
             timestamp: new Date().toISOString(),
+            created_at: new Date().toISOString(), // Supabase expects this
+            createdAt: new Date().toISOString(), // Also include for compatibility
             name,
             email,
             phone: phone || '',
             postcode,
-            selectedDates,
+            selectedDates: selectedDates || [],
             startDate,
             endDate,
             days,
-            dailyCost,
-            deliveryCost,
-            collectionCost,
-            totalCost,
+            dailyCost: Number(dailyCost) || 0,
+            deliveryCost: Number(deliveryCost) || 0,
+            collectionCost: Number(collectionCost) || 0,
+            totalCost: Number(totalCost) || 0,
             notes: notes || '',
             status: 'Awaiting deposit',
             source: 'quote',
             pod: '16ft Pod'
         };
         
+        console.log('💾 Attempting to save quote as booking:', newBooking.id);
+        console.log('Booking details:', {
+            name: newBooking.name,
+            email: newBooking.email,
+            postcode: newBooking.postcode,
+            totalCost: newBooking.totalCost
+        });
+        
         // Save new booking to database
         const saved = await addBooking(newBooking);
         if (saved) {
-            console.log('Quote saved as booking:', newBooking.id);
+            console.log('✅ Quote saved as booking successfully:', newBooking.id);
         } else {
-            console.log('Failed to save quote to database');
+            console.error('❌ FAILED to save quote to database:', newBooking.id);
+            console.error('This quote request was NOT saved to admin system!');
+            // Still send email even if save fails
         }
         
         console.log('Quote emails sent successfully');

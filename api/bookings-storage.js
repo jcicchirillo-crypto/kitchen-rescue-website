@@ -14,10 +14,18 @@ try {
             process.env.SUPABASE_KEY
         );
         useSupabase = true;
-        console.log('Using Supabase for bookings storage');
+        console.log('✅ Using Supabase for bookings storage');
+        console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Set' : 'Missing');
+        console.log('Supabase Key:', process.env.SUPABASE_KEY ? 'Set' : 'Missing');
+    } else {
+        console.log('⚠️ Supabase credentials not found:');
+        console.log('  SUPABASE_URL:', process.env.SUPABASE_URL ? 'Set' : 'MISSING');
+        console.log('  SUPABASE_KEY:', process.env.SUPABASE_KEY ? 'Set' : 'MISSING');
+        console.log('⚠️ Falling back to file system (will not work on Vercel!)');
     }
 } catch (error) {
-    console.log('Supabase not available, using file system');
+    console.error('❌ Error initializing Supabase:', error.message);
+    console.log('⚠️ Falling back to file system (will not work on Vercel!)');
 }
 
 const BOOKINGS_KEY = 'bookings';
@@ -79,29 +87,49 @@ async function saveAllBookings(bookings) {
 async function addBooking(newBooking) {
     if (useSupabase && supabase) {
         try {
-            // Add created_at if not present
-            if (!newBooking.created_at) {
-                newBooking.created_at = new Date().toISOString();
-            }
+            // Prepare booking data for Supabase
+            const bookingData = {
+                ...newBooking,
+                // Ensure created_at is set (Supabase expects this)
+                created_at: newBooking.created_at || newBooking.createdAt || new Date().toISOString(),
+                // Keep timestamp for compatibility
+                timestamp: newBooking.timestamp || new Date().toISOString(),
+            };
+            
+            // Remove any undefined values
+            Object.keys(bookingData).forEach(key => {
+                if (bookingData[key] === undefined) {
+                    delete bookingData[key];
+                }
+            });
+            
+            console.log('Attempting to save booking to Supabase:', bookingData.id);
+            console.log('Booking data keys:', Object.keys(bookingData));
             
             const { data, error } = await supabase
                 .from('bookings')
-                .insert([newBooking])
+                .insert([bookingData])
                 .select()
                 .single();
             
             if (error) {
-                console.error('Error inserting to Supabase:', error);
+                console.error('❌ Supabase insert error:', error);
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+                console.error('Error details:', error.details);
+                console.error('Error hint:', error.hint);
                 return false;
             }
             
-            console.log('Booking saved to Supabase');
+            console.log('✅ Booking saved to Supabase successfully:', data?.id);
             return true;
         } catch (error) {
-            console.error('Error saving to Supabase:', error);
+            console.error('❌ Exception saving to Supabase:', error);
+            console.error('Error stack:', error.stack);
             return false;
         }
     } else {
+        console.log('⚠️ Supabase not available - attempting file system save (will fail on Vercel)');
         // Fall back to file system
         const bookings = await getAllBookings();
         bookings.push(newBooking);
