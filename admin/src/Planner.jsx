@@ -262,6 +262,7 @@ export default function Planner() {
   const [editingTask, setEditingTask] = useState(null);
   const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "" });
   const [draggedTask, setDraggedTask] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(""); // "syncing", "synced", "error"
   const rolloverChecked = useRef(false);
 
   // Check authentication on mount
@@ -275,34 +276,74 @@ export default function Planner() {
   // Load tasks and projects from API
   const fetchTasks = async () => {
     try {
+      console.log('📥 Fetching tasks from API...');
       const res = await fetch("/api/tasks", {
         headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        // Migrate old tasks: add project if missing, convert category to priority
-        const migrated = data.map(task => {
-          if (!task.project && DEFAULT_PROJECTS.length > 0) {
-            task.project = DEFAULT_PROJECTS[0];
+      
+      if (!res.ok) {
+        console.error(`❌ API returned status ${res.status}`);
+        throw new Error(`API error: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log(`✅ Loaded ${data.length} tasks from Supabase`);
+      
+      // Migrate old tasks: add project if missing, convert category to priority
+      const migrated = data.map(task => {
+        if (!task.project && DEFAULT_PROJECTS.length > 0) {
+          task.project = DEFAULT_PROJECTS[0];
+        }
+        if (task.category && !task.priority) {
+          task.priority = "medium";
+          delete task.category;
+        }
+        if (!task.priority) {
+          task.priority = "medium";
+        }
+        return task;
+      });
+      setTasks(migrated);
+      
+      // If Supabase is empty but localStorage has tasks, migrate them
+      if (data.length === 0) {
+        const savedTasks = localStorage.getItem("planner-tasks");
+        if (savedTasks) {
+          try {
+            const parsed = JSON.parse(savedTasks);
+            if (parsed.length > 0) {
+              console.log(`🔄 Found ${parsed.length} tasks in localStorage, migrating to Supabase...`);
+              // Migrate tasks to Supabase
+              for (const task of parsed) {
+                try {
+                  await fetch("/api/tasks", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+                    },
+                    body: JSON.stringify(task),
+                  });
+                } catch (e) {
+                  console.error("Error migrating task:", e);
+                }
+              }
+              // Reload tasks after migration
+              setTimeout(() => fetchTasks(), 500);
+            }
+          } catch (err) {
+            console.error("Error parsing localStorage tasks:", err);
           }
-          if (task.category && !task.priority) {
-            task.priority = "medium";
-            delete task.category;
-          }
-          if (!task.priority) {
-            task.priority = "medium";
-          }
-          return task;
-        });
-        setTasks(migrated);
+        }
       }
     } catch (e) {
-      console.error("Error loading tasks:", e);
+      console.error("❌ Error loading tasks from API:", e);
       // Fallback to localStorage if API fails
       const savedTasks = localStorage.getItem("planner-tasks");
       if (savedTasks) {
         try {
           const parsed = JSON.parse(savedTasks);
+          console.log(`⚠️ Using localStorage fallback: ${parsed.length} tasks`);
           setTasks(parsed);
         } catch (err) {
           console.error("Error loading from localStorage:", err);
@@ -403,42 +444,12 @@ export default function Planner() {
     }
   }, [projects]);
 
-  // Save tasks to API (debounced to avoid too many requests)
-  const saveTasksTimeoutRef = useRef(null);
+  // Save tasks to localStorage as backup (tasks are saved to Supabase immediately on each action)
   useEffect(() => {
-    if (!isLoggedIn || tasks.length === 0) return;
-    
-    // Clear existing timeout
-    if (saveTasksTimeoutRef.current) {
-      clearTimeout(saveTasksTimeoutRef.current);
+    if (tasks.length > 0) {
+      localStorage.setItem("planner-tasks", JSON.stringify(tasks));
     }
-    
-    // Debounce saves - wait 1 second after last change
-    saveTasksTimeoutRef.current = setTimeout(async () => {
-      try {
-        await fetch("/api/tasks/bulk", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          },
-          body: JSON.stringify({ tasks }),
-        });
-        // Also save to localStorage as backup
-        localStorage.setItem("planner-tasks", JSON.stringify(tasks));
-      } catch (e) {
-        console.error("Error saving tasks:", e);
-        // Fallback to localStorage
-        localStorage.setItem("planner-tasks", JSON.stringify(tasks));
-      }
-    }, 1000);
-    
-    return () => {
-      if (saveTasksTimeoutRef.current) {
-        clearTimeout(saveTasksTimeoutRef.current);
-      }
-    };
-  }, [tasks, isLoggedIn]);
+  }, [tasks]);
 
   // Save projects to API
   useEffect(() => {
@@ -486,9 +497,11 @@ export default function Planner() {
     setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "" });
     setShowAddTask(false);
     
-    // Save to API
+    // Save to API immediately
+    setSyncStatus("syncing");
     try {
-      await fetch("/api/tasks", {
+      console.log('💾 Saving task to Supabase:', task.id);
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -496,8 +509,29 @@ export default function Planner() {
         },
         body: JSON.stringify(task),
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error(`❌ Failed to save task: ${res.status}`, errorData);
+        setSyncStatus("error");
+        // Remove from UI if save failed
+        setTasks(tasks.filter(t => t.id !== task.id));
+        alert('Failed to save task. Please check if Supabase tables are created and try again.');
+        setTimeout(() => setSyncStatus(""), 3000);
+      } else {
+        console.log('✅ Task saved to Supabase successfully');
+        setSyncStatus("synced");
+        // Also save to localStorage as backup
+        localStorage.setItem("planner-tasks", JSON.stringify([...tasks, task]));
+        setTimeout(() => setSyncStatus(""), 2000);
+      }
     } catch (e) {
-      console.error("Error saving task:", e);
+      console.error("❌ Error saving task:", e);
+      setSyncStatus("error");
+      // Remove from UI if save failed
+      setTasks(tasks.filter(t => t.id !== task.id));
+      alert('Failed to save task. Please check your connection and try again.');
+      setTimeout(() => setSyncStatus(""), 3000);
     }
   };
 
@@ -509,9 +543,9 @@ export default function Planner() {
     // Optimistically update UI
     setTasks(tasks.map(t => t.id === id ? updated : t));
     
-    // Save to API
+    // Save to API immediately
     try {
-      await fetch(`/api/tasks/${id}`, {
+      const res = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -519,25 +553,56 @@ export default function Planner() {
         },
         body: JSON.stringify({ completed: updated.completed }),
       });
+      
+      if (!res.ok) {
+        console.error(`❌ Failed to update task: ${res.status}`);
+        // Revert UI change
+        setTasks(tasks);
+      } else {
+        console.log('✅ Task updated in Supabase');
+        // Update localStorage backup
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === id ? updated : t)));
+      }
     } catch (e) {
-      console.error("Error updating task:", e);
+      console.error("❌ Error updating task:", e);
+      // Revert UI change
+      setTasks(tasks);
     }
   };
 
   const deleteTask = async (id) => {
+    const taskToDelete = tasks.find(t => t.id === id);
     // Optimistically remove from UI
     setTasks(tasks.filter(t => t.id !== id));
     
-    // Delete from API
+    // Delete from API immediately
     try {
-      await fetch(`/api/tasks/${id}`, {
+      const res = await fetch(`/api/tasks/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         },
       });
+      
+      if (!res.ok) {
+        console.error(`❌ Failed to delete task: ${res.status}`);
+        // Restore task if delete failed
+        if (taskToDelete) {
+          setTasks([...tasks, taskToDelete]);
+        }
+        alert('Failed to delete task. Please try again.');
+      } else {
+        console.log('✅ Task deleted from Supabase');
+        // Update localStorage backup
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks.filter(t => t.id !== id)));
+      }
     } catch (e) {
-      console.error("Error deleting task:", e);
+      console.error("❌ Error deleting task:", e);
+      // Restore task if delete failed
+      if (taskToDelete) {
+        setTasks([...tasks, taskToDelete]);
+      }
+      alert('Failed to delete task. Please check your connection and try again.');
     }
   };
 
@@ -576,6 +641,7 @@ export default function Planner() {
     if (!draggedTask) return;
 
     const dateStr = format(startOfDay(day), "yyyy-MM-dd");
+    const originalTask = draggedTask;
     const updated = { ...draggedTask, date: dateStr };
     
     // Optimistically update UI
@@ -584,9 +650,9 @@ export default function Planner() {
     ));
     setDraggedTask(null);
     
-    // Save to API
+    // Save to API immediately
     try {
-      await fetch(`/api/tasks/${draggedTask.id}`, {
+      const res = await fetch(`/api/tasks/${draggedTask.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -594,8 +660,20 @@ export default function Planner() {
         },
         body: JSON.stringify({ date: dateStr }),
       });
+      
+      if (!res.ok) {
+        console.error(`❌ Failed to update task date: ${res.status}`);
+        // Revert UI change
+        setTasks(tasks.map(t => t.id === draggedTask.id ? originalTask : t));
+      } else {
+        console.log('✅ Task date updated in Supabase');
+        // Update localStorage backup
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === draggedTask.id ? updated : t)));
+      }
     } catch (e) {
-      console.error("Error updating task date:", e);
+      console.error("❌ Error updating task date:", e);
+      // Revert UI change
+      setTasks(tasks.map(t => t.id === draggedTask.id ? originalTask : t));
     }
   };
 
@@ -611,6 +689,7 @@ export default function Planner() {
 
   const handleSaveEdit = async () => {
     if (!editingTask || !editTask.title.trim() || !editTask.project) return;
+    const originalTask = editingTask;
     const updated = {
       ...editingTask,
       title: editTask.title,
@@ -626,9 +705,9 @@ export default function Planner() {
     setEditingTask(null);
     setEditTask({ title: "", description: "", priority: "medium", project: "" });
     
-    // Save to API
+    // Save to API immediately
     try {
-      await fetch(`/api/tasks/${editingTask.id}`, {
+      const res = await fetch(`/api/tasks/${editingTask.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -641,20 +720,37 @@ export default function Planner() {
           project: editTask.project
         }),
       });
+      
+      if (!res.ok) {
+        console.error(`❌ Failed to update task: ${res.status}`);
+        // Revert UI change
+        setTasks(tasks.map(t => t.id === editingTask.id ? originalTask : t));
+        alert('Failed to save changes. Please try again.');
+      } else {
+        console.log('✅ Task updated in Supabase');
+        // Update localStorage backup
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === editingTask.id ? updated : t)));
+      }
     } catch (e) {
-      console.error("Error updating task:", e);
+      console.error("❌ Error updating task:", e);
+      // Revert UI change
+      setTasks(tasks.map(t => t.id === editingTask.id ? originalTask : t));
+      alert('Failed to save changes. Please check your connection and try again.');
     }
   };
 
   const handleUnschedule = async (taskId) => {
+    const originalTask = tasks.find(t => t.id === taskId);
+    if (!originalTask) return;
+    
     // Optimistically update UI
     setTasks(tasks.map(t =>
       t.id === taskId ? { ...t, date: null } : t
     ));
     
-    // Save to API
+    // Save to API immediately
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -662,8 +758,20 @@ export default function Planner() {
         },
         body: JSON.stringify({ date: null }),
       });
+      
+      if (!res.ok) {
+        console.error(`❌ Failed to unschedule task: ${res.status}`);
+        // Revert UI change
+        setTasks(tasks.map(t => t.id === taskId ? originalTask : t));
+      } else {
+        console.log('✅ Task unscheduled in Supabase');
+        // Update localStorage backup
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === taskId ? { ...t, date: null } : t)));
+      }
     } catch (e) {
-      console.error("Error unscheduling task:", e);
+      console.error("❌ Error unscheduling task:", e);
+      // Revert UI change
+      setTasks(tasks.map(t => t.id === taskId ? originalTask : t));
     }
   };
 
@@ -723,6 +831,17 @@ export default function Planner() {
           <div className="flex items-center gap-2">
             <ListTodo className="h-5 w-5" />
             <span className="font-semibold">Task Planner</span>
+            {syncStatus && (
+              <span className={`text-xs px-2 py-1 rounded ${
+                syncStatus === "synced" ? "bg-green-100 text-green-700" :
+                syncStatus === "syncing" ? "bg-blue-100 text-blue-700" :
+                "bg-red-100 text-red-700"
+              }`}>
+                {syncStatus === "synced" ? "✓ Synced" :
+                 syncStatus === "syncing" ? "Syncing..." :
+                 "Sync Error"}
+              </span>
+            )}
           </div>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowManageProjects(!showManageProjects)}>

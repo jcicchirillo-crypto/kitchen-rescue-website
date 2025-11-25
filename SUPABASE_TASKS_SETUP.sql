@@ -25,10 +25,13 @@ ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow all operations (for admin access via server)
-CREATE POLICY IF NOT EXISTS "Allow all operations for admin on tasks" ON tasks
+-- Drop existing policies if they exist, then create new ones
+DROP POLICY IF EXISTS "Allow all operations for admin on tasks" ON tasks;
+CREATE POLICY "Allow all operations for admin on tasks" ON tasks
   FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "Allow all operations for admin on projects" ON projects
+DROP POLICY IF EXISTS "Allow all operations for admin on projects" ON projects;
+CREATE POLICY "Allow all operations for admin on projects" ON projects
   FOR ALL USING (true) WITH CHECK (true);
 
 -- Create index for faster queries

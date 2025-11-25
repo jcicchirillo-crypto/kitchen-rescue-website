@@ -829,14 +829,21 @@ app.post('/api/tasks', authenticateAdmin, async (req, res) => {
             date: req.body.date || null,
         };
         
+        console.log('📥 Creating new task:', newTask.id);
         const saved = await addTask(newTask);
         if (saved) {
+            console.log('✅ Task created successfully');
             res.json(newTask);
         } else {
-            res.status(500).json({ error: 'Failed to create task' });
+            console.error('❌ Failed to create task in Supabase');
+            res.status(500).json({ 
+                error: 'Failed to create task',
+                message: 'Task may not have been saved. Check if Supabase tables exist.'
+            });
         }
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create task' });
+        console.error('❌ Exception creating task:', error);
+        res.status(500).json({ error: 'Failed to create task', message: error.message });
     }
 });
 
@@ -846,14 +853,21 @@ app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
         const taskId = req.params.id;
         const updates = req.body;
         
+        console.log(`📥 Updating task ${taskId}`);
         const updated = await updateTask(taskId, updates);
         if (updated) {
+            console.log('✅ Task updated successfully');
             res.json({ success: true });
         } else {
-            res.status(404).json({ error: 'Task not found' });
+            console.error(`❌ Failed to update task ${taskId}`);
+            res.status(500).json({ 
+                error: 'Failed to update task',
+                message: 'Task may not exist or Supabase tables may not be set up.'
+            });
         }
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update task' });
+        console.error('❌ Exception updating task:', error);
+        res.status(500).json({ error: 'Failed to update task', message: error.message });
     }
 });
 
@@ -861,14 +875,21 @@ app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
 app.delete('/api/tasks/:id', authenticateAdmin, async (req, res) => {
     try {
         const taskId = req.params.id;
+        console.log(`📥 Deleting task ${taskId}`);
         const deleted = await deleteTask(taskId);
         if (deleted) {
+            console.log('✅ Task deleted successfully');
             res.json({ success: true });
         } else {
-            res.status(404).json({ error: 'Task not found' });
+            console.error(`❌ Failed to delete task ${taskId}`);
+            res.status(500).json({ 
+                error: 'Failed to delete task',
+                message: 'Task may not exist or Supabase tables may not be set up.'
+            });
         }
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete task' });
+        console.error('❌ Exception deleting task:', error);
+        res.status(500).json({ error: 'Failed to delete task', message: error.message });
     }
 });
 

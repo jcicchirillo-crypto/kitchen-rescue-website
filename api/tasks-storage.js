@@ -27,6 +27,15 @@ async function getAllTasks() {
                 console.error('Error object:', JSON.stringify(error, null, 2));
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
+                console.error('Error details:', error.details);
+                console.error('Error hint:', error.hint);
+                
+                // Check if table doesn't exist
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    console.error('⚠️⚠️⚠️ TASKS TABLE DOES NOT EXIST IN SUPABASE!');
+                    console.error('⚠️⚠️⚠️ Please run SUPABASE_TASKS_SETUP.sql in Supabase SQL Editor');
+                }
+                
                 return [];
             }
             
@@ -47,6 +56,7 @@ async function getAllTasks() {
             return mappedData;
         } catch (error) {
             console.error('❌ Exception reading tasks from Supabase:', error);
+            console.error('Error stack:', error.stack);
             return [];
         }
     } else {
@@ -109,6 +119,7 @@ async function addTask(newTask) {
             };
             
             console.log('💾 Attempting to save task to Supabase:', taskData.id);
+            console.log('Task data:', JSON.stringify(taskData, null, 2));
             
             const { data, error } = await supabase
                 .from('tasks')
@@ -121,6 +132,15 @@ async function addTask(newTask) {
                 console.error('Error object:', JSON.stringify(error, null, 2));
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
+                console.error('Error details:', error.details);
+                console.error('Error hint:', error.hint);
+                
+                // Check if table doesn't exist
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    console.error('⚠️⚠️⚠️ TASKS TABLE DOES NOT EXIST IN SUPABASE!');
+                    console.error('⚠️⚠️⚠️ Please run SUPABASE_TASKS_SETUP.sql in Supabase SQL Editor');
+                }
+                
                 return false;
             }
             
@@ -128,6 +148,7 @@ async function addTask(newTask) {
             return true;
         } catch (error) {
             console.error('❌ Exception saving task to Supabase:', error);
+            console.error('Error stack:', error.stack);
             return false;
         }
     } else {
@@ -142,6 +163,8 @@ async function addTask(newTask) {
 async function updateTask(taskId, updates) {
     if (useSupabase && supabase) {
         try {
+            console.log(`💾 Updating task ${taskId} in Supabase:`, JSON.stringify(updates, null, 2));
+            
             const { data, error } = await supabase
                 .from('tasks')
                 .update(updates)
@@ -149,13 +172,27 @@ async function updateTask(taskId, updates) {
                 .select();
             
             if (error) {
-                console.error('Error updating task in Supabase:', error);
+                console.error('❌❌❌ SUPABASE TASK UPDATE ERROR ❌❌❌');
+                console.error('Error object:', JSON.stringify(error, null, 2));
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+                console.error('Error details:', error.details);
+                console.error('Error hint:', error.hint);
+                
+                // Check if table doesn't exist
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    console.error('⚠️⚠️⚠️ TASKS TABLE DOES NOT EXIST IN SUPABASE!');
+                    console.error('⚠️⚠️⚠️ Please run SUPABASE_TASKS_SETUP.sql in Supabase SQL Editor');
+                }
+                
                 return false;
             }
             
+            console.log('✅✅✅ Task updated in Supabase successfully');
             return true;
         } catch (error) {
-            console.error('Error updating task in Supabase:', error);
+            console.error('❌ Exception updating task in Supabase:', error);
+            console.error('Error stack:', error.stack);
             return false;
         }
     } else {
@@ -179,10 +216,21 @@ async function deleteTask(taskId) {
                 .eq('id', taskId);
             
             if (error) {
-                console.error('Error deleting task from Supabase:', error);
+                console.error('❌❌❌ SUPABASE TASK DELETE ERROR ❌❌❌');
+                console.error('Error object:', JSON.stringify(error, null, 2));
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+                
+                // Check if table doesn't exist
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    console.error('⚠️⚠️⚠️ TASKS TABLE DOES NOT EXIST IN SUPABASE!');
+                    console.error('⚠️⚠️⚠️ Please run SUPABASE_TASKS_SETUP.sql in Supabase SQL Editor');
+                }
+                
                 return false;
             }
             
+            console.log('✅✅✅ Task deleted from Supabase successfully');
             return true;
         } catch (error) {
             console.error('Error deleting task from Supabase:', error);
