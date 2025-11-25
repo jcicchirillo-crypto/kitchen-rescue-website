@@ -259,6 +259,8 @@ export default function Planner() {
   const [showManageProjects, setShowManageProjects] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "" });
+  const [editingTask, setEditingTask] = useState(null);
+  const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "" });
   const [draggedTask, setDraggedTask] = useState(null);
   const rolloverChecked = useRef(false);
 
