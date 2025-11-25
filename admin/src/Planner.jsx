@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
 import { Badge } from "./components/ui/badge";
 import { Label } from "./components/ui/label";
 
@@ -25,7 +26,7 @@ const PROJECT_COLORS = [
 
 const DEFAULT_PROJECTS = ["Kitchen Rescue", "Sun Tan Business", "House Build"];
 
-function TaskItem({ task, onToggle, onDelete, onDragStart, projectColor }) {
+function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor }) {
   const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
   
   return (
@@ -44,8 +45,8 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, projectColor }) {
             <Circle className="h-4 w-4 text-gray-400" />
           )}
         </button>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-xs leading-tight">{task.title}</div>
+        <div className="flex-1 min-w-0" onClick={() => onEdit(task)}>
+          <div className="font-medium text-xs leading-tight cursor-pointer hover:text-blue-600">{task.title}</div>
           {task.description && (
             <div className="text-[10px] text-gray-600 mt-0.5 line-clamp-1">{task.description}</div>
           )}
@@ -55,15 +56,20 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, projectColor }) {
             </Badge>
           </div>
         </div>
-        <button onClick={() => onDelete(task.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
-          <X className="h-3 w-3" />
-        </button>
+        <div className="flex flex-col gap-1">
+          <button onClick={() => onEdit(task)} className="text-gray-400 hover:text-blue-500 flex-shrink-0" title="Edit task">
+            <Edit2 className="h-3 w-3" />
+          </button>
+          <button onClick={() => onDelete(task.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0" title="Delete task">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart }) {
+function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule }) {
   const dayTasks = tasks.filter(t => t.date && isSameDay(new Date(t.date), day));
   const isTodayDate = isToday(day);
 
@@ -92,12 +98,24 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
               key={task.id}
               draggable
               onDragStart={(e) => onDragStart(e, task)}
-              className={`text-[10px] px-2 py-1 rounded truncate cursor-move ${projectColor} ${
+              className={`text-[10px] px-2 py-1 rounded cursor-move ${projectColor} ${
                 task.completed ? "opacity-60 line-through" : ""
-              } hover:shadow-sm transition-shadow`}
-              title={`${task.project} - ${task.title} (${priority.name} priority) - Drag to move`}
+              } hover:shadow-sm transition-shadow group relative`}
+              title={`${task.project} - ${task.title} (${priority.name} priority) - Drag to move or click to edit`}
             >
-              {task.title}
+              <div className="flex items-center justify-between gap-1">
+                <span className="truncate flex-1" onClick={() => onEdit(task)}>{task.title}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUnschedule(task.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-blue-600 flex-shrink-0"
+                  title="Move back to Tasks to Do"
+                >
+                  <ArrowUp className="h-2.5 w-2.5" />
+                </button>
+              </div>
             </div>
           );
         })}
@@ -106,7 +124,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   );
 }
 
-function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart }) {
+function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule }) {
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
@@ -127,13 +145,15 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart }) {
           view="week"
           projects={projects}
           onDragStart={onDragStart}
+          onEdit={onEdit}
+          onUnschedule={onUnschedule}
         />
       ))}
     </div>
   );
 }
 
-function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart }) {
+function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
   const startDay = startOfWeek(firstDay);
@@ -158,6 +178,8 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart }) 
           view="month"
           projects={projects}
           onDragStart={onDragStart}
+          onEdit={onEdit}
+          onUnschedule={onUnschedule}
         />
       ))}
     </div>
@@ -413,6 +435,33 @@ export default function Planner() {
     setDraggedTask(null);
   };
 
+  const handleEdit = (task) => {
+    setEditingTask(task);
+    setEditTask({
+      title: task.title,
+      description: task.description || "",
+      priority: task.priority || "medium",
+      project: task.project || projects[0] || ""
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTask || !editTask.title.trim() || !editTask.project) return;
+    setTasks(tasks.map(t =>
+      t.id === editingTask.id
+        ? { ...t, title: editTask.title, description: editTask.description, priority: editTask.priority, project: editTask.project }
+        : t
+    ));
+    setEditingTask(null);
+    setEditTask({ title: "", description: "", priority: "medium", project: "" });
+  };
+
+  const handleUnschedule = (taskId) => {
+    setTasks(tasks.map(t =>
+      t.id === taskId ? { ...t, date: null } : t
+    ));
+  };
+
   const todaysTasks = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     return tasks.filter(t => t.date === today);
@@ -588,6 +637,13 @@ export default function Planner() {
                             <Badge className={priority.color}>
                               {priority.name}
                             </Badge>
+                            <button
+                              onClick={() => handleEdit(task)}
+                              className="text-gray-400 hover:text-blue-500"
+                              title="Edit task"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
                           </div>
                         );
                       })}
@@ -696,6 +752,7 @@ export default function Planner() {
                                 onToggle={toggleTask}
                                 onDelete={deleteTask}
                                 onDragStart={handleDragStart}
+                                onEdit={handleEdit}
                                 projectColor={getProjectColor(task.project)}
                               />
                             ))}
@@ -775,6 +832,8 @@ export default function Planner() {
                   onDragOver={handleDragOver}
                   projects={projects}
                   onDragStart={handleDragStart}
+                  onEdit={handleEdit}
+                  onUnschedule={handleUnschedule}
                 />
               ) : (
                 <MonthView
@@ -784,6 +843,8 @@ export default function Planner() {
                   onDragOver={handleDragOver}
                   projects={projects}
                   onDragStart={handleDragStart}
+                  onEdit={handleEdit}
+                  onUnschedule={handleUnschedule}
                 />
               )}
             </CardContent>
