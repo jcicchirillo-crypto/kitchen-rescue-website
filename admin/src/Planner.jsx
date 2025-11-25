@@ -25,7 +25,7 @@ const PROJECT_COLORS = [
 
 const DEFAULT_PROJECTS = ["Kitchen Rescue", "Sun Tan Business", "House Build"];
 
-function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor, onTouchStart }) {
+function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor, onTouchStart, isDragging }) {
   const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
   
   return (
@@ -33,13 +33,14 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
       draggable
       onDragStart={(e) => onDragStart(e, task)}
       onTouchStart={(e) => {
-        e.stopPropagation();
-        onTouchStart(e, task);
+        if (onTouchStart) {
+          onTouchStart(e, task);
+        }
       }}
       className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
-      } ${projectColor || "bg-gray-100"}`}
-      style={{ touchAction: 'none' }}
+      } ${projectColor || "bg-gray-100"} ${isDragging ? "opacity-50 scale-95 shadow-lg" : ""}`}
+      style={{ touchAction: 'none', userSelect: 'none' }}
     >
       <div className="flex items-start gap-1.5">
         <button onClick={() => onToggle(task.id)} className="mt-0.5 flex-shrink-0">
@@ -85,7 +86,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   return (
     <div
       data-day={format(day, "yyyy-MM-dd")}
-      className={`min-h-[120px] rounded-lg border-2 p-2 ${
+      className={`min-h-[200px] md:min-h-[120px] rounded-lg border-2 p-1.5 md:p-2 ${
         isTodayDate ? "border-red-500 bg-red-50" : "border-gray-200"
       } ${!isCurrentMonth ? "opacity-40" : ""}`}
       onDrop={(e) => onDrop(e, day)}
@@ -138,7 +139,7 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="grid grid-cols-7 gap-1 md:gap-2">
       {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName, idx) => (
         <div key={dayName} className="text-center text-xs font-medium text-gray-500 mb-1">
           {dayName}
@@ -1258,8 +1259,7 @@ export default function Planner() {
                                 onEdit={handleEdit}
                                 projectColor={getProjectColor(task.project)}
                                 onTouchStart={handleTouchStart}
-                                onTouchMove={handleTouchMove}
-                                onTouchEnd={handleTouchEnd}
+                                isDragging={touchDraggedTask?.id === task.id || draggedTask?.id === task.id}
                               />
                             ))}
                           </div>
