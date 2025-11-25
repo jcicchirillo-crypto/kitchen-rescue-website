@@ -33,6 +33,8 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
       draggable
       onDragStart={(e) => onDragStart(e, task)}
       onTouchStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (onTouchStart) {
           onTouchStart(e, task);
         }
@@ -40,7 +42,12 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
       className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
       } ${projectColor || "bg-gray-100"} ${isDragging ? "opacity-50 scale-95 shadow-lg" : ""}`}
-      style={{ touchAction: 'none', userSelect: 'none' }}
+      style={{ 
+        touchAction: 'none', 
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none'
+      }}
     >
       <div className="flex items-start gap-1.5">
         <button onClick={() => onToggle(task.id)} className="mt-0.5 flex-shrink-0">
@@ -139,7 +146,8 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
-    <div className="grid grid-cols-7 gap-1 md:gap-2">
+    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="grid grid-cols-7 gap-1 md:gap-2 min-w-[700px] md:min-w-0">
       {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName, idx) => (
         <div key={dayName} className="text-center text-xs font-medium text-gray-500 mb-1">
           {dayName}
@@ -161,6 +169,7 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
           onTouchStart={onTouchStart}
         />
       ))}
+      </div>
     </div>
   );
 }
@@ -194,7 +203,8 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, on
           onUnschedule={onUnschedule}
           onTouchStart={onTouchStart}
         />
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -767,12 +777,14 @@ export default function Planner() {
 
   // Mobile touch handlers - improved version
   const handleTouchStart = (e, task) => {
+    e.preventDefault(); // Prevent text selection
     e.stopPropagation();
     const touch = e.touches[0];
-    setTouchDraggedTask(task);
-    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-    setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
-    console.log('📱 Touch start:', task.title, touch.clientX, touch.clientY);
+    if (touch) {
+      setTouchDraggedTask(task);
+      setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+      setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+    }
   };
 
   const handleTouchMove = (e) => {
