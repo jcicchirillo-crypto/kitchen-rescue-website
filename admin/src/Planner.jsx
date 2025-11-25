@@ -289,76 +289,6 @@ export default function Planner() {
     }
   }, []);
 
-  // Global touch handler for mobile drag and drop
-  useEffect(() => {
-    if (!touchDraggedTask) return;
-
-    const handleGlobalTouchMove = (e) => {
-      if (touchDraggedTask && e.touches[0]) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
-      }
-    };
-
-    const handleGlobalTouchEnd = async (e) => {
-      if (!touchDraggedTask || !touchStartPos) return;
-
-      const touch = e.changedTouches[0];
-      const deltaX = Math.abs(touch.clientX - touchStartPos.x);
-      const deltaY = Math.abs(touch.clientY - touchStartPos.y);
-      
-      if (deltaX < 15 && deltaY < 15) {
-        setTouchDraggedTask(null);
-        setTouchStartPos(null);
-        setTouchCurrentPos(null);
-        return;
-      }
-
-      e.preventDefault();
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      const element = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (!element) {
-        setTouchDraggedTask(null);
-        setTouchStartPos(null);
-        setTouchCurrentPos(null);
-        return;
-      }
-
-      let dayElement = element;
-      let maxDepth = 15;
-      while (dayElement && maxDepth > 0 && !dayElement.dataset?.day) {
-        dayElement = dayElement.parentElement;
-        maxDepth--;
-      }
-
-      if (dayElement && dayElement.dataset?.day) {
-        try {
-          const day = new Date(dayElement.dataset.day);
-          if (!isNaN(day.getTime())) {
-            await handleDrop(e, day);
-            return;
-          }
-        } catch (err) {
-          console.error("Error parsing date:", err);
-        }
-      }
-
-      setTouchDraggedTask(null);
-      setTouchStartPos(null);
-      setTouchCurrentPos(null);
-    };
-
-    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
-    document.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
-
-    return () => {
-      document.removeEventListener('touchmove', handleGlobalTouchMove);
-      document.removeEventListener('touchend', handleGlobalTouchEnd);
-    };
-  }, [touchDraggedTask, touchStartPos, handleDrop]);
-
   // Load tasks and projects from API
   const fetchTasks = async () => {
     try {
@@ -763,6 +693,76 @@ export default function Planner() {
       setTasks(prevTasks => prevTasks.map(t => t.id === taskToDrop.id ? originalTask : t));
     }
   }, [draggedTask, touchDraggedTask]);
+
+  // Global touch handler for mobile drag and drop - must be after handleDrop is defined
+  useEffect(() => {
+    if (!touchDraggedTask) return;
+
+    const handleGlobalTouchMove = (e) => {
+      if (touchDraggedTask && e.touches[0]) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+      }
+    };
+
+    const handleGlobalTouchEnd = async (e) => {
+      if (!touchDraggedTask || !touchStartPos) return;
+
+      const touch = e.changedTouches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+      const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+      
+      if (deltaX < 15 && deltaY < 15) {
+        setTouchDraggedTask(null);
+        setTouchStartPos(null);
+        setTouchCurrentPos(null);
+        return;
+      }
+
+      e.preventDefault();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (!element) {
+        setTouchDraggedTask(null);
+        setTouchStartPos(null);
+        setTouchCurrentPos(null);
+        return;
+      }
+
+      let dayElement = element;
+      let maxDepth = 15;
+      while (dayElement && maxDepth > 0 && !dayElement.dataset?.day) {
+        dayElement = dayElement.parentElement;
+        maxDepth--;
+      }
+
+      if (dayElement && dayElement.dataset?.day) {
+        try {
+          const day = new Date(dayElement.dataset.day);
+          if (!isNaN(day.getTime())) {
+            await handleDrop(e, day);
+            return;
+          }
+        } catch (err) {
+          console.error("Error parsing date:", err);
+        }
+      }
+
+      setTouchDraggedTask(null);
+      setTouchStartPos(null);
+      setTouchCurrentPos(null);
+    };
+
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+    };
+  }, [touchDraggedTask, touchStartPos, handleDrop]);
 
   // Mobile touch handlers - improved version
   const handleTouchStart = (e, task) => {
