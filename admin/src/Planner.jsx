@@ -272,21 +272,20 @@ export default function Planner() {
     }
   }, []);
 
-  // Load tasks and projects from localStorage
-  useEffect(() => {
-    const savedTasks = localStorage.getItem("planner-tasks");
-    const savedProjects = localStorage.getItem("planner-projects");
-    
-    if (savedTasks) {
-      try {
-        const parsed = JSON.parse(savedTasks);
+  // Load tasks and projects from API
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("/api/tasks", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
         // Migrate old tasks: add project if missing, convert category to priority
-        const migrated = parsed.map(task => {
-          if (!task.project) {
-            task.project = DEFAULT_PROJECTS[0]; // Default to first project
+        const migrated = data.map(task => {
+          if (!task.project && DEFAULT_PROJECTS.length > 0) {
+            task.project = DEFAULT_PROJECTS[0];
           }
           if (task.category && !task.priority) {
-            // Convert old category to medium priority
             task.priority = "medium";
             delete task.category;
           }
@@ -296,21 +295,57 @@ export default function Planner() {
           return task;
         });
         setTasks(migrated);
-      } catch (e) {
-        console.error("Error loading tasks:", e);
+      }
+    } catch (e) {
+      console.error("Error loading tasks:", e);
+      // Fallback to localStorage if API fails
+      const savedTasks = localStorage.getItem("planner-tasks");
+      if (savedTasks) {
+        try {
+          const parsed = JSON.parse(savedTasks);
+          setTasks(parsed);
+        } catch (err) {
+          console.error("Error loading from localStorage:", err);
+        }
       }
     }
-    
-    if (savedProjects) {
-      try {
-        setProjects(JSON.parse(savedProjects));
-      } catch (e) {
-        console.error("Error loading projects:", e);
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch("/api/projects", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setProjects(data);
+        } else {
+          setProjects(DEFAULT_PROJECTS);
+        }
       }
-    } else {
-      setProjects(DEFAULT_PROJECTS);
+    } catch (e) {
+      console.error("Error loading projects:", e);
+      // Fallback to localStorage
+      const savedProjects = localStorage.getItem("planner-projects");
+      if (savedProjects) {
+        try {
+          setProjects(JSON.parse(savedProjects));
+        } catch (err) {
+          setProjects(DEFAULT_PROJECTS);
+        }
+      } else {
+        setProjects(DEFAULT_PROJECTS);
+      }
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchTasks();
+      fetchProjects();
+    }
+  }, [isLoggedIn]);
 
   // Auto-rollover incomplete tasks from past dates to today
   useEffect(() => {
@@ -340,7 +375,17 @@ export default function Planner() {
       const updatedTasks = currentTasks.map(task => {
         // If task has a date in the past and is not completed, move it to today
         if (task.date && !task.completed && task.date < today) {
-          return { ...task, date: today };
+          const updated = { ...task, date: today };
+          // Save to API
+          fetch(`/api/tasks/${task.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+            },
+            body: JSON.stringify({ date: today }),
+          }).catch(e => console.error("Error updating rolled-over task:", e));
+          return updated;
         }
         return task;
       });
@@ -358,21 +403,72 @@ export default function Planner() {
     }
   }, [projects]);
 
-  // Save tasks to localStorage
+  // Save tasks to API (debounced to avoid too many requests)
+  const saveTasksTimeoutRef = useRef(null);
   useEffect(() => {
-    if (tasks.length > 0 || localStorage.getItem("planner-tasks")) {
-      localStorage.setItem("planner-tasks", JSON.stringify(tasks));
+    if (!isLoggedIn || tasks.length === 0) return;
+    
+    // Clear existing timeout
+    if (saveTasksTimeoutRef.current) {
+      clearTimeout(saveTasksTimeoutRef.current);
     }
-  }, [tasks]);
+    
+    // Debounce saves - wait 1 second after last change
+    saveTasksTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetch("/api/tasks/bulk", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+          body: JSON.stringify({ tasks }),
+        });
+        // Also save to localStorage as backup
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks));
+      } catch (e) {
+        console.error("Error saving tasks:", e);
+        // Fallback to localStorage
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks));
+      }
+    }, 1000);
+    
+    return () => {
+      if (saveTasksTimeoutRef.current) {
+        clearTimeout(saveTasksTimeoutRef.current);
+      }
+    };
+  }, [tasks, isLoggedIn]);
 
-  // Save projects to localStorage
+  // Save projects to API
   useEffect(() => {
-    if (projects.length > 0) {
-      localStorage.setItem("planner-projects", JSON.stringify(projects));
-    }
-  }, [projects]);
+    if (!isLoggedIn || projects.length === 0) return;
+    
+    const saveProjects = async () => {
+      try {
+        await fetch("/api/projects", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+          body: JSON.stringify({ projects }),
+        });
+        // Also save to localStorage as backup
+        localStorage.setItem("planner-projects", JSON.stringify(projects));
+      } catch (e) {
+        console.error("Error saving projects:", e);
+        // Fallback to localStorage
+        localStorage.setItem("planner-projects", JSON.stringify(projects));
+      }
+    };
+    
+    // Debounce project saves
+    const timeout = setTimeout(saveProjects, 1000);
+    return () => clearTimeout(timeout);
+  }, [projects, isLoggedIn]);
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTask.title.trim() || !newTask.project) return;
     const task = {
       id: Date.now().toString(),
@@ -384,23 +480,73 @@ export default function Planner() {
       date: null,
       createdAt: new Date().toISOString(),
     };
+    
+    // Optimistically add to UI
     setTasks([...tasks, task]);
     setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "" });
     setShowAddTask(false);
+    
+    // Save to API
+    try {
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify(task),
+      });
+    } catch (e) {
+      console.error("Error saving task:", e);
+    }
   };
 
-  const toggleTask = (id) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const toggleTask = async (id) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const updated = { ...task, completed: !task.completed };
+    // Optimistically update UI
+    setTasks(tasks.map(t => t.id === id ? updated : t));
+    
+    // Save to API
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({ completed: updated.completed }),
+      });
+    } catch (e) {
+      console.error("Error updating task:", e);
+    }
   };
 
-  const deleteTask = (id) => {
+  const deleteTask = async (id) => {
+    // Optimistically remove from UI
     setTasks(tasks.filter(t => t.id !== id));
+    
+    // Delete from API
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
+    } catch (e) {
+      console.error("Error deleting task:", e);
+    }
   };
 
   const addProject = () => {
     if (!newProjectName.trim() || projects.includes(newProjectName.trim())) return;
-    setProjects([...projects, newProjectName.trim()]);
+    const updated = [...projects, newProjectName.trim()];
+    setProjects(updated);
     setNewProjectName("");
+    // Projects will be saved automatically via useEffect
   };
 
   const removeProject = (projectName) => {
@@ -425,15 +571,32 @@ export default function Planner() {
     e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = (e, day) => {
+  const handleDrop = async (e, day) => {
     e.preventDefault();
     if (!draggedTask) return;
 
     const dateStr = format(startOfDay(day), "yyyy-MM-dd");
+    const updated = { ...draggedTask, date: dateStr };
+    
+    // Optimistically update UI
     setTasks(tasks.map(t =>
-      t.id === draggedTask.id ? { ...t, date: dateStr } : t
+      t.id === draggedTask.id ? updated : t
     ));
     setDraggedTask(null);
+    
+    // Save to API
+    try {
+      await fetch(`/api/tasks/${draggedTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({ date: dateStr }),
+      });
+    } catch (e) {
+      console.error("Error updating task date:", e);
+    }
   };
 
   const handleEdit = (task) => {
@@ -446,21 +609,62 @@ export default function Planner() {
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingTask || !editTask.title.trim() || !editTask.project) return;
+    const updated = {
+      ...editingTask,
+      title: editTask.title,
+      description: editTask.description,
+      priority: editTask.priority,
+      project: editTask.project
+    };
+    
+    // Optimistically update UI
     setTasks(tasks.map(t =>
-      t.id === editingTask.id
-        ? { ...t, title: editTask.title, description: editTask.description, priority: editTask.priority, project: editTask.project }
-        : t
+      t.id === editingTask.id ? updated : t
     ));
     setEditingTask(null);
     setEditTask({ title: "", description: "", priority: "medium", project: "" });
+    
+    // Save to API
+    try {
+      await fetch(`/api/tasks/${editingTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({
+          title: editTask.title,
+          description: editTask.description,
+          priority: editTask.priority,
+          project: editTask.project
+        }),
+      });
+    } catch (e) {
+      console.error("Error updating task:", e);
+    }
   };
 
-  const handleUnschedule = (taskId) => {
+  const handleUnschedule = async (taskId) => {
+    // Optimistically update UI
     setTasks(tasks.map(t =>
       t.id === taskId ? { ...t, date: null } : t
     ));
+    
+    // Save to API
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({ date: null }),
+      });
+    } catch (e) {
+      console.error("Error unscheduling task:", e);
+    }
   };
 
   const todaysTasks = useMemo(() => {

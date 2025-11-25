@@ -17,6 +17,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
+const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
 
 // Initialize Stripe only if credentials are available
@@ -787,6 +788,120 @@ app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete booking' });
+    }
+});
+
+// Tasks API endpoints
+// Get all tasks
+app.get('/api/tasks', authenticateAdmin, async (req, res) => {
+    try {
+        console.log('📥 Admin requesting tasks...');
+        const tasks = await getAllTasks();
+        console.log(`✅ Returning ${tasks.length} tasks to admin`);
+        res.json(tasks);
+    } catch (error) {
+        console.error('❌ Error fetching tasks:', error);
+        res.json([]);
+    }
+});
+
+// Get all projects
+app.get('/api/projects', authenticateAdmin, async (req, res) => {
+    try {
+        const projects = await getAllProjects();
+        res.json(projects);
+    } catch (error) {
+        console.error('❌ Error fetching projects:', error);
+        res.json([]);
+    }
+});
+
+// Create new task
+app.post('/api/tasks', authenticateAdmin, async (req, res) => {
+    try {
+        const newTask = {
+            id: req.body.id || `task-${Date.now()}`,
+            title: req.body.title,
+            description: req.body.description || '',
+            priority: req.body.priority || 'medium',
+            project: req.body.project || '',
+            completed: req.body.completed || false,
+            date: req.body.date || null,
+        };
+        
+        const saved = await addTask(newTask);
+        if (saved) {
+            res.json(newTask);
+        } else {
+            res.status(500).json({ error: 'Failed to create task' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create task' });
+    }
+});
+
+// Update task
+app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
+    try {
+        const taskId = req.params.id;
+        const updates = req.body;
+        
+        const updated = await updateTask(taskId, updates);
+        if (updated) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Task not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update task' });
+    }
+});
+
+// Delete task
+app.delete('/api/tasks/:id', authenticateAdmin, async (req, res) => {
+    try {
+        const taskId = req.params.id;
+        const deleted = await deleteTask(taskId);
+        if (deleted) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Task not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete task' });
+    }
+});
+
+// Save all tasks (for bulk updates)
+app.post('/api/tasks/bulk', authenticateAdmin, async (req, res) => {
+    try {
+        const tasks = req.body.tasks || [];
+        // For Supabase, we'll update each task individually
+        for (const task of tasks) {
+            if (task.id) {
+                await updateTask(task.id, task);
+            } else {
+                await addTask(task);
+            }
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save tasks' });
+    }
+});
+
+// Save all projects
+app.post('/api/projects', authenticateAdmin, async (req, res) => {
+    try {
+        const projects = req.body.projects || [];
+        const saved = await saveAllProjects(projects);
+        if (saved) {
+            res.json({ success: true });
+        } else {
+            res.status(500).json({ error: 'Failed to save projects' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save projects' });
     }
 });
 
