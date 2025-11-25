@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp } from "lucide-react";
@@ -25,19 +25,21 @@ const PROJECT_COLORS = [
 
 const DEFAULT_PROJECTS = ["Kitchen Rescue", "Sun Tan Business", "House Build"];
 
-function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor, onTouchStart, onTouchMove, onTouchEnd }) {
+function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor, onTouchStart }) {
   const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
   
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task)}
-      onTouchStart={(e) => onTouchStart(e, task)}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md touch-none ${
+      onTouchStart={(e) => {
+        e.stopPropagation();
+        onTouchStart(e, task);
+      }}
+      className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
       } ${projectColor || "bg-gray-100"}`}
+      style={{ touchAction: 'none' }}
     >
       <div className="flex items-start gap-1.5">
         <button onClick={() => onToggle(task.id)} className="mt-0.5 flex-shrink-0">
@@ -71,7 +73,7 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
   );
 }
 
-function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule, onTouchStart, onTouchMove, onTouchEnd }) {
+function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule, onTouchStart }) {
   const dayTasks = tasks.filter(t => t.date && isSameDay(new Date(t.date), day));
   const isTodayDate = isToday(day);
 
@@ -101,12 +103,14 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
               key={task.id}
               draggable
               onDragStart={(e) => onDragStart(e, task)}
-              onTouchStart={(e) => onTouchStart && onTouchStart(e, task)}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              className={`text-[10px] px-2 py-1 rounded cursor-move touch-none ${projectColor} ${
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                onTouchStart && onTouchStart(e, task);
+              }}
+              className={`text-[10px] px-2 py-1 rounded cursor-move ${projectColor} ${
                 task.completed ? "opacity-60 line-through" : ""
               } hover:shadow-sm transition-shadow group relative`}
+              style={{ touchAction: 'none' }}
               title={`${task.project} - ${task.title} (${priority.name} priority) - Drag to move or click to edit`}
             >
               <div className="flex items-center justify-between gap-1">
@@ -130,7 +134,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   );
 }
 
-function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, onTouchMove, onTouchEnd }) {
+function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart }) {
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
@@ -154,15 +158,13 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
           onEdit={onEdit}
           onUnschedule={onUnschedule}
           onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         />
       ))}
     </div>
   );
 }
 
-function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, onTouchMove, onTouchEnd }) {
+function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
   const startDay = startOfWeek(firstDay);
@@ -190,8 +192,6 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, on
           onEdit={onEdit}
           onUnschedule={onUnschedule}
           onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         />
       ))}
     </div>
@@ -277,6 +277,7 @@ export default function Planner() {
   const [draggedTask, setDraggedTask] = useState(null);
   const [touchDraggedTask, setTouchDraggedTask] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
+  const [touchCurrentPos, setTouchCurrentPos] = useState(null);
   const [syncStatus, setSyncStatus] = useState(""); // "syncing", "synced", "error"
   const rolloverChecked = useRef(false);
 
@@ -287,6 +288,76 @@ export default function Planner() {
       setIsLoggedIn(true);
     }
   }, []);
+
+  // Global touch handler for mobile drag and drop
+  useEffect(() => {
+    if (!touchDraggedTask) return;
+
+    const handleGlobalTouchMove = (e) => {
+      if (touchDraggedTask && e.touches[0]) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+      }
+    };
+
+    const handleGlobalTouchEnd = async (e) => {
+      if (!touchDraggedTask || !touchStartPos) return;
+
+      const touch = e.changedTouches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+      const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+      
+      if (deltaX < 15 && deltaY < 15) {
+        setTouchDraggedTask(null);
+        setTouchStartPos(null);
+        setTouchCurrentPos(null);
+        return;
+      }
+
+      e.preventDefault();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (!element) {
+        setTouchDraggedTask(null);
+        setTouchStartPos(null);
+        setTouchCurrentPos(null);
+        return;
+      }
+
+      let dayElement = element;
+      let maxDepth = 15;
+      while (dayElement && maxDepth > 0 && !dayElement.dataset?.day) {
+        dayElement = dayElement.parentElement;
+        maxDepth--;
+      }
+
+      if (dayElement && dayElement.dataset?.day) {
+        try {
+          const day = new Date(dayElement.dataset.day);
+          if (!isNaN(day.getTime())) {
+            await handleDrop(e, day);
+            return;
+          }
+        } catch (err) {
+          console.error("Error parsing date:", err);
+        }
+      }
+
+      setTouchDraggedTask(null);
+      setTouchStartPos(null);
+      setTouchCurrentPos(null);
+    };
+
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+    };
+  }, [touchDraggedTask, touchStartPos, handleDrop]);
 
   // Load tasks and projects from API
   const fetchTasks = async () => {
@@ -651,7 +722,7 @@ export default function Planner() {
     e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = async (e, day) => {
+  const handleDrop = useCallback(async (e, day) => {
     e.preventDefault();
     const taskToDrop = draggedTask || touchDraggedTask;
     if (!taskToDrop) return;
@@ -661,7 +732,7 @@ export default function Planner() {
     const updated = { ...taskToDrop, date: dateStr };
     
     // Optimistically update UI
-    setTasks(tasks.map(t =>
+    setTasks(prevTasks => prevTasks.map(t =>
       t.id === taskToDrop.id ? updated : t
     ));
     setDraggedTask(null);
@@ -682,32 +753,38 @@ export default function Planner() {
       if (!res.ok) {
         console.error(`❌ Failed to update task date: ${res.status}`);
         // Revert UI change
-        setTasks(tasks.map(t => t.id === taskToDrop.id ? originalTask : t));
+        setTasks(prevTasks => prevTasks.map(t => t.id === taskToDrop.id ? originalTask : t));
       } else {
         console.log('✅ Task date updated in Supabase');
-        // Update localStorage backup
-        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === taskToDrop.id ? updated : t)));
       }
     } catch (e) {
       console.error("❌ Error updating task date:", e);
       // Revert UI change
-      setTasks(tasks.map(t => t.id === taskToDrop.id ? originalTask : t));
+      setTasks(prevTasks => prevTasks.map(t => t.id === taskToDrop.id ? originalTask : t));
     }
-  };
+  }, [draggedTask, touchDraggedTask]);
 
-  // Mobile touch handlers
+  // Mobile touch handlers - improved version
   const handleTouchStart = (e, task) => {
+    e.stopPropagation();
     const touch = e.touches[0];
     setTouchDraggedTask(task);
     setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+    setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+    console.log('📱 Touch start:', task.title, touch.clientX, touch.clientY);
   };
 
   const handleTouchMove = (e) => {
     if (!touchDraggedTask) return;
     e.preventDefault(); // Prevent scrolling while dragging
+    e.stopPropagation();
+    const touch = e.touches[0];
+    setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
   };
 
   const handleTouchEnd = async (e) => {
+    e.stopPropagation();
+    
     if (!touchDraggedTask || !touchStartPos) {
       setTouchDraggedTask(null);
       setTouchStartPos(null);
@@ -718,9 +795,12 @@ export default function Planner() {
     const deltaX = Math.abs(touch.clientX - touchStartPos.x);
     const deltaY = Math.abs(touch.clientY - touchStartPos.y);
     
-    // Only treat as drag if moved more than 10px
-    if (deltaX < 10 && deltaY < 10) {
+    console.log('📱 Touch end:', { deltaX, deltaY, x: touch.clientX, y: touch.clientY });
+    
+    // Only treat as drag if moved more than 15px (increased threshold for mobile)
+    if (deltaX < 15 && deltaY < 15) {
       // It's a tap, not a drag - allow normal click behavior
+      console.log('📱 Tap detected, not drag');
       setTouchDraggedTask(null);
       setTouchStartPos(null);
       return;
@@ -728,10 +808,17 @@ export default function Planner() {
 
     // Prevent click event from firing after drag
     e.preventDefault();
+    e.stopPropagation();
+
+    // Small delay to ensure DOM is ready
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     // Find the element at the touch point
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    console.log('📱 Element at point:', element?.className, element?.dataset);
+    
     if (!element) {
+      console.log('📱 No element found at touch point');
       setTouchDraggedTask(null);
       setTouchStartPos(null);
       return;
@@ -739,22 +826,29 @@ export default function Planner() {
 
     // Find the calendar day element (look for data-day attribute in element or parents)
     let dayElement = element;
-    let maxDepth = 10; // Prevent infinite loop
+    let maxDepth = 15; // Increased depth
     while (dayElement && maxDepth > 0 && !dayElement.dataset?.day) {
       dayElement = dayElement.parentElement;
       maxDepth--;
     }
 
+    console.log('📱 Day element found:', dayElement?.dataset?.day);
+
     if (dayElement && dayElement.dataset?.day) {
       try {
         const day = new Date(dayElement.dataset.day);
         if (!isNaN(day.getTime())) {
+          console.log('📱 Dropping task on:', day);
           await handleDrop(e, day);
           return;
+        } else {
+          console.log('📱 Invalid date parsed');
         }
       } catch (err) {
-        console.error("Error parsing date from data-day:", err);
+        console.error("📱 Error parsing date from data-day:", err);
       }
+    } else {
+      console.log('📱 No valid day element found');
     }
     
     // If we couldn't find a valid day, reset
@@ -1247,8 +1341,6 @@ export default function Planner() {
                   onEdit={handleEdit}
                   onUnschedule={handleUnschedule}
                   onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
                 />
               ) : (
                 <MonthView
@@ -1261,8 +1353,6 @@ export default function Planner() {
                   onEdit={handleEdit}
                   onUnschedule={handleUnschedule}
                   onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
                 />
               )}
             </CardContent>
