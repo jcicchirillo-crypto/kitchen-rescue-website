@@ -44,8 +44,8 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor 
             <Circle className="h-4 w-4 text-gray-400" />
           )}
         </button>
-        <div className="flex-1 min-w-0" onClick={() => onEdit(task)}>
-          <div className="font-medium text-xs leading-tight cursor-pointer hover:text-blue-600">{task.title}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-xs leading-tight cursor-pointer hover:text-blue-600" onClick={() => onEdit(task)}>{task.title}</div>
           {task.description && (
             <div className="text-[10px] text-gray-600 mt-0.5 line-clamp-1">{task.description}</div>
           )}
@@ -56,10 +56,10 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor 
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <button onClick={() => onEdit(task)} className="text-gray-400 hover:text-blue-500 flex-shrink-0" title="Edit task">
+          <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="text-gray-400 hover:text-blue-500 flex-shrink-0" title="Edit task">
             <Edit2 className="h-3 w-3" />
           </button>
-          <button onClick={() => onDelete(task.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0" title="Delete task">
+          <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} className="text-gray-400 hover:text-red-500 flex-shrink-0" title="Delete task">
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -849,6 +849,78 @@ export default function Planner() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Edit Task Modal */}
+        {editingTask && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md mx-4">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Edit Task</span>
+                  <Button variant="ghost" size="sm" onClick={() => setEditingTask(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Task Title</Label>
+                    <Input
+                      value={editTask.title}
+                      onChange={(e) => setEditTask({ ...editTask, title: e.target.value })}
+                      placeholder="Task title"
+                    />
+                  </div>
+                  <div>
+                    <Label>Description (optional)</Label>
+                    <Input
+                      value={editTask.description}
+                      onChange={(e) => setEditTask({ ...editTask, description: e.target.value })}
+                      placeholder="Description"
+                    />
+                  </div>
+                  <div>
+                    <Label>Project</Label>
+                    <select
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                      value={editTask.project}
+                      onChange={(e) => setEditTask({ ...editTask, project: e.target.value })}
+                    >
+                      {projects.map((project) => (
+                        <option key={project} value={project}>
+                          {project}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Priority</Label>
+                    <select
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                      value={editTask.priority}
+                      onChange={(e) => setEditTask({ ...editTask, priority: e.target.value })}
+                    >
+                      {PRIORITY_LEVELS.map((priority) => (
+                        <option key={priority.id} value={priority.id}>
+                          {priority.name} Priority
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveEdit} className="flex-1">
+                      Save Changes
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingTask(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );
