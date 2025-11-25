@@ -182,27 +182,28 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, on
   const allDays = eachDayOfInterval({ start: startDay, end: endDay });
 
   return (
-    <div className="grid grid-cols-7 gap-2">
-      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => (
-        <div key={dayName} className="text-center text-xs font-medium text-gray-500 mb-1">
-          {dayName}
-        </div>
-      ))}
-      {allDays.map((day) => (
-        <CalendarDay
-          key={+day}
-          day={day}
-          tasks={tasks}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          isCurrentMonth={day >= firstDay && day <= endOfMonth(month)}
-          view="month"
-          projects={projects}
-          onDragStart={onDragStart}
-          onEdit={onEdit}
-          onUnschedule={onUnschedule}
-          onTouchStart={onTouchStart}
-        />
+    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="grid grid-cols-7 gap-1 md:gap-2 min-w-[700px] md:min-w-0">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => (
+          <div key={dayName} className="text-center text-xs font-medium text-gray-500 mb-1">
+            {dayName}
+          </div>
+        ))}
+        {allDays.map((day) => (
+          <CalendarDay
+            key={+day}
+            day={day}
+            tasks={tasks}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            isCurrentMonth={day >= firstDay && day <= endOfMonth(month)}
+            view="month"
+            projects={projects}
+            onDragStart={onDragStart}
+            onEdit={onEdit}
+            onUnschedule={onUnschedule}
+            onTouchStart={onTouchStart}
+          />
         ))}
       </div>
     </div>
