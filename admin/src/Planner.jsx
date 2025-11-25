@@ -25,14 +25,17 @@ const PROJECT_COLORS = [
 
 const DEFAULT_PROJECTS = ["Kitchen Rescue", "Sun Tan Business", "House Build"];
 
-function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor }) {
+function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor, onTouchStart, onTouchMove, onTouchEnd }) {
   const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
   
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task)}
-      className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
+      onTouchStart={(e) => onTouchStart(e, task)}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md touch-none ${
         task.completed ? "opacity-60 line-through" : ""
       } ${projectColor || "bg-gray-100"}`}
     >
@@ -68,7 +71,7 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor 
   );
 }
 
-function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule }) {
+function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule, onTouchStart, onTouchMove, onTouchEnd }) {
   const dayTasks = tasks.filter(t => t.date && isSameDay(new Date(t.date), day));
   const isTodayDate = isToday(day);
 
@@ -79,6 +82,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
 
   return (
     <div
+      data-day={format(day, "yyyy-MM-dd")}
       className={`min-h-[120px] rounded-lg border-2 p-2 ${
         isTodayDate ? "border-red-500 bg-red-50" : "border-gray-200"
       } ${!isCurrentMonth ? "opacity-40" : ""}`}
@@ -97,7 +101,10 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
               key={task.id}
               draggable
               onDragStart={(e) => onDragStart(e, task)}
-              className={`text-[10px] px-2 py-1 rounded cursor-move ${projectColor} ${
+              onTouchStart={(e) => onTouchStart && onTouchStart(e, task)}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              className={`text-[10px] px-2 py-1 rounded cursor-move touch-none ${projectColor} ${
                 task.completed ? "opacity-60 line-through" : ""
               } hover:shadow-sm transition-shadow group relative`}
               title={`${task.project} - ${task.title} (${priority.name} priority) - Drag to move or click to edit`}
@@ -123,7 +130,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   );
 }
 
-function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule }) {
+function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, onTouchMove, onTouchEnd }) {
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
@@ -146,13 +153,16 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
           onDragStart={onDragStart}
           onEdit={onEdit}
           onUnschedule={onUnschedule}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         />
       ))}
     </div>
   );
 }
 
-function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule }) {
+function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, onTouchMove, onTouchEnd }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
   const startDay = startOfWeek(firstDay);
@@ -179,6 +189,9 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, on
           onDragStart={onDragStart}
           onEdit={onEdit}
           onUnschedule={onUnschedule}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         />
       ))}
     </div>
@@ -262,6 +275,8 @@ export default function Planner() {
   const [editingTask, setEditingTask] = useState(null);
   const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "" });
   const [draggedTask, setDraggedTask] = useState(null);
+  const [touchDraggedTask, setTouchDraggedTask] = useState(null);
+  const [touchStartPos, setTouchStartPos] = useState(null);
   const [syncStatus, setSyncStatus] = useState(""); // "syncing", "synced", "error"
   const rolloverChecked = useRef(false);
 
@@ -638,21 +653,24 @@ export default function Planner() {
 
   const handleDrop = async (e, day) => {
     e.preventDefault();
-    if (!draggedTask) return;
+    const taskToDrop = draggedTask || touchDraggedTask;
+    if (!taskToDrop) return;
 
     const dateStr = format(startOfDay(day), "yyyy-MM-dd");
-    const originalTask = draggedTask;
-    const updated = { ...draggedTask, date: dateStr };
+    const originalTask = taskToDrop;
+    const updated = { ...taskToDrop, date: dateStr };
     
     // Optimistically update UI
     setTasks(tasks.map(t =>
-      t.id === draggedTask.id ? updated : t
+      t.id === taskToDrop.id ? updated : t
     ));
     setDraggedTask(null);
+    setTouchDraggedTask(null);
+    setTouchStartPos(null);
     
     // Save to API immediately
     try {
-      const res = await fetch(`/api/tasks/${draggedTask.id}`, {
+      const res = await fetch(`/api/tasks/${taskToDrop.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -664,17 +682,84 @@ export default function Planner() {
       if (!res.ok) {
         console.error(`❌ Failed to update task date: ${res.status}`);
         // Revert UI change
-        setTasks(tasks.map(t => t.id === draggedTask.id ? originalTask : t));
+        setTasks(tasks.map(t => t.id === taskToDrop.id ? originalTask : t));
       } else {
         console.log('✅ Task date updated in Supabase');
         // Update localStorage backup
-        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === draggedTask.id ? updated : t)));
+        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === taskToDrop.id ? updated : t)));
       }
     } catch (e) {
       console.error("❌ Error updating task date:", e);
       // Revert UI change
-      setTasks(tasks.map(t => t.id === draggedTask.id ? originalTask : t));
+      setTasks(tasks.map(t => t.id === taskToDrop.id ? originalTask : t));
     }
+  };
+
+  // Mobile touch handlers
+  const handleTouchStart = (e, task) => {
+    const touch = e.touches[0];
+    setTouchDraggedTask(task);
+    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchDraggedTask) return;
+    e.preventDefault(); // Prevent scrolling while dragging
+  };
+
+  const handleTouchEnd = async (e) => {
+    if (!touchDraggedTask || !touchStartPos) {
+      setTouchDraggedTask(null);
+      setTouchStartPos(null);
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+    
+    // Only treat as drag if moved more than 10px
+    if (deltaX < 10 && deltaY < 10) {
+      // It's a tap, not a drag - allow normal click behavior
+      setTouchDraggedTask(null);
+      setTouchStartPos(null);
+      return;
+    }
+
+    // Prevent click event from firing after drag
+    e.preventDefault();
+
+    // Find the element at the touch point
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!element) {
+      setTouchDraggedTask(null);
+      setTouchStartPos(null);
+      return;
+    }
+
+    // Find the calendar day element (look for data-day attribute in element or parents)
+    let dayElement = element;
+    let maxDepth = 10; // Prevent infinite loop
+    while (dayElement && maxDepth > 0 && !dayElement.dataset?.day) {
+      dayElement = dayElement.parentElement;
+      maxDepth--;
+    }
+
+    if (dayElement && dayElement.dataset?.day) {
+      try {
+        const day = new Date(dayElement.dataset.day);
+        if (!isNaN(day.getTime())) {
+          await handleDrop(e, day);
+          return;
+        }
+      } catch (err) {
+        console.error("Error parsing date from data-day:", err);
+      }
+    }
+    
+    // If we couldn't find a valid day, reset
+    setTouchDraggedTask(null);
+    setTouchStartPos(null);
   };
 
   const handleEdit = (task) => {
@@ -1078,6 +1163,9 @@ export default function Planner() {
                                 onDragStart={handleDragStart}
                                 onEdit={handleEdit}
                                 projectColor={getProjectColor(task.project)}
+                                onTouchStart={handleTouchStart}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
                               />
                             ))}
                           </div>
@@ -1158,6 +1246,9 @@ export default function Planner() {
                   onDragStart={handleDragStart}
                   onEdit={handleEdit}
                   onUnschedule={handleUnschedule}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                 />
               ) : (
                 <MonthView
@@ -1169,6 +1260,9 @@ export default function Planner() {
                   onDragStart={handleDragStart}
                   onEdit={handleEdit}
                   onUnschedule={handleUnschedule}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                 />
               )}
             </CardContent>
