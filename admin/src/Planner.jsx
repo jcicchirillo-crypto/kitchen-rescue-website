@@ -206,6 +206,7 @@ function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, on
             onEdit={onEdit}
             onUnschedule={onUnschedule}
             onTouchStart={onTouchStart}
+            hoveredDropZone={hoveredDropZone}
           />
         ))}
       </div>
