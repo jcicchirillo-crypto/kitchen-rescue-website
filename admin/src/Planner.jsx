@@ -146,7 +146,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
 }
 
 function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, hoveredDropZone }) {
-  const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
+  const days = eachDayOfInterval({ start: startOfWeek(week, { weekStartsOn: 1 }), end: endOfWeek(week, { weekStartsOn: 1 }) });
 
   return (
     <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
@@ -181,8 +181,8 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
 function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, hoveredDropZone }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
-  const startDay = startOfWeek(firstDay);
-  const endDay = endOfWeek(endOfMonth(month));
+  const startDay = startOfWeek(firstDay, { weekStartsOn: 1 });
+  const endDay = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
   const allDays = eachDayOfInterval({ start: startDay, end: endDay });
 
   return (
@@ -1366,7 +1366,7 @@ export default function Planner() {
                 </Button>
                 <div className="text-lg font-semibold">
                   {view === "week"
-                    ? `Week of ${format(startOfWeek(currentDate), "MMM d")}`
+                    ? `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), "MMM d")}`
                     : format(currentDate, "MMMM yyyy")}
                 </div>
                 <Button
