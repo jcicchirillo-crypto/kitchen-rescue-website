@@ -97,7 +97,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
       className={`min-h-[200px] md:min-h-[120px] rounded-lg border-2 p-1.5 md:p-2 transition-all ${
         isTodayDate ? "border-red-500 bg-red-50" : "border-gray-200"
       } ${!isCurrentMonth ? "opacity-40" : ""} ${
-        hoveredDropZone === format(day, "yyyy-MM-dd") ? "border-blue-500 bg-blue-100 border-4 scale-105" : ""
+        hoveredDropZone && hoveredDropZone === format(day, "yyyy-MM-dd") ? "border-blue-500 bg-blue-100 border-4 scale-105" : ""
       }`}
       onDrop={(e) => onDrop(e, day)}
       onDragOver={onDragOver}
@@ -145,7 +145,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   );
 }
 
-function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart }) {
+function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, hoveredDropZone }) {
   const days = eachDayOfInterval({ start: startOfWeek(week), end: endOfWeek(week) });
 
   return (
@@ -1482,7 +1482,7 @@ export default function Planner() {
         )}
         
         {/* Drag Preview Element */}
-        {touchDraggedTask && touchCurrentPos && (
+        {touchDraggedTask && touchCurrentPos && touchCurrentPos.x && touchCurrentPos.y && (
           <div
             style={{
               position: 'fixed',
