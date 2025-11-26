@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+// Drag and drop fixes applied
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp } from "lucide-react";
