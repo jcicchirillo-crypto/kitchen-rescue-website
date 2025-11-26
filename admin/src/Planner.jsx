@@ -41,7 +41,7 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
       }}
       className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
-      } ${projectColor || "bg-gray-100"} ${isDragging ? "opacity-50 scale-95 shadow-lg" : ""}`}
+      } ${projectColor || "bg-gray-100"} ${isDragging ? "opacity-80 scale-110 border-blue-500 border-4 shadow-2xl z-50" : ""}`}
       style={{ 
         touchAction: 'none', 
         userSelect: 'none',
@@ -81,7 +81,7 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
   );
 }
 
-function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule, onTouchStart }) {
+function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, projects, onDragStart, onEdit, onUnschedule, onTouchStart, hoveredDropZone }) {
   const dayTasks = tasks.filter(t => t.date && isSameDay(new Date(t.date), day));
   const isTodayDate = isToday(day);
 
@@ -93,9 +93,11 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
   return (
     <div
       data-day={format(day, "yyyy-MM-dd")}
-      className={`min-h-[200px] md:min-h-[120px] rounded-lg border-2 p-1.5 md:p-2 ${
+      className={`min-h-[200px] md:min-h-[120px] rounded-lg border-2 p-1.5 md:p-2 transition-all ${
         isTodayDate ? "border-red-500 bg-red-50" : "border-gray-200"
-      } ${!isCurrentMonth ? "opacity-40" : ""}`}
+      } ${!isCurrentMonth ? "opacity-40" : ""} ${
+        hoveredDropZone === format(day, "yyyy-MM-dd") ? "border-blue-500 bg-blue-100 border-4 scale-105" : ""
+      }`}
       onDrop={(e) => onDrop(e, day)}
       onDragOver={onDragOver}
     >
@@ -167,6 +169,7 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
           onEdit={onEdit}
           onUnschedule={onUnschedule}
           onTouchStart={onTouchStart}
+          hoveredDropZone={hoveredDropZone}
         />
       ))}
       </div>
@@ -174,7 +177,7 @@ function WeekView({ week, tasks, onDrop, onDragOver, projects, onDragStart, onEd
   );
 }
 
-function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart }) {
+function MonthView({ month, tasks, onDrop, onDragOver, projects, onDragStart, onEdit, onUnschedule, onTouchStart, hoveredDropZone }) {
   const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
   const firstDay = startOfMonth(month);
   const startDay = startOfWeek(firstDay);
@@ -290,6 +293,7 @@ export default function Planner() {
   const [touchDraggedTask, setTouchDraggedTask] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
   const [touchCurrentPos, setTouchCurrentPos] = useState(null);
+  const [hoveredDropZone, setHoveredDropZone] = useState(null); // Track which drop zone is being hovered
   const [syncStatus, setSyncStatus] = useState(""); // "syncing", "synced", "error"
   const rolloverChecked = useRef(false);
 
@@ -669,7 +673,8 @@ export default function Planner() {
     const taskToDrop = draggedTask || touchDraggedTask;
     if (!taskToDrop) return;
 
-    const dateStr = format(startOfDay(day), "yyyy-MM-dd");
+    // If day is null, unschedule the task (remove date)
+    const dateStr = day ? format(startOfDay(day), "yyyy-MM-dd") : null;
     const originalTask = taskToDrop;
     const updated = { ...taskToDrop, date: dateStr };
     
@@ -680,6 +685,7 @@ export default function Planner() {
     setDraggedTask(null);
     setTouchDraggedTask(null);
     setTouchStartPos(null);
+    setTouchCurrentPos(null);
     
     // Save to API immediately
     try {
@@ -715,6 +721,25 @@ export default function Planner() {
         e.preventDefault();
         const touch = e.touches[0];
         setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+        
+        // Detect which drop zone is being hovered
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (element) {
+          let dropZoneElement = element;
+          let maxDepth = 15;
+          while (dropZoneElement && maxDepth > 0 && !dropZoneElement.dataset?.dropZone && !dropZoneElement.dataset?.day) {
+            dropZoneElement = dropZoneElement.parentElement;
+            maxDepth--;
+          }
+          
+          if (dropZoneElement?.dataset?.dropZone === "tasks-list") {
+            setHoveredDropZone("tasks-list");
+          } else if (dropZoneElement?.dataset?.day) {
+            setHoveredDropZone(dropZoneElement.dataset.day);
+          } else {
+            setHoveredDropZone(null);
+          }
+        }
       }
     };
 
@@ -765,6 +790,7 @@ export default function Planner() {
       setTouchDraggedTask(null);
       setTouchStartPos(null);
       setTouchCurrentPos(null);
+      setHoveredDropZone(null);
     };
 
     document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
@@ -1187,7 +1213,14 @@ export default function Planner() {
               </div>
               <CardDescription>Drag tasks to calendar to schedule them</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 max-h-[600px] overflow-y-auto">
+            <CardContent 
+              className={`space-y-6 max-h-[600px] overflow-y-auto transition-all ${
+                hoveredDropZone === "tasks-list" ? "bg-blue-50 border-2 border-blue-500 rounded-lg p-2" : ""
+              }`}
+              data-drop-zone="tasks-list"
+              onDrop={(e) => handleDrop(e, null)}
+              onDragOver={handleDragOver}
+            >
               {showAddTask && (
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="pt-4">
@@ -1354,6 +1387,7 @@ export default function Planner() {
                   onEdit={handleEdit}
                   onUnschedule={handleUnschedule}
                   onTouchStart={handleTouchStart}
+                  hoveredDropZone={hoveredDropZone}
                 />
               ) : (
                 <MonthView
@@ -1366,6 +1400,7 @@ export default function Planner() {
                   onEdit={handleEdit}
                   onUnschedule={handleUnschedule}
                   onTouchStart={handleTouchStart}
+                  hoveredDropZone={hoveredDropZone}
                 />
               )}
             </CardContent>
@@ -1441,6 +1476,27 @@ export default function Planner() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+        
+        {/* Drag Preview Element */}
+        {touchDraggedTask && touchCurrentPos && (
+          <div
+            style={{
+              position: 'fixed',
+              left: `${touchCurrentPos.x - 100}px`,
+              top: `${touchCurrentPos.y - 20}px`,
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transform: 'scale(1.2)',
+              opacity: 0.9,
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-2xl border-4 border-blue-600 font-semibold text-sm max-w-[200px]"
+          >
+            {touchDraggedTask.title}
+            {touchDraggedTask.project && (
+              <div className="text-xs opacity-80 mt-1">{touchDraggedTask.project}</div>
+            )}
           </div>
         )}
       </main>
