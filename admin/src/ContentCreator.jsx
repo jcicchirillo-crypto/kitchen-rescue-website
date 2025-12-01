@@ -7,6 +7,7 @@ import { Label } from "./components/ui/label";
 
 export default function ContentCreator() {
   const [igUrl, setIgUrl] = useState("");
+  const [hook, setHook] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
   const [format, setFormat] = useState("Instagram Reel");
   const [niche, setNiche] = useState("Kitchen Rescue");
@@ -73,16 +74,70 @@ export default function ContentCreator() {
         throw new Error(errorData.error || "Failed to generate content");
       }
 
-      const data = await response.json();
-      setResult(data);
+      const responseData = await response.json();
       
-      // Search for visuals if keywords provided and capture the results
+      // Parse the content if it's in the new format (plain text with sections)
+      let parsedData;
+      if (responseData.content) {
+        // New format: parse sections from plain text
+        const content = responseData.content;
+        const hookMatch = content.match(/\[HOOK\]\s*(.+?)(?=\[|$)/s);
+        const explanationMatch = content.match(/\[EXPLANATION\]\s*(.+?)(?=\[|$)/s);
+        const reelMatch = content.match(/\[REEL IDEA\]\s*(.+?)(?=\[|$)/s);
+        const onScreenMatch = content.match(/\[ON-SCREEN TEXT\]\s*(.+?)(?=\[|$)/s);
+        const captionMatch = content.match(/\[CAPTION\]\s*(.+?)(?=\[|$)/s);
+        
+        parsedData = {
+          hook: hookMatch ? hookMatch[1].trim() : "",
+          explanation: explanationMatch ? explanationMatch[1].trim() : "",
+          reelIdea: reelMatch ? reelMatch[1].trim() : "",
+          onScreenText: onScreenMatch ? onScreenMatch[1].trim() : "",
+          caption: captionMatch ? captionMatch[1].trim() : "",
+          hashtags: [], // Will be extracted from caption if needed
+          storyboardShots: [],
+          visualSearchKeywords: [],
+        };
+      } else {
+        // Old format: already structured
+        parsedData = responseData;
+      }
+      
+      setResult(parsedData);
+      
+      // Extract hashtags from caption if not provided
+      if (parsedData.caption && (!parsedData.hashtags || parsedData.hashtags.length === 0)) {
+        const hashtagRegex = /#\w+/g;
+        const foundHashtags = parsedData.caption.match(hashtagRegex) || [];
+        parsedData.hashtags = foundHashtags;
+      }
+      
+      // Generate visual search keywords from hook and description
+      const searchKeywords = [];
+      if (parsedData.hook) {
+        // Extract key words from hook
+        const hookWords = parsedData.hook.toLowerCase()
+          .replace(/[^\w\s]/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length > 4)
+          .slice(0, 3);
+        searchKeywords.push(...hookWords);
+      }
+      if (videoDescription) {
+        const descWords = videoDescription.toLowerCase()
+          .replace(/[^\w\s]/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length > 4)
+          .slice(0, 2);
+        searchKeywords.push(...descWords);
+      }
+      
+      // Search for visuals if keywords available
       let fetchedVisuals = { photos: [], videos: [] };
       let fetchedSelectedImage = null;
       
-      if (data.visualSearchKeywords && data.visualSearchKeywords.length > 0) {
-        const photosResult = await searchVisuals(data.visualSearchKeywords, "photos");
-        const videosResult = await searchVisuals(data.visualSearchKeywords, "videos");
+      if (searchKeywords.length > 0) {
+        const photosResult = await searchVisuals(searchKeywords, "photos");
+        const videosResult = await searchVisuals(searchKeywords, "videos");
         
         if (photosResult) {
           fetchedVisuals.photos = photosResult.photos || [];
@@ -97,11 +152,14 @@ export default function ContentCreator() {
       const newIdea = {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
-        hook: data.hook,
-        caption: data.caption,
-        hashtags: data.hashtags || [],
-        storyboardShots: data.storyboardShots || [],
-        visualSearchKeywords: data.visualSearchKeywords || [],
+        hook: parsedData.hook,
+        caption: parsedData.caption,
+        explanation: parsedData.explanation,
+        reelIdea: parsedData.reelIdea,
+        onScreenText: parsedData.onScreenText,
+        hashtags: parsedData.hashtags || [],
+        storyboardShots: parsedData.storyboardShots || [],
+        visualSearchKeywords: searchKeywords,
         visuals: fetchedVisuals,
         selectedImage: fetchedSelectedImage,
         metadata: {
@@ -109,6 +167,7 @@ export default function ContentCreator() {
           platform,
           format,
           videoDescription,
+          hook: hook || null,
           igUrl: igUrl || null,
         },
       };
@@ -117,6 +176,7 @@ export default function ContentCreator() {
       
       // Clear form after successful generation
       setVideoDescription("");
+      setHook("");
       setIgUrl("");
     } catch (err) {
       console.error("Error generating content:", err);
@@ -275,6 +335,9 @@ export default function ContentCreator() {
         createdAt: new Date().toISOString(),
         hook: result.hook,
         caption: result.caption,
+        explanation: result.explanation,
+        reelIdea: result.reelIdea,
+        onScreenText: result.onScreenText,
         hashtags: result.hashtags || [],
         storyboardShots: result.storyboardShots || [],
         visualSearchKeywords: result.visualSearchKeywords || [],
@@ -285,6 +348,7 @@ export default function ContentCreator() {
           platform,
           format,
           videoDescription: videoDescription || "",
+          hook: hook || null,
           igUrl: igUrl || null,
         },
       };
@@ -293,6 +357,7 @@ export default function ContentCreator() {
 
     // Clear all form fields
     setVideoDescription("");
+    setHook("");
     setIgUrl("");
     setFormat("Instagram Reel");
     setNiche("Kitchen Rescue");
@@ -370,11 +435,22 @@ export default function ContentCreator() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="videoDescription">Video Description *</Label>
+              <Label htmlFor="hook">Custom hook (optional – leave blank if you want one generated)</Label>
+              <Input
+                id="hook"
+                placeholder="e.g., The hidden cost nobody tells you about when you rip out your kitchen…"
+                value={hook}
+                onChange={(e) => setHook(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">If you provide a hook, it will be used exactly as written. If left blank, a hook will be generated from your description.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="videoDescription">Idea / description (required)</Label>
               <textarea
                 id="videoDescription"
                 className="flex min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Describe the video style, format, pacing, and any key elements you want to replicate..."
+                placeholder="e.g., talk about takeaways, laundrette, stress OR people don't budget for takeaways, laundrettes, and the stress when they rip out their kitchen"
                 value={videoDescription}
                 onChange={(e) => setVideoDescription(e.target.value)}
               />
@@ -446,6 +522,51 @@ export default function ContentCreator() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Explanation */}
+            {result.explanation && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-4 w-4" />
+                    Explanation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 whitespace-pre-line">{result.explanation}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Reel Idea */}
+            {result.reelIdea && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Film className="h-4 w-4" />
+                    Reel Idea
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 whitespace-pre-line">{result.reelIdea}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* On-Screen Text */}
+            {result.onScreenText && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Video className="h-4 w-4" />
+                    On-Screen Text
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 whitespace-pre-line">{result.onScreenText}</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Caption */}
             <Card>

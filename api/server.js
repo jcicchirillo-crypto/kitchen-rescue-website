@@ -7,6 +7,16 @@ try {
     console.log('dotenv not available, using system environment variables - force redeploy');
 }
 
+// Initialize OpenAI SDK
+const OpenAI = require('openai');
+let openai = null;
+if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log('OpenAI SDK initialized successfully');
+} else {
+    console.log('OpenAI API key not configured. Content idea generation will not work.');
+}
+
 // Check Supabase admin client initialization
 const { supabaseAdmin } = require('./lib/supabaseAdmin');
 console.log('🔍 Server startup - Supabase admin client available:', !!supabaseAdmin);
@@ -1476,6 +1486,128 @@ Remember: respond ONLY with JSON in the schema specified. Be creative and genera
         res.json(result);
     } catch (err) {
         console.error("Error in /api/generate-content:", err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+});
+
+// Content Idea Generator - Uses provided hook or generates one
+app.post("/api/content-idea", authenticateAdmin, async (req, res) => {
+    try {
+        const { hook, description } = req.body;
+
+        if (!description || !description.trim()) {
+            return res.status(400).json({ error: "description is required" });
+        }
+
+        if (!openai) {
+            return res.status(500).json({ error: "OpenAI API key not configured" });
+        }
+
+        const hasHook = hook && hook.trim().length > 0;
+        let prompt;
+
+        if (hasHook) {
+            // CASE 1: USER PROVIDED A HOOK - Use it exactly
+            prompt = `
+You are helping me write Instagram content ideas for my business "Kitchen Rescue" (temporary fully equipped kitchen pods for people doing kitchen renovations).
+
+Use the exact hook below as the FIRST line of the response. 
+
+⚠️ Do NOT change, rewrite, add to, or remove any characters from the hook.
+
+⚠️ Repeat it EXACTLY as it appears between the <<<HOOK>>> markers.
+
+<<<HOOK>>>
+
+${hook.trim()}
+
+<<<HOOK>>>
+
+Context/idea for this content (if needed):
+
+${description || "(no extra context)"}
+
+After that first line, add:
+
+1) A 1–2 sentence explanation of the idea.
+
+2) A short reel / video concept (5–10 seconds).
+
+3) 3–5 on-screen text ideas.
+
+4) A caption (50–120 words).
+
+Start your answer like this:
+
+[HOOK]
+
+<the exact hook here>
+
+Then each section below on new lines with clear headings.
+
+`;
+        } else {
+            // CASE 2: NO HOOK GIVEN → CREATE ONE FROM DESCRIPTION
+            prompt = `
+You are helping me write Instagram content ideas for my business "Kitchen Rescue" (temporary fully equipped kitchen pods for people doing kitchen renovations).
+
+The user did NOT provide a hook. 
+
+Your job is to:
+
+- First, create a strong scroll-stopping hook based on the description below.
+
+- Then build the rest of the content around that hook.
+
+Description of the idea / topic:
+
+${description || "Kitchen renovation stress, hidden costs, and why a temporary kitchen pod helps."}
+
+Your answer MUST follow this structure:
+
+[HOOK]
+
+<one punchy hook line, in quotes>
+
+[EXPLANATION]
+
+1–2 sentences explaining the idea.
+
+[REEL IDEA]
+
+A short reel / video concept (5–10 seconds).
+
+[ON-SCREEN TEXT]
+
+3–5 short text options.
+
+[CAPTION]
+
+A 50–120 word caption, friendly and clear, aimed at homeowners or builders.
+
+`;
+        }
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a precise assistant that ALWAYS follows formatting instructions exactly."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 0.7
+        });
+
+        const output = completion.choices[0].message.content;
+        res.json({ content: output });
+
+    } catch (err) {
+        console.error("Error in /api/content-idea:", err);
         res.status(500).json({ error: "Server error", details: err.message });
     }
 });
