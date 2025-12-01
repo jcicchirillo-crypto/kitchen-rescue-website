@@ -1291,6 +1291,10 @@ app.listen(PORT, () => {
 });
 
 // Content Creator Organizer - Generate social media content
+// Track recent hooks to avoid repetition
+let recentHooks = [];
+const MAX_RECENT_HOOKS = 10;
+
 app.post("/api/generate-content", authenticateAdmin, async (req, res) => {
     try {
         const { igUrl, videoDescription, format, niche, platform } = req.body;
@@ -1336,6 +1340,22 @@ You MUST reply with **valid JSON only**, no extra commentary, with this shape:
         const timestamp = Date.now();
         const randomSeed = Math.floor(Math.random() * 10000);
         
+        // Get recent hooks to avoid
+        const avoidHooks = recentHooks.length > 0 
+            ? recentHooks.slice(-5).join(" | ") 
+            : "none";
+        
+        // Add explicit hook structure variations
+        const hookStructures = [
+            { type: "question", example: "How do you cook during a kitchen renovation?" },
+            { type: "number", example: "7 ways to survive a kitchen renovation" },
+            { type: "story", example: "Sarah thought she'd be eating takeaways for 8 weeks..." },
+            { type: "bold statement", example: "You don't have to give up cooking during renovations" },
+            { type: "contrast", example: "No kitchen? No problem. Here's how..." },
+            { type: "benefit", example: "Cook normally while your kitchen is being renovated" }
+        ];
+        const selectedStructure = hookStructures[Math.floor(Math.random() * hookStructures.length)];
+        
         // Add creative variation angles
         const variationAngles = [
             "Focus on the emotional benefit and transformation",
@@ -1362,27 +1382,35 @@ Original video style description:
 - Request ID: ${timestamp}-${randomSeed}
 - Creative Angle: ${selectedAngle}
 - Tone: ${selectedTone}
+- Required Hook Structure: ${selectedStructure.type} (example: "${selectedStructure.example}")
 
 Video description:
 ${videoDescription}
 
-CRITICAL: This is request #${randomSeed}. Generate a COMPLETELY UNIQUE version. Use a DIFFERENT angle, DIFFERENT hook structure, and DIFFERENT approach than any previous generation. Vary the:
-- Hook opening (question vs statement vs story)
-- Caption structure and flow
-- Hashtag selection
-- Visual approach
+CRITICAL REQUIREMENTS:
+1. This is request #${randomSeed}. Generate a COMPLETELY UNIQUE version.
+2. You MUST use a "${selectedStructure.type}" hook structure. Example: "${selectedStructure.example}"
+3. You MUST avoid these recent hooks: ${avoidHooks}
+4. Your hook must be DIFFERENT from all of the above. Do NOT use similar phrasing, words, or structure.
+5. Use a DIFFERENT angle, DIFFERENT hook structure, and DIFFERENT approach than any previous generation.
+
+What to vary:
+- Hook opening: MUST be ${selectedStructure.type} style (NOT like the avoided hooks above)
+- Caption structure and flow: Use different paragraph breaks and CTA placement
+- Hashtag selection: Choose different hashtags than previous requests
+- Visual approach: Different shot descriptions and text overlays
 
 Please:
 1. Infer the format, pacing and psychological trick (e.g. long text for replays).
 2. Create a NEW and UNIQUE version for the niche: ${niche} using the "${selectedAngle}" angle with a "${selectedTone}" tone.
 3. Include:
-   - A strong, unique hook that fits ${niche} (use a DIFFERENT hook style than previous requests - vary between questions, statements, numbers, stories).
-   - A fresh caption that fits ${platform} with a clear CTA (vary the structure and flow).
+   - A strong, unique hook in "${selectedStructure.type}" style that fits ${niche}. MUST be different from: ${avoidHooks}. Example style: "${selectedStructure.example}"
+   - A fresh caption that fits ${platform} with a clear CTA (vary the structure and flow from previous requests).
    - 6–10 relevant hashtags as an array (select DIFFERENT hashtags than previous requests).
    - A storyboard of 3–6 shots with "visual" and "textOnScreen" for each.
    - 3–5 visual search keywords as an array in "visualSearchKeywords" (use DIFFERENT keywords than previous requests).
 
-Remember: respond ONLY with JSON in the schema specified. Be creative and generate something COMPLETELY NEW and DIFFERENT.
+Remember: respond ONLY with JSON in the schema specified. Be creative and generate something COMPLETELY NEW and DIFFERENT. Your hook MUST be in "${selectedStructure.type}" style and MUST NOT resemble: ${avoidHooks}
 `.trim();
 
         // Use Node 18+ global fetch to call OpenAI directly
@@ -1435,6 +1463,15 @@ Remember: respond ONLY with JSON in the schema specified. Be creative and genera
                 ? parsed.visualSearchKeywords 
                 : [],
         };
+
+        // Add new hook to recent hooks list to avoid repetition
+        if (result.hook) {
+            recentHooks.push(result.hook);
+            // Keep only the most recent hooks
+            if (recentHooks.length > MAX_RECENT_HOOKS) {
+                recentHooks.shift(); // Remove oldest
+            }
+        }
 
         res.json(result);
     } catch (err) {
