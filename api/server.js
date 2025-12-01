@@ -1514,96 +1514,59 @@ app.post("/api/content-idea", authenticateAdmin, async (req, res) => {
         // System message with Kitchen Rescue business context
         const systemMessage = `You are the Kitchen Rescue Content Assistant.
 
-BUSINESS:
+BUSINESS OVERVIEW:
 
-- Kitchen Rescue provides fully equipped temporary kitchen pods, delivered to the customer's driveway during a kitchen renovation.
+- Kitchen Rescue provides fully equipped temporary kitchen pods for people renovating their kitchens.
 
-- The pod includes: oven, hob, sink, fridge-freezer, dishwasher, washing machine and storage – so life can continue as normal while the main kitchen is ripped out.
+- Customers avoid takeaways, mess, stress and laundrette trips.
 
-- Main benefits: reduces stress, avoids mess in the house, keeps families cooking proper meals, and saves money vs constant takeaways and laundrettes.
+- Builders can add Kitchen Rescue to their quotes and earn a referral fee.
 
-- Audience: (1) Homeowners planning or starting a kitchen renovation in the UK. (2) Kitchen fitters and builders who want happier clients and smoother projects.
+- Tone of voice: practical, friendly, reassuring, UK-based, renovation-aware.
 
-POSITIONING:
+RULES:
 
-- "Keep living your life while your kitchen is out of action."
+1. If the user provides a hook, use it EXACTLY as written. Do not change it.
 
-- "The hidden costs of renovation are takeaways, eating out, and laundrette runs – our pod removes most of that."
+2. If no hook is provided, create a strong, scroll-stopping hook based on the description.
 
-- Builders can add Kitchen Rescue as an optional line on their quotes and earn a referral fee. It makes them look more professional and client-focused.
+3. ALWAYS respond with a VALID JSON object in this exact shape:
 
-VOICE & TONE:
+{
+  "hook": "string",
+  "caption": "string (80–140 words)",
+  "hashtags": ["#KitchenRescue", "..."],
+  "storyboard": [
+    {
+      "visual": "string",
+      "text_on_screen": "string"
+    },
+    ...
+  ]
+}
 
-- Friendly, reassuring, practical, down-to-earth.
+4. Do NOT generate images, URLs, stock photos or visual mockups.
 
-- Explains things simply, without jargon.
+5. "visual" must be simple textual descriptions only (not actual images).
 
-- Focus on real-life frustrations: mess, noise, kids wanting dinner, nowhere to wash clothes, long delays.
+6. Never leave any field empty.
 
-- No hypey or spammy vibe. No overpromising.
+7. Caption must ALWAYS be included.`;
 
-HOOK RULES:
+        // User prompt with placeholders substituted
+        const userPrompt = `USER INPUT:
 
-- If the user PROVIDES a hook, you MUST use it exactly as written – do not rewrite or improve it.
+Hook (may be empty):
 
-- If the user does NOT provide a hook, you should invent a strong, scroll-stopping hook based on their description.
-
-- Hooks should be short, specific, emotionally resonant, and clearly tied to kitchen renovation and the value of Kitchen Rescue.
-
-OUTPUT:
-
-- Always follow the structure requested in the user message (e.g. Hook, Caption, Storyboard, Hashtags, etc.).
-
-- Stay on-brand for Kitchen Rescue in every answer.`;
-
-        // User prompt with specific request
-        const userPrompt = `You are generating a content idea for Kitchen Rescue.
-
-HOOK (may be empty):
-
+<<<HOOK>>>
 ${originalHook}
+<<<HOOK>>>
 
-DESCRIPTION / IDEA:
+Description:
 
 ${description || "Kitchen renovation, hidden costs, stress, takeaways, laundry."}
 
-Follow these rules carefully:
-
-1. If HOOK is NOT empty:
-
-   - Use it EXACTLY as the hook.
-
-   - Do NOT rewrite, shorten, or "improve" it.
-
-   - Start the output with the heading "Hook" and then the hook text on its own line.
-
-2. If HOOK IS empty:
-
-   - Create a new, strong scroll-stopping hook from the DESCRIPTION.
-
-   - Start the output with the heading "Hook" and your new hook.
-
-After that, output in this structure:
-
-Caption:
-
-- Write a friendly, clear caption (50–120 words) in the Kitchen Rescue voice.
-
-- Make sure it relates directly to the hook and description.
-
-Hashtags:
-
-- 8–12 relevant hashtags. Always include #KitchenRescue.
-
-Storyboard (optional if requested by the user/UI):
-
-- 3–5 short shots with:
-
-  - Visual:
-
-  - Text on Screen:
-
-Only mention Kitchen Rescue in ways that match the brand description above.`;
+Generate the JSON now.`;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -1617,36 +1580,37 @@ Only mention Kitchen Rescue in ways that match the brand description above.`;
                     content: userPrompt
                 }
             ],
-            temperature: 0.7
+            temperature: 0.7,
+            response_format: { type: "json_object" }
         });
 
         let output = completion.choices[0].message.content;
+        let parsedOutput;
 
-        // Safety net: If hook was provided, force it into the output
-        if (hasHook) {
-            const lines = output.split("\n");
-            // Find the "Hook:" line (new format) or "[HOOK]" line (old format)
-            const hookIndex = lines.findIndex(l => {
-                const trimmed = l.trim();
-                return trimmed.startsWith("Hook:") || trimmed.startsWith("[HOOK]");
-            });
-            if (hookIndex !== -1 && lines[hookIndex + 1]) {
-                // Replace the line after "Hook:" or "[HOOK]" with the original hook
-                lines[hookIndex + 1] = originalHook;
-                output = lines.join("\n");
-                console.log("Safety net applied: Hook forced to:", originalHook);
-            } else if (hookIndex !== -1) {
-                // If "Hook:" is on the same line, replace everything after "Hook:"
-                const line = lines[hookIndex];
-                if (line.includes("Hook:")) {
-                    lines[hookIndex] = line.replace(/Hook:.*/, `Hook:\n${originalHook}`);
-                    output = lines.join("\n");
-                    console.log("Safety net applied: Hook forced to:", originalHook);
-                }
+        try {
+            parsedOutput = JSON.parse(output);
+        } catch (err) {
+            console.error("Failed to parse JSON from OpenAI:", output);
+            return res.status(500).json({ error: "Failed to parse JSON response from AI" });
+        }
+
+        // Safety net: If hook was provided, force it into the JSON
+        if (hasHook && parsedOutput.hook !== originalHook) {
+            console.log("Safety net applied: Hook forced to:", originalHook);
+            parsedOutput.hook = originalHook;
+        }
+
+        // Ensure #KitchenRescue is in hashtags
+        if (parsedOutput.hashtags && Array.isArray(parsedOutput.hashtags)) {
+            const hasKitchenRescue = parsedOutput.hashtags.some(tag => 
+                tag.toLowerCase().includes('kitchenrescue') || tag.toLowerCase().includes('kitchen-rescue')
+            );
+            if (!hasKitchenRescue) {
+                parsedOutput.hashtags.push('#KitchenRescue');
             }
         }
 
-        res.json({ content: output });
+        res.json(parsedOutput);
 
     } catch (err) {
         console.error("Error in /api/content-idea:", err);

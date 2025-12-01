@@ -77,33 +77,37 @@ export default function ContentCreator() {
 
       const responseData = await response.json();
       
-      // Parse the content if it's in the new format (plain text with sections)
+      // New format: API returns JSON directly
       let parsedData;
-      if (responseData.content) {
-        // New format: parse sections from plain text
+      if (responseData.hook !== undefined) {
+        // JSON format from new API
+        parsedData = {
+          hook: responseData.hook || "",
+          caption: responseData.caption || "",
+          hashtags: Array.isArray(responseData.hashtags) ? responseData.hashtags : [],
+          storyboardShots: Array.isArray(responseData.storyboard) 
+            ? responseData.storyboard.map(shot => ({
+                visual: shot.visual || "",
+                textOnScreen: shot.text_on_screen || shot.textOnScreen || "",
+              }))
+            : [],
+          explanation: "",
+          reelIdea: "",
+          onScreenText: "",
+          visualSearchKeywords: [], // Will be generated from hook and description below
+        };
+      } else if (responseData.content) {
+        // Fallback: old text format (for backward compatibility)
         const content = responseData.content;
         
-        // Parse new format with "Hook:", "Caption:", "Hashtags:", "Storyboard:" headings
-        const hookMatch = content.match(/(?:^|\n)Hook:\s*\n?\s*(.+?)(?=\n\s*(?:Caption|Hashtags|Storyboard)|$)/is);
-        const captionMatch = content.match(/(?:^|\n)Caption:\s*\n?\s*(.+?)(?=\n\s*(?:Hashtags|Storyboard)|$)/is);
-        const hashtagsMatch = content.match(/(?:^|\n)Hashtags:\s*\n?\s*(.+?)(?=\n\s*(?:Storyboard|$))/is);
-        const storyboardMatch = content.match(/(?:^|\n)Storyboard[^:]*:\s*\n?\s*(.+?)(?=\n\s*$|$)/is);
-        
-        // Also support old format with [HOOK], [CAPTION], etc. for backward compatibility
+        // Parse old format with [HOOK], [CAPTION], etc.
         const oldHookMatch = content.match(/\[HOOK\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
         const oldExplanationMatch = content.match(/\[EXPLANATION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
         const oldReelMatch = content.match(/\[REEL IDEA\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
         const oldOnScreenMatch = content.match(/\[ON-SCREEN TEXT\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
         const oldCaptionMatch = content.match(/\[CAPTION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
         
-        // Clean up hook - remove quotes if present
-        let extractedHook = "";
-        if (hookMatch) {
-          extractedHook = hookMatch[1].trim();
-        } else if (oldHookMatch) {
-          extractedHook = oldHookMatch[1].trim();
-        }
-        
+        let extractedHook = oldHookMatch ? oldHookMatch[1].trim() : "";
         if (extractedHook.startsWith('"') && extractedHook.endsWith('"')) {
           extractedHook = extractedHook.slice(1, -1);
         }
@@ -111,58 +115,22 @@ export default function ContentCreator() {
           extractedHook = extractedHook.slice(1, -1);
         }
         
-        // Parse hashtags
-        let extractedHashtags = [];
-        if (hashtagsMatch) {
-          const hashtagsText = hashtagsMatch[1].trim();
-          // Extract hashtags - could be on separate lines or in a list
-          const hashtagRegex = /#\w+/g;
-          extractedHashtags = hashtagsText.match(hashtagRegex) || [];
-        }
-        
-        // Parse storyboard
-        let extractedStoryboard = [];
-        if (storyboardMatch) {
-          const storyboardText = storyboardMatch[1].trim();
-          // Parse storyboard shots - look for "Visual:" and "Text on Screen:" patterns
-          const shotRegex = /(?:^|\n)\s*(?:Shot\s+\d+[:.]?\s*)?(?:Visual:?\s*(.+?)(?=\s*Text\s+on\s+Screen:|$))(?:\s*Text\s+on\s+Screen:?\s*(.+?))(?=\s*(?:Visual:|Shot|$))/gis;
-          let match;
-          while ((match = shotRegex.exec(storyboardText)) !== null) {
-            extractedStoryboard.push({
-              visual: match[1]?.trim() || "",
-              textOnScreen: match[2]?.trim() || "",
-            });
-          }
-          // Fallback: if no structured shots found, try to split by lines
-          if (extractedStoryboard.length === 0) {
-            const lines = storyboardText.split(/\n/).filter(l => l.trim());
-            lines.forEach((line, idx) => {
-              if (line.toLowerCase().includes('visual')) {
-                const visual = line.replace(/visual:?\s*/i, '').trim();
-                const nextLine = lines[idx + 1];
-                const textOnScreen = nextLine && nextLine.toLowerCase().includes('text') 
-                  ? nextLine.replace(/text\s+on\s+screen:?\s*/i, '').trim()
-                  : '';
-                if (visual) {
-                  extractedStoryboard.push({ visual, textOnScreen });
-                }
-              }
-            });
-          }
-        }
+        // Extract hashtags from caption
+        const hashtagRegex = /#\w+/g;
+        const foundHashtags = (oldCaptionMatch?.[1] || "").match(hashtagRegex) || [];
         
         parsedData = {
-          hook: extractedHook || "", // Will use provided hook as fallback below
+          hook: extractedHook || "",
           explanation: oldExplanationMatch ? oldExplanationMatch[1].trim() : "",
           reelIdea: oldReelMatch ? oldReelMatch[1].trim() : "",
           onScreenText: oldOnScreenMatch ? oldOnScreenMatch[1].trim() : "",
-          caption: (captionMatch || oldCaptionMatch) ? (captionMatch?.[1] || oldCaptionMatch?.[1] || "").trim() : "",
-          hashtags: extractedHashtags.length > 0 ? extractedHashtags : [],
-          storyboardShots: extractedStoryboard,
+          caption: oldCaptionMatch ? oldCaptionMatch[1].trim() : "",
+          hashtags: foundHashtags,
+          storyboardShots: [],
           visualSearchKeywords: [],
         };
       } else {
-        // Old format: already structured
+        // Legacy format: already structured
         parsedData = responseData;
       }
       
