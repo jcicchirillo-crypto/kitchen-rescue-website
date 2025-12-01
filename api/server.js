@@ -1524,6 +1524,20 @@ BUSINESS OVERVIEW:
 
 - Tone of voice: practical, friendly, reassuring, UK-based, renovation-aware.
 
+WRITING QUALITY:
+
+- Use UK English: "takeaways", "rubbish", "renovation", "neighbours".
+
+- Avoid Americanisms like "takeout", "trash", "remodel".
+
+- Keep emojis light: 0–2 maximum per caption, only if they genuinely add warmth.
+
+- Avoid cheesy marketing language like "perfect solution" or "unlock your dream kitchen".
+
+- Focus on real life: mess, noise, laundry, kids, busy work days, renovation stress.
+
+- Sound like a friendly, switched-on human, not a corporate advert.
+
 RULES:
 
 1. If the user provides a hook, use it EXACTLY as written. Do not change it.
@@ -1542,8 +1556,14 @@ RULES:
       "text_on_screen": "string"
     },
     ...
-  ]
+  ],
+  "image_search_terms": ["string", "string", "string"]
 }
+
+"image_search_terms":
+- Provide 2–4 short, literal search phrases that a stock site like Pexels would understand.
+- Focus on what should be shown visually: e.g. "messy kitchen renovation", "family cooking in temporary kitchen", "takeaway food boxes", "laundrette washing machines".
+- Do NOT include abstract words like 'stress', 'dream', 'transformation'.
 
 4. Do NOT generate images, URLs, stock photos or visual mockups.
 
@@ -1569,7 +1589,7 @@ ${description || "Kitchen renovation, hidden costs, stress, takeaways, laundry."
 Generate the JSON now.`;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o", // Using more capable model for better content generation and keyword understanding
             messages: [
                 {
                     role: "system",
@@ -1607,6 +1627,35 @@ Generate the JSON now.`;
             );
             if (!hasKitchenRescue) {
                 parsedOutput.hashtags.push('#KitchenRescue');
+            }
+        }
+
+        // Second call: Refine the caption with an editor
+        if (parsedOutput.caption) {
+            try {
+                const edited = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are an editor improving Instagram captions for Kitchen Rescue. Keep the same idea but make it clearer, more natural, and a bit punchier. Keep UK English and no more than 2 emojis. Return only the improved caption text, nothing else."
+                        },
+                        {
+                            role: "user",
+                            content: parsedOutput.caption
+                        }
+                    ],
+                    temperature: 0.7
+                });
+
+                const betterCaption = edited.choices[0].message.content.trim();
+                if (betterCaption) {
+                    console.log("Caption refined by editor");
+                    parsedOutput.caption = betterCaption;
+                }
+            } catch (err) {
+                console.error("Error refining caption (using original):", err.message);
+                // Continue with original caption if editing fails
             }
         }
 

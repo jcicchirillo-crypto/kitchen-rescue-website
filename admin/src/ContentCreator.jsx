@@ -91,10 +91,11 @@ export default function ContentCreator() {
                 textOnScreen: shot.text_on_screen || shot.textOnScreen || "",
               }))
             : [],
+          imageSearchTerms: Array.isArray(responseData.image_search_terms) ? responseData.image_search_terms : [],
           explanation: "",
           reelIdea: "",
           onScreenText: "",
-          visualSearchKeywords: [], // Will be generated from hook and description below
+          visualSearchKeywords: responseData.image_search_terms || [], // Use AI-provided search terms
         };
       } else if (responseData.content) {
         // Fallback: old text format (for backward compatibility)
@@ -159,68 +160,34 @@ export default function ContentCreator() {
         }
       }
       
-      // Generate visual search keywords from multiple sources for better relevance
-      const searchKeywords = [];
+      // Use AI-generated image_search_terms for visual search (much more relevant than extracting from text)
+      const searchTerms = parsedData.image_search_terms || parsedData.imageSearchTerms || [];
       
-      // 1. Extract from description (most important - user's actual topic)
-      if (videoDescription) {
-        const descText = videoDescription.toLowerCase()
-          .replace(/[^\w\s]/g, ' ')
-          .split(/\s+/)
-          .filter(w => w.length > 3 && !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'they', 'have', 'been', 'will', 'when', 'what', 'where', 'about'].includes(w));
-        // Take most relevant words (longer words first, then unique)
-        const uniqueDescWords = [...new Set(descText)]
-          .sort((a, b) => b.length - a.length)
-          .slice(0, 4);
-        searchKeywords.push(...uniqueDescWords);
-      }
+      console.log("AI-generated image search terms:", searchTerms);
       
-      // 2. Extract from caption (contains context about the topic)
-      if (parsedData.caption) {
-        const captionText = parsedData.caption.toLowerCase()
-          .replace(/[^\w\s]/g, ' ')
-          .split(/\s+/)
-          .filter(w => w.length > 4 && !['kitchen', 'rescue', 'renovation', 'renovating'].includes(w));
-        const uniqueCaptionWords = [...new Set(captionText)]
-          .sort((a, b) => b.length - a.length)
-          .slice(0, 2);
-        searchKeywords.push(...uniqueCaptionWords);
-      }
-      
-      // 3. Extract from storyboard visuals (describes what to show)
-      if (parsedData.storyboardShots && parsedData.storyboardShots.length > 0) {
-        parsedData.storyboardShots.forEach(shot => {
-          if (shot.visual) {
-            const visualWords = shot.visual.toLowerCase()
-              .replace(/[^\w\s]/g, ' ')
-              .split(/\s+/)
-              .filter(w => w.length > 4);
-            searchKeywords.push(...visualWords.slice(0, 1));
-          }
-        });
-      }
-      
-      // 4. Fallback to hook if we don't have enough keywords
-      if (searchKeywords.length < 2 && parsedData.hook) {
-        const hookWords = parsedData.hook.toLowerCase()
-          .replace(/[^\w\s]/g, ' ')
-          .split(/\s+/)
-          .filter(w => w.length > 4);
-        searchKeywords.push(...hookWords.slice(0, 2));
-      }
-      
-      // Remove duplicates and limit to 5-6 most relevant keywords
-      const uniqueKeywords = [...new Set(searchKeywords)].slice(0, 6);
-      
-      console.log("Generated search keywords:", uniqueKeywords);
-      
-      // Search for visuals if keywords available
+      // Search for visuals using AI-provided search terms
       let fetchedVisuals = { photos: [], videos: [] };
       let fetchedSelectedImage = null;
       
-      if (uniqueKeywords.length > 0) {
-        const photosResult = await searchVisuals(uniqueKeywords, "photos");
-        const videosResult = await searchVisuals(uniqueKeywords, "videos");
+      if (searchTerms.length > 0) {
+        // Use the first search term (most relevant) for initial search
+        const primaryQuery = searchTerms[0];
+        const photosResult = await searchVisuals(primaryQuery, "photos");
+        const videosResult = await searchVisuals(primaryQuery, "videos");
+        
+        if (photosResult) {
+          fetchedVisuals.photos = photosResult.photos || [];
+          fetchedSelectedImage = photosResult.selectedImage || null;
+        }
+        if (videosResult) {
+          fetchedVisuals.videos = videosResult.videos || [];
+        }
+      } else {
+        // Fallback: if AI didn't provide search terms, use safe default
+        console.log("No image_search_terms from AI, using fallback");
+        const fallbackQuery = "kitchen renovation";
+        const photosResult = await searchVisuals(fallbackQuery, "photos");
+        const videosResult = await searchVisuals(fallbackQuery, "videos");
         
         if (photosResult) {
           fetchedVisuals.photos = photosResult.photos || [];
@@ -242,7 +209,7 @@ export default function ContentCreator() {
         onScreenText: parsedData.onScreenText,
         hashtags: parsedData.hashtags || [],
         storyboardShots: parsedData.storyboardShots || [],
-        visualSearchKeywords: uniqueKeywords,
+        visualSearchKeywords: parsedData.imageSearchTerms || [],
         visuals: fetchedVisuals,
         selectedImage: fetchedSelectedImage,
         metadata: {
@@ -277,25 +244,31 @@ export default function ContentCreator() {
     }, 2000);
   };
 
-  const searchVisuals = async (keywords, type = "photos") => {
-    if (!keywords || keywords.length === 0) return null;
+  const searchVisuals = async (queryOrKeywords, type = "photos") => {
+    if (!queryOrKeywords) return null;
     
     setLoadingVisuals(true);
     try {
-      // Build a more comprehensive query using multiple relevant keywords
+      // Handle both string queries (from AI image_search_terms) and arrays (legacy)
       let query;
-      if (Array.isArray(keywords) && keywords.length > 0) {
-        // Combine the most relevant keywords (first 2-3) for better results
-        const relevantKeywords = keywords.slice(0, 3).filter(k => k && k.trim());
-        query = relevantKeywords.join(" ");
-        
-        // If we have kitchen-related content, add context
-        if (keywords.some(k => k.includes('kitchen') || k.includes('renovation') || k.includes('takeaway') || k.includes('laundry'))) {
-          // Keep the query focused on the actual topic, not generic "kitchen"
-          query = relevantKeywords.filter(k => !k.includes('kitchen') && !k.includes('rescue')).join(" ") || relevantKeywords.join(" ");
+      if (typeof queryOrKeywords === 'string') {
+        // Direct query string from AI (e.g., "messy kitchen renovation")
+        query = queryOrKeywords.trim();
+      } else if (Array.isArray(queryOrKeywords) && queryOrKeywords.length > 0) {
+        // Legacy: array of keywords - use first one or combine
+        if (queryOrKeywords.length === 1) {
+          query = queryOrKeywords[0];
+        } else {
+          // Combine first 2-3 keywords
+          const relevantKeywords = queryOrKeywords.slice(0, 3).filter(k => k && k.trim());
+          query = relevantKeywords.join(" ");
         }
       } else {
-        query = keywords;
+        return null;
+      }
+      
+      if (!query || query.length === 0) {
+        return null;
       }
       
       console.log(`Searching ${type} with query: "${query}"`);
