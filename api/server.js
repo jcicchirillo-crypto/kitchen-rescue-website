@@ -1290,4 +1290,120 @@ app.listen(PORT, () => {
     console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
 });
 
+// Content Creator Organizer - Generate social media content
+app.post("/api/generate-content", authenticateAdmin, async (req, res) => {
+    try {
+        const { igUrl, videoDescription, format, niche, platform } = req.body;
+
+        if (!videoDescription) {
+            return res.status(400).json({ error: "videoDescription is required" });
+        }
+
+        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+        if (!OPENAI_API_KEY) {
+            console.error("OpenAI API key not configured");
+            return res.status(500).json({ error: "OpenAI API key not configured" });
+        }
+
+        const systemPrompt = `
+You are a social video "style translator" for a creator who runs:
+
+- Kitchen Rescue: temporary fully equipped kitchen pods for people doing kitchen renovations.
+- Golf content: mindset, tips and relatable midlife golf content.
+
+Your job:
+- Analyse the described video style (NOT the topic).
+- Rebuild it in the requested niche and platform, keeping the same *feel* and *format*.
+
+You MUST reply with **valid JSON only**, no extra commentary, with this shape:
+
+{
+  "hook": "string – the main hook line for the post",
+  "caption": "string – full caption with line breaks and CTA",
+  "hashtags": ["#tag1", "#tag2", "..."],
+  "storyboardShots": [
+    {
+      "visual": "what to film for this shot, in simple terms",
+      "textOnScreen": "exact text that appears on screen for this shot"
+    }
+  ]
+}
+`.trim();
+
+        const userPrompt = `
+Original video style description:
+- IG URL (if any): ${igUrl || "none"}
+- Format: ${format || "not specified"}
+- Platform: ${platform || "Instagram Reel"}
+- Niche for new version: ${niche || "Kitchen Rescue"}
+
+Video description:
+${videoDescription}
+
+Please:
+1. Infer the format, pacing and psychological trick (e.g. long text for replays).
+2. Create a new version for the niche: ${niche}.
+3. Include:
+   - A strong hook that fits ${niche}.
+   - A caption that fits ${platform} with a clear CTA.
+   - 6–10 relevant hashtags as an array.
+   - A storyboard of 3–6 shots with "visual" and "textOnScreen" for each.
+
+Remember: respond ONLY with JSON in the schema specified.
+`.trim();
+
+        // Use Node 18+ global fetch to call OpenAI directly
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini", // or any model you prefer
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt },
+                ],
+                temperature: 0.8,
+            }),
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("OpenAI API error:", errText);
+            return res.status(500).json({ error: "OpenAI API error", details: errText });
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+
+        let parsed;
+        try {
+            parsed = JSON.parse(content);
+        } catch (err) {
+            console.error("Failed to parse JSON from OpenAI:", content);
+            return res.status(500).json({
+                error: "Failed to parse JSON from OpenAI",
+                raw: content,
+            });
+        }
+
+        // Normalise fields so frontend doesn't explode if something is missing
+        const result = {
+            hook: parsed.hook || "",
+            caption: parsed.caption || "",
+            hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
+            storyboardShots: Array.isArray(parsed.storyboardShots)
+                ? parsed.storyboardShots
+                : [],
+        };
+
+        res.json(result);
+    } catch (err) {
+        console.error("Error in /api/generate-content:", err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+});
+
 module.exports = app;
