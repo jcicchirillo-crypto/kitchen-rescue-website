@@ -159,33 +159,68 @@ export default function ContentCreator() {
         }
       }
       
-      // Generate visual search keywords from hook and description
+      // Generate visual search keywords from multiple sources for better relevance
       const searchKeywords = [];
-      if (parsedData.hook) {
-        // Extract key words from hook
+      
+      // 1. Extract from description (most important - user's actual topic)
+      if (videoDescription) {
+        const descText = videoDescription.toLowerCase()
+          .replace(/[^\w\s]/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length > 3 && !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'they', 'have', 'been', 'will', 'when', 'what', 'where', 'about'].includes(w));
+        // Take most relevant words (longer words first, then unique)
+        const uniqueDescWords = [...new Set(descText)]
+          .sort((a, b) => b.length - a.length)
+          .slice(0, 4);
+        searchKeywords.push(...uniqueDescWords);
+      }
+      
+      // 2. Extract from caption (contains context about the topic)
+      if (parsedData.caption) {
+        const captionText = parsedData.caption.toLowerCase()
+          .replace(/[^\w\s]/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length > 4 && !['kitchen', 'rescue', 'renovation', 'renovating'].includes(w));
+        const uniqueCaptionWords = [...new Set(captionText)]
+          .sort((a, b) => b.length - a.length)
+          .slice(0, 2);
+        searchKeywords.push(...uniqueCaptionWords);
+      }
+      
+      // 3. Extract from storyboard visuals (describes what to show)
+      if (parsedData.storyboardShots && parsedData.storyboardShots.length > 0) {
+        parsedData.storyboardShots.forEach(shot => {
+          if (shot.visual) {
+            const visualWords = shot.visual.toLowerCase()
+              .replace(/[^\w\s]/g, ' ')
+              .split(/\s+/)
+              .filter(w => w.length > 4);
+            searchKeywords.push(...visualWords.slice(0, 1));
+          }
+        });
+      }
+      
+      // 4. Fallback to hook if we don't have enough keywords
+      if (searchKeywords.length < 2 && parsedData.hook) {
         const hookWords = parsedData.hook.toLowerCase()
           .replace(/[^\w\s]/g, ' ')
           .split(/\s+/)
-          .filter(w => w.length > 4)
-          .slice(0, 3);
-        searchKeywords.push(...hookWords);
+          .filter(w => w.length > 4);
+        searchKeywords.push(...hookWords.slice(0, 2));
       }
-      if (videoDescription) {
-        const descWords = videoDescription.toLowerCase()
-          .replace(/[^\w\s]/g, ' ')
-          .split(/\s+/)
-          .filter(w => w.length > 4)
-          .slice(0, 2);
-        searchKeywords.push(...descWords);
-      }
+      
+      // Remove duplicates and limit to 5-6 most relevant keywords
+      const uniqueKeywords = [...new Set(searchKeywords)].slice(0, 6);
+      
+      console.log("Generated search keywords:", uniqueKeywords);
       
       // Search for visuals if keywords available
       let fetchedVisuals = { photos: [], videos: [] };
       let fetchedSelectedImage = null;
       
-      if (searchKeywords.length > 0) {
-        const photosResult = await searchVisuals(searchKeywords, "photos");
-        const videosResult = await searchVisuals(searchKeywords, "videos");
+      if (uniqueKeywords.length > 0) {
+        const photosResult = await searchVisuals(uniqueKeywords, "photos");
+        const videosResult = await searchVisuals(uniqueKeywords, "videos");
         
         if (photosResult) {
           fetchedVisuals.photos = photosResult.photos || [];
@@ -207,7 +242,7 @@ export default function ContentCreator() {
         onScreenText: parsedData.onScreenText,
         hashtags: parsedData.hashtags || [],
         storyboardShots: parsedData.storyboardShots || [],
-        visualSearchKeywords: searchKeywords,
+        visualSearchKeywords: uniqueKeywords,
         visuals: fetchedVisuals,
         selectedImage: fetchedSelectedImage,
         metadata: {
@@ -247,20 +282,23 @@ export default function ContentCreator() {
     
     setLoadingVisuals(true);
     try {
-      // Use multiple keywords or randomly select for variation
+      // Build a more comprehensive query using multiple relevant keywords
       let query;
       if (Array.isArray(keywords) && keywords.length > 0) {
-        // Use a random keyword or combine first 2 for more variety
-        const randomIndex = Math.floor(Math.random() * keywords.length);
-        query = keywords[randomIndex];
-        // Sometimes combine with another keyword for more specific results
-        if (keywords.length > 1 && Math.random() > 0.5) {
-          const secondIndex = (randomIndex + 1) % keywords.length;
-          query = `${query} ${keywords[secondIndex]}`;
+        // Combine the most relevant keywords (first 2-3) for better results
+        const relevantKeywords = keywords.slice(0, 3).filter(k => k && k.trim());
+        query = relevantKeywords.join(" ");
+        
+        // If we have kitchen-related content, add context
+        if (keywords.some(k => k.includes('kitchen') || k.includes('renovation') || k.includes('takeaway') || k.includes('laundry'))) {
+          // Keep the query focused on the actual topic, not generic "kitchen"
+          query = relevantKeywords.filter(k => !k.includes('kitchen') && !k.includes('rescue')).join(" ") || relevantKeywords.join(" ");
         }
       } else {
         query = keywords;
       }
+      
+      console.log(`Searching ${type} with query: "${query}"`);
       
       const response = await fetch("/api/search-visuals", {
         method: "POST",
