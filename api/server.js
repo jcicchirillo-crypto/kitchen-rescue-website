@@ -1334,7 +1334,24 @@ You MUST reply with **valid JSON only**, no extra commentary, with this shape:
 
         // Add timestamp and random seed for variation
         const timestamp = Date.now();
-        const randomSeed = Math.floor(Math.random() * 1000);
+        const randomSeed = Math.floor(Math.random() * 10000);
+        
+        // Add creative variation angles
+        const variationAngles = [
+            "Focus on the emotional benefit and transformation",
+            "Emphasize the problem-solution angle",
+            "Use a storytelling approach with a relatable scenario",
+            "Highlight the convenience and time-saving aspect",
+            "Focus on cost savings and value proposition",
+            "Use a before-and-after comparison style",
+            "Emphasize the stress-free experience",
+            "Highlight the professional quality and reliability"
+        ];
+        const selectedAngle = variationAngles[Math.floor(Math.random() * variationAngles.length)];
+        
+        // Add tone variations
+        const tones = ["conversational", "enthusiastic", "helpful", "reassuring", "inspiring", "practical"];
+        const selectedTone = tones[Math.floor(Math.random() * tones.length)];
         
         const userPrompt = `
 Original video style description:
@@ -1343,23 +1360,29 @@ Original video style description:
 - Platform: ${platform || "Instagram Reel"}
 - Niche for new version: ${niche || "Kitchen Rescue"}
 - Request ID: ${timestamp}-${randomSeed}
+- Creative Angle: ${selectedAngle}
+- Tone: ${selectedTone}
 
 Video description:
 ${videoDescription}
 
-IMPORTANT: Generate a UNIQUE and DIFFERENT version each time. Do not repeat previous hooks or captions. Be creative and vary your approach.
+CRITICAL: This is request #${randomSeed}. Generate a COMPLETELY UNIQUE version. Use a DIFFERENT angle, DIFFERENT hook structure, and DIFFERENT approach than any previous generation. Vary the:
+- Hook opening (question vs statement vs story)
+- Caption structure and flow
+- Hashtag selection
+- Visual approach
 
 Please:
 1. Infer the format, pacing and psychological trick (e.g. long text for replays).
-2. Create a NEW and UNIQUE version for the niche: ${niche}. Make it different from any previous generations.
+2. Create a NEW and UNIQUE version for the niche: ${niche} using the "${selectedAngle}" angle with a "${selectedTone}" tone.
 3. Include:
-   - A strong, unique hook that fits ${niche} (avoid repeating previous hooks).
-   - A fresh caption that fits ${platform} with a clear CTA.
-   - 6–10 relevant hashtags as an array.
+   - A strong, unique hook that fits ${niche} (use a DIFFERENT hook style than previous requests - vary between questions, statements, numbers, stories).
+   - A fresh caption that fits ${platform} with a clear CTA (vary the structure and flow).
+   - 6–10 relevant hashtags as an array (select DIFFERENT hashtags than previous requests).
    - A storyboard of 3–6 shots with "visual" and "textOnScreen" for each.
-   - 3–5 visual search keywords as an array in "visualSearchKeywords" for finding stock photos/videos.
+   - 3–5 visual search keywords as an array in "visualSearchKeywords" (use DIFFERENT keywords than previous requests).
 
-Remember: respond ONLY with JSON in the schema specified. Be creative and generate something NEW.
+Remember: respond ONLY with JSON in the schema specified. Be creative and generate something COMPLETELY NEW and DIFFERENT.
 `.trim();
 
         // Use Node 18+ global fetch to call OpenAI directly
@@ -1375,7 +1398,8 @@ Remember: respond ONLY with JSON in the schema specified. Be creative and genera
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt },
                 ],
-                temperature: 0.9, // Increased for more variation
+                temperature: 1.0, // Maximum variation (0-2 scale, 1.0 = most creative)
+                top_p: 0.95, // Nucleus sampling for more diversity
             }),
         });
 
