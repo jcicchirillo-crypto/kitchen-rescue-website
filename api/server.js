@@ -1495,6 +1495,11 @@ app.post("/api/content-idea", authenticateAdmin, async (req, res) => {
     try {
         const { hook, description } = req.body;
 
+        // Debug logging
+        console.log("BODY:", req.body);
+        console.log("Hook received:", hook);
+        console.log("Description received:", description);
+
         if (!description || !description.trim()) {
             return res.status(400).json({ error: "description is required" });
         }
@@ -1503,71 +1508,48 @@ app.post("/api/content-idea", authenticateAdmin, async (req, res) => {
             return res.status(500).json({ error: "OpenAI API key not configured" });
         }
 
-        const hasHook = hook && hook.trim().length > 0;
-        let prompt;
+        const originalHook = hook?.trim() || "";
+        const hasHook = originalHook.length > 0;
 
-        if (hasHook) {
-            // CASE 1: USER PROVIDED A HOOK - Use it exactly
-            prompt = `
+        // Single unified prompt
+        const prompt = `
 You are helping me write Instagram content ideas for my business "Kitchen Rescue" (temporary fully equipped kitchen pods for people doing kitchen renovations).
 
-Use the exact hook below as the FIRST line of the response. 
+The user may or may not provide a hook.
 
-⚠️ Do NOT change, rewrite, add to, or remove any characters from the hook.
+HOOK (may be empty):
 
-⚠️ Repeat it EXACTLY as it appears between the <<<HOOK>>> markers.
+${originalHook}
 
-<<<HOOK>>>
+DESCRIPTION / IDEA:
 
-${hook.trim()}
+${description || "Kitchen renovation, hidden costs, stress, takeaways, laundry."}
 
-<<<HOOK>>>
+Follow these rules VERY STRICTLY:
 
-Context/idea for this content (if needed):
+1. If HOOK is NOT empty:
 
-${description || "(no extra context)"}
+   - Use it EXACTLY as the hook.
 
-After that first line, add:
+   - Do NOT rewrite, change, or improve it.
 
-1) A 1–2 sentence explanation of the idea.
+   - Start the answer with:
 
-2) A short reel / video concept (5–10 seconds).
+     [HOOK]
 
-3) 3–5 on-screen text ideas.
+     <the exact hook>
 
-4) A caption (50–120 words).
+2. If HOOK IS empty:
 
-Start your answer like this:
+   - Create a new, strong scroll-stopping hook from the DESCRIPTION.
 
-[HOOK]
+   - Start the answer with:
 
-<the exact hook here>
+     [HOOK]
 
-Then each section below on new lines with clear headings.
+     "<your new hook>"
 
-`;
-        } else {
-            // CASE 2: NO HOOK GIVEN → CREATE ONE FROM DESCRIPTION
-            prompt = `
-You are helping me write Instagram content ideas for my business "Kitchen Rescue" (temporary fully equipped kitchen pods for people doing kitchen renovations).
-
-The user did NOT provide a hook. 
-
-Your job is to:
-
-- First, create a strong scroll-stopping hook based on the description below.
-
-- Then build the rest of the content around that hook.
-
-Description of the idea / topic:
-
-${description || "Kitchen renovation stress, hidden costs, and why a temporary kitchen pod helps."}
-
-Your answer MUST follow this structure:
-
-[HOOK]
-
-<one punchy hook line, in quotes>
+After [HOOK], always include:
 
 [EXPLANATION]
 
@@ -1583,10 +1565,9 @@ A short reel / video concept (5–10 seconds).
 
 [CAPTION]
 
-A 50–120 word caption, friendly and clear, aimed at homeowners or builders.
+A 50–120 word caption, friendly and clear, aimed at Kitchen Rescue's audience (homeowners or builders).
 
 `;
-        }
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -1603,7 +1584,21 @@ A 50–120 word caption, friendly and clear, aimed at homeowners or builders.
             temperature: 0.7
         });
 
-        const output = completion.choices[0].message.content;
+        let output = completion.choices[0].message.content;
+
+        // Safety net: If hook was provided, force it into the output
+        if (hasHook) {
+            const lines = output.split("\n");
+            // Find the [HOOK] line
+            const hookIndex = lines.findIndex(l => l.trim().startsWith("[HOOK]"));
+            if (hookIndex !== -1 && lines[hookIndex + 1]) {
+                // Replace the line after [HOOK] with the original hook
+                lines[hookIndex + 1] = originalHook;
+                output = lines.join("\n");
+                console.log("Safety net applied: Hook forced to:", originalHook);
+            }
+        }
+
         res.json({ content: output });
 
     } catch (err) {

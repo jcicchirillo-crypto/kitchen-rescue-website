@@ -54,19 +54,20 @@ export default function ContentCreator() {
     setSelectedImage(null);
 
     try {
-      const response = await fetch("/api/generate-content", {
+      const requestBody = {
+        description: videoDescription,
+        hook: hook.trim() || "",
+      };
+      
+      console.log("Sending to API:", requestBody);
+      
+      const response = await fetch("/api/content-idea", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         },
-        body: JSON.stringify({
-          igUrl,
-          videoDescription,
-          format,
-          niche,
-          platform,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
