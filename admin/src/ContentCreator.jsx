@@ -81,14 +81,26 @@ export default function ContentCreator() {
       if (responseData.content) {
         // New format: parse sections from plain text
         const content = responseData.content;
-        const hookMatch = content.match(/\[HOOK\]\s*(.+?)(?=\[|$)/s);
-        const explanationMatch = content.match(/\[EXPLANATION\]\s*(.+?)(?=\[|$)/s);
-        const reelMatch = content.match(/\[REEL IDEA\]\s*(.+?)(?=\[|$)/s);
-        const onScreenMatch = content.match(/\[ON-SCREEN TEXT\]\s*(.+?)(?=\[|$)/s);
-        const captionMatch = content.match(/\[CAPTION\]\s*(.+?)(?=\[|$)/s);
+        
+        // More robust parsing - handle quotes and whitespace
+        const hookMatch = content.match(/\[HOOK\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const explanationMatch = content.match(/\[EXPLANATION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const reelMatch = content.match(/\[REEL IDEA\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const onScreenMatch = content.match(/\[ON-SCREEN TEXT\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const captionMatch = content.match(/\[CAPTION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        
+        // Clean up hook - remove quotes if present
+        let extractedHook = hookMatch ? hookMatch[1].trim() : "";
+        if (extractedHook.startsWith('"') && extractedHook.endsWith('"')) {
+          extractedHook = extractedHook.slice(1, -1);
+        }
+        // Also remove single quotes
+        if (extractedHook.startsWith("'") && extractedHook.endsWith("'")) {
+          extractedHook = extractedHook.slice(1, -1);
+        }
         
         parsedData = {
-          hook: hookMatch ? hookMatch[1].trim() : "",
+          hook: extractedHook || "", // Will use provided hook as fallback below
           explanation: explanationMatch ? explanationMatch[1].trim() : "",
           reelIdea: reelMatch ? reelMatch[1].trim() : "",
           onScreenText: onScreenMatch ? onScreenMatch[1].trim() : "",
@@ -100,6 +112,12 @@ export default function ContentCreator() {
       } else {
         // Old format: already structured
         parsedData = responseData;
+      }
+      
+      // CRITICAL: If user provided a hook, always use it (even if API returned something different)
+      if (hook && hook.trim()) {
+        console.log("Using provided hook:", hook.trim());
+        parsedData.hook = hook.trim();
       }
       
       setResult(parsedData);
@@ -1254,9 +1272,19 @@ export default function ContentCreator() {
                           </div>
 
                           {/* Metadata */}
-                          <div className="pt-2 border-t">
-                            <p className="text-xs text-gray-500 mb-1">Original Description:</p>
-                            <p className="text-xs text-gray-600 italic">{idea.metadata.videoDescription}</p>
+                          <div className="pt-2 border-t space-y-2">
+                            {idea.metadata.videoDescription && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Original Description:</p>
+                                <p className="text-xs text-gray-600 italic">{idea.metadata.videoDescription}</p>
+                              </div>
+                            )}
+                            {idea.metadata.hook && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Custom Hook Provided:</p>
+                                <p className="text-xs text-gray-600 italic">{idea.metadata.hook}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
