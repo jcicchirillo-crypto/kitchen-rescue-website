@@ -1324,9 +1324,11 @@ You MUST reply with **valid JSON only**, no extra commentary, with this shape:
   "storyboardShots": [
     {
       "visual": "what to film for this shot, in simple terms",
-      "textOnScreen": "exact text that appears on screen for this shot"
+      "textOnScreen": "exact text that appears on screen for this shot",
+      "searchKeywords": "keywords to search for stock photos/videos for this shot"
     }
-  ]
+  ],
+  "visualSearchKeywords": ["keyword1", "keyword2", "keyword3"]
 }
 `.trim();
 
@@ -1397,11 +1399,75 @@ Remember: respond ONLY with JSON in the schema specified.
             storyboardShots: Array.isArray(parsed.storyboardShots)
                 ? parsed.storyboardShots
                 : [],
+            visualSearchKeywords: Array.isArray(parsed.visualSearchKeywords) 
+                ? parsed.visualSearchKeywords 
+                : [],
         };
 
         res.json(result);
     } catch (err) {
         console.error("Error in /api/generate-content:", err);
+        res.status(500).json({ error: "Server error", details: err.message });
+    }
+});
+
+// Search for stock photos/videos using Pexels
+app.post("/api/search-visuals", authenticateAdmin, async (req, res) => {
+    try {
+        const { query, type = "photos", perPage = 6 } = req.body;
+        
+        if (!query) {
+            return res.status(400).json({ error: "Search query is required" });
+        }
+
+        const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+        if (!PEXELS_API_KEY) {
+            return res.status(500).json({ error: "Pexels API key not configured" });
+        }
+
+        const endpoint = type === "videos" 
+            ? `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=${perPage}`
+            : `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}`;
+
+        const response = await fetch(endpoint, {
+            headers: {
+                Authorization: PEXELS_API_KEY,
+            },
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("Pexels API error:", errText);
+            return res.status(500).json({ error: "Pexels API error", details: errText });
+        }
+
+        const data = await response.json();
+        
+        // Format response consistently
+        if (type === "videos") {
+            const videos = data.videos.map(video => ({
+                id: video.id,
+                url: video.url,
+                thumbnail: video.image,
+                duration: video.duration,
+                photographer: video.user.name,
+                photographerUrl: video.user.url,
+                link: video.url,
+            }));
+            res.json({ videos });
+        } else {
+            const photos = data.photos.map(photo => ({
+                id: photo.id,
+                url: photo.src.large,
+                thumbnail: photo.src.medium,
+                photographer: photo.photographer,
+                photographerUrl: photo.photographer_url,
+                link: photo.url,
+            }));
+            res.json({ photos });
+        }
+    } catch (err) {
+        console.error("Error in /api/search-visuals:", err);
         res.status(500).json({ error: "Server error", details: err.message });
     }
 });

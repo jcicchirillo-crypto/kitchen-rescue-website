@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock, Image, Play, Smartphone } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -17,6 +17,9 @@ export default function ContentCreator() {
   const [copied, setCopied] = useState({});
   const [savedIdeas, setSavedIdeas] = useState([]);
   const [expandedIdeas, setExpandedIdeas] = useState({});
+  const [visuals, setVisuals] = useState({ photos: [], videos: [] });
+  const [loadingVisuals, setLoadingVisuals] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // Load saved ideas from localStorage on mount
   useEffect(() => {
@@ -46,6 +49,8 @@ export default function ContentCreator() {
     setLoading(true);
     setError("");
     setResult(null);
+    setVisuals({ photos: [], videos: [] });
+    setSelectedImage(null);
 
     try {
       const response = await fetch("/api/generate-content", {
@@ -71,6 +76,12 @@ export default function ContentCreator() {
       const data = await response.json();
       setResult(data);
       
+      // Search for visuals if keywords provided
+      if (data.visualSearchKeywords && data.visualSearchKeywords.length > 0) {
+        await searchVisuals(data.visualSearchKeywords, "photos");
+        await searchVisuals(data.visualSearchKeywords, "videos");
+      }
+      
       // Save to list
       const newIdea = {
         id: Date.now().toString(),
@@ -79,6 +90,7 @@ export default function ContentCreator() {
         caption: data.caption,
         hashtags: data.hashtags || [],
         storyboardShots: data.storyboardShots || [],
+        visualSearchKeywords: data.visualSearchKeywords || [],
         metadata: {
           niche,
           platform,
@@ -107,6 +119,48 @@ export default function ContentCreator() {
     setTimeout(() => {
       setCopied({ ...copied, [key]: false });
     }, 2000);
+  };
+
+  const searchVisuals = async (keywords, type = "photos") => {
+    if (!keywords || keywords.length === 0) return;
+    
+    setLoadingVisuals(true);
+    try {
+      // Use the first keyword or combine them
+      const query = Array.isArray(keywords) ? keywords[0] : keywords;
+      
+      const response = await fetch("/api/search-visuals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({
+          query,
+          type,
+          perPage: 6,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to search visuals");
+      }
+
+      const data = await response.json();
+      if (type === "videos") {
+        setVisuals(prev => ({ ...prev, videos: data.videos || [] }));
+      } else {
+        setVisuals(prev => ({ ...prev, photos: data.photos || [] }));
+        // Auto-select first image for mobile preview
+        if (data.photos && data.photos.length > 0) {
+          setSelectedImage(data.photos[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Error searching visuals:", err);
+    } finally {
+      setLoadingVisuals(false);
+    }
   };
 
   const toggleExpand = (id) => {
@@ -359,6 +413,172 @@ export default function ContentCreator() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mobile Preview */}
+            {result && selectedImage && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Smartphone className="h-4 w-4" />
+                    Mobile Preview
+                  </CardTitle>
+                  <CardDescription>
+                    How your post will look on mobile
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-center">
+                    <div className="relative" style={{ width: "375px", maxWidth: "100%" }}>
+                      {/* iPhone frame */}
+                      <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
+                        <div className="bg-white rounded-[2rem] overflow-hidden">
+                          {/* Status bar */}
+                          <div className="bg-white h-6 flex items-center justify-between px-4 text-xs text-black">
+                            <span>9:41</span>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-2 border border-black rounded-sm"></div>
+                              <div className="w-6 h-3 border-2 border-black rounded-sm"></div>
+                            </div>
+                          </div>
+                          
+                          {/* Image */}
+                          <div className="relative aspect-[4/5] bg-gray-100">
+                            <img
+                              src={selectedImage.url}
+                              alt="Post preview"
+                              className="w-full h-full object-cover"
+                            />
+                            {/* Hook overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-6">
+                              <p className="text-white text-xl font-bold leading-tight drop-shadow-lg">
+                                {result.hook}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Caption area */}
+                          <div className="p-4 bg-white">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-8 h-8 rounded-full bg-red-600"></div>
+                              <span className="font-semibold text-sm">kitchenrescue</span>
+                            </div>
+                            <p className="text-sm text-gray-800 whitespace-pre-line line-clamp-3">
+                              {result.caption}
+                            </p>
+                            {result.hashtags && result.hashtags.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {result.hashtags.slice(0, 3).map((tag, idx) => (
+                                  <span key={idx} className="text-xs text-blue-600">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Visual Suggestions */}
+            {(visuals.photos.length > 0 || visuals.videos.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Image className="h-4 w-4" />
+                    Visual Suggestions
+                  </CardTitle>
+                  <CardDescription>
+                    Click an image to preview it in mobile view
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingVisuals && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  )}
+                  
+                  {visuals.photos.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Image className="h-4 w-4" />
+                        Stock Photos
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {visuals.photos.map((photo) => (
+                          <button
+                            key={photo.id}
+                            onClick={() => setSelectedImage(photo)}
+                            className={`group relative block rounded-lg overflow-hidden border-2 transition ${
+                              selectedImage?.id === photo.id
+                                ? "border-red-600 ring-2 ring-red-200"
+                                : "border-gray-200 hover:border-red-400"
+                            }`}
+                          >
+                            <img
+                              src={photo.thumbnail}
+                              alt={`Photo by ${photo.photographer}`}
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition"></div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 px-2 opacity-0 group-hover:opacity-100 transition">
+                              {photo.photographer}
+                            </div>
+                            <a
+                              href={photo.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute top-1 right-1 bg-white/90 hover:bg-white rounded px-1.5 py-0.5 text-xs opacity-0 group-hover:opacity-100 transition"
+                            >
+                              View
+                            </a>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {visuals.videos.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Play className="h-4 w-4" />
+                        Stock Videos
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {visuals.videos.map((video) => (
+                          <a
+                            key={video.id}
+                            href={video.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group relative block rounded-lg overflow-hidden border border-gray-200 hover:border-red-600 transition"
+                          >
+                            <img
+                              src={video.thumbnail}
+                              alt={`Video by ${video.photographer}`}
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center">
+                                <Play className="h-6 w-6 text-white ml-1" />
+                              </div>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 px-2 opacity-0 group-hover:opacity-100 transition">
+                              {video.photographer} • {video.duration}s
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
