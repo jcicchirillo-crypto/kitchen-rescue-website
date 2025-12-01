@@ -1332,26 +1332,34 @@ You MUST reply with **valid JSON only**, no extra commentary, with this shape:
 }
 `.trim();
 
+        // Add timestamp and random seed for variation
+        const timestamp = Date.now();
+        const randomSeed = Math.floor(Math.random() * 1000);
+        
         const userPrompt = `
 Original video style description:
 - IG URL (if any): ${igUrl || "none"}
 - Format: ${format || "not specified"}
 - Platform: ${platform || "Instagram Reel"}
 - Niche for new version: ${niche || "Kitchen Rescue"}
+- Request ID: ${timestamp}-${randomSeed}
 
 Video description:
 ${videoDescription}
 
+IMPORTANT: Generate a UNIQUE and DIFFERENT version each time. Do not repeat previous hooks or captions. Be creative and vary your approach.
+
 Please:
 1. Infer the format, pacing and psychological trick (e.g. long text for replays).
-2. Create a new version for the niche: ${niche}.
+2. Create a NEW and UNIQUE version for the niche: ${niche}. Make it different from any previous generations.
 3. Include:
-   - A strong hook that fits ${niche}.
-   - A caption that fits ${platform} with a clear CTA.
+   - A strong, unique hook that fits ${niche} (avoid repeating previous hooks).
+   - A fresh caption that fits ${platform} with a clear CTA.
    - 6–10 relevant hashtags as an array.
    - A storyboard of 3–6 shots with "visual" and "textOnScreen" for each.
+   - 3–5 visual search keywords as an array in "visualSearchKeywords" for finding stock photos/videos.
 
-Remember: respond ONLY with JSON in the schema specified.
+Remember: respond ONLY with JSON in the schema specified. Be creative and generate something NEW.
 `.trim();
 
         // Use Node 18+ global fetch to call OpenAI directly
@@ -1367,7 +1375,7 @@ Remember: respond ONLY with JSON in the schema specified.
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt },
                 ],
-                temperature: 0.8,
+                temperature: 0.9, // Increased for more variation
             }),
         });
 

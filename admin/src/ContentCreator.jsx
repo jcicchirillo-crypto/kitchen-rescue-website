@@ -76,13 +76,24 @@ export default function ContentCreator() {
       const data = await response.json();
       setResult(data);
       
-      // Search for visuals if keywords provided
+      // Search for visuals if keywords provided and capture the results
+      let fetchedVisuals = { photos: [], videos: [] };
+      let fetchedSelectedImage = null;
+      
       if (data.visualSearchKeywords && data.visualSearchKeywords.length > 0) {
-        await searchVisuals(data.visualSearchKeywords, "photos");
-        await searchVisuals(data.visualSearchKeywords, "videos");
+        const photosResult = await searchVisuals(data.visualSearchKeywords, "photos");
+        const videosResult = await searchVisuals(data.visualSearchKeywords, "videos");
+        
+        if (photosResult) {
+          fetchedVisuals.photos = photosResult.photos || [];
+          fetchedSelectedImage = photosResult.selectedImage || null;
+        }
+        if (videosResult) {
+          fetchedVisuals.videos = videosResult.videos || [];
+        }
       }
       
-      // Save to list
+      // Save to list with the fetched visuals
       const newIdea = {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
@@ -91,8 +102,8 @@ export default function ContentCreator() {
         hashtags: data.hashtags || [],
         storyboardShots: data.storyboardShots || [],
         visualSearchKeywords: data.visualSearchKeywords || [],
-        visuals: visuals,
-        selectedImage: selectedImage,
+        visuals: fetchedVisuals,
+        selectedImage: fetchedSelectedImage,
         metadata: {
           niche,
           platform,
@@ -124,12 +135,24 @@ export default function ContentCreator() {
   };
 
   const searchVisuals = async (keywords, type = "photos") => {
-    if (!keywords || keywords.length === 0) return;
+    if (!keywords || keywords.length === 0) return null;
     
     setLoadingVisuals(true);
     try {
-      // Use the first keyword or combine them
-      const query = Array.isArray(keywords) ? keywords[0] : keywords;
+      // Use multiple keywords or randomly select for variation
+      let query;
+      if (Array.isArray(keywords) && keywords.length > 0) {
+        // Use a random keyword or combine first 2 for more variety
+        const randomIndex = Math.floor(Math.random() * keywords.length);
+        query = keywords[randomIndex];
+        // Sometimes combine with another keyword for more specific results
+        if (keywords.length > 1 && Math.random() > 0.5) {
+          const secondIndex = (randomIndex + 1) % keywords.length;
+          query = `${query} ${keywords[secondIndex]}`;
+        }
+      } else {
+        query = keywords;
+      }
       
       const response = await fetch("/api/search-visuals", {
         method: "POST",
@@ -149,17 +172,23 @@ export default function ContentCreator() {
       }
 
       const data = await response.json();
+      
+      // Update state for UI
       if (type === "videos") {
         setVisuals(prev => ({ ...prev, videos: data.videos || [] }));
+        return { videos: data.videos || [] };
       } else {
         setVisuals(prev => ({ ...prev, photos: data.photos || [] }));
         // Auto-select first image for mobile preview
         if (data.photos && data.photos.length > 0) {
           setSelectedImage(data.photos[0]);
+          return { photos: data.photos || [], selectedImage: data.photos[0] };
         }
+        return { photos: data.photos || [] };
       }
     } catch (err) {
       console.error("Error searching visuals:", err);
+      return null;
     } finally {
       setLoadingVisuals(false);
     }
