@@ -83,31 +83,82 @@ export default function ContentCreator() {
         // New format: parse sections from plain text
         const content = responseData.content;
         
-        // More robust parsing - handle quotes and whitespace
-        const hookMatch = content.match(/\[HOOK\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
-        const explanationMatch = content.match(/\[EXPLANATION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
-        const reelMatch = content.match(/\[REEL IDEA\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
-        const onScreenMatch = content.match(/\[ON-SCREEN TEXT\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
-        const captionMatch = content.match(/\[CAPTION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        // Parse new format with "Hook:", "Caption:", "Hashtags:", "Storyboard:" headings
+        const hookMatch = content.match(/(?:^|\n)Hook:\s*\n?\s*(.+?)(?=\n\s*(?:Caption|Hashtags|Storyboard)|$)/is);
+        const captionMatch = content.match(/(?:^|\n)Caption:\s*\n?\s*(.+?)(?=\n\s*(?:Hashtags|Storyboard)|$)/is);
+        const hashtagsMatch = content.match(/(?:^|\n)Hashtags:\s*\n?\s*(.+?)(?=\n\s*(?:Storyboard|$))/is);
+        const storyboardMatch = content.match(/(?:^|\n)Storyboard[^:]*:\s*\n?\s*(.+?)(?=\n\s*$|$)/is);
+        
+        // Also support old format with [HOOK], [CAPTION], etc. for backward compatibility
+        const oldHookMatch = content.match(/\[HOOK\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const oldExplanationMatch = content.match(/\[EXPLANATION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const oldReelMatch = content.match(/\[REEL IDEA\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const oldOnScreenMatch = content.match(/\[ON-SCREEN TEXT\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
+        const oldCaptionMatch = content.match(/\[CAPTION\]\s*\n?\s*(.+?)(?=\n\s*\[|$)/s);
         
         // Clean up hook - remove quotes if present
-        let extractedHook = hookMatch ? hookMatch[1].trim() : "";
+        let extractedHook = "";
+        if (hookMatch) {
+          extractedHook = hookMatch[1].trim();
+        } else if (oldHookMatch) {
+          extractedHook = oldHookMatch[1].trim();
+        }
+        
         if (extractedHook.startsWith('"') && extractedHook.endsWith('"')) {
           extractedHook = extractedHook.slice(1, -1);
         }
-        // Also remove single quotes
         if (extractedHook.startsWith("'") && extractedHook.endsWith("'")) {
           extractedHook = extractedHook.slice(1, -1);
         }
         
+        // Parse hashtags
+        let extractedHashtags = [];
+        if (hashtagsMatch) {
+          const hashtagsText = hashtagsMatch[1].trim();
+          // Extract hashtags - could be on separate lines or in a list
+          const hashtagRegex = /#\w+/g;
+          extractedHashtags = hashtagsText.match(hashtagRegex) || [];
+        }
+        
+        // Parse storyboard
+        let extractedStoryboard = [];
+        if (storyboardMatch) {
+          const storyboardText = storyboardMatch[1].trim();
+          // Parse storyboard shots - look for "Visual:" and "Text on Screen:" patterns
+          const shotRegex = /(?:^|\n)\s*(?:Shot\s+\d+[:.]?\s*)?(?:Visual:?\s*(.+?)(?=\s*Text\s+on\s+Screen:|$))(?:\s*Text\s+on\s+Screen:?\s*(.+?))(?=\s*(?:Visual:|Shot|$))/gis;
+          let match;
+          while ((match = shotRegex.exec(storyboardText)) !== null) {
+            extractedStoryboard.push({
+              visual: match[1]?.trim() || "",
+              textOnScreen: match[2]?.trim() || "",
+            });
+          }
+          // Fallback: if no structured shots found, try to split by lines
+          if (extractedStoryboard.length === 0) {
+            const lines = storyboardText.split(/\n/).filter(l => l.trim());
+            lines.forEach((line, idx) => {
+              if (line.toLowerCase().includes('visual')) {
+                const visual = line.replace(/visual:?\s*/i, '').trim();
+                const nextLine = lines[idx + 1];
+                const textOnScreen = nextLine && nextLine.toLowerCase().includes('text') 
+                  ? nextLine.replace(/text\s+on\s+screen:?\s*/i, '').trim()
+                  : '';
+                if (visual) {
+                  extractedStoryboard.push({ visual, textOnScreen });
+                }
+              }
+            });
+          }
+        }
+        
         parsedData = {
           hook: extractedHook || "", // Will use provided hook as fallback below
-          explanation: explanationMatch ? explanationMatch[1].trim() : "",
-          reelIdea: reelMatch ? reelMatch[1].trim() : "",
-          onScreenText: onScreenMatch ? onScreenMatch[1].trim() : "",
-          caption: captionMatch ? captionMatch[1].trim() : "",
-          hashtags: [], // Will be extracted from caption if needed
-          storyboardShots: [],
+          explanation: oldExplanationMatch ? oldExplanationMatch[1].trim() : "",
+          reelIdea: oldReelMatch ? oldReelMatch[1].trim() : "",
+          onScreenText: oldOnScreenMatch ? oldOnScreenMatch[1].trim() : "",
+          caption: (captionMatch || oldCaptionMatch) ? (captionMatch?.[1] || oldCaptionMatch?.[1] || "").trim() : "",
+          hashtags: extractedHashtags.length > 0 ? extractedHashtags : [],
+          storyboardShots: extractedStoryboard,
           visualSearchKeywords: [],
         };
       } else {
@@ -123,11 +174,21 @@ export default function ContentCreator() {
       
       setResult(parsedData);
       
-      // Extract hashtags from caption if not provided
+      // Extract hashtags from caption if not provided in separate Hashtags section
       if (parsedData.caption && (!parsedData.hashtags || parsedData.hashtags.length === 0)) {
         const hashtagRegex = /#\w+/g;
         const foundHashtags = parsedData.caption.match(hashtagRegex) || [];
         parsedData.hashtags = foundHashtags;
+      }
+      
+      // Ensure #KitchenRescue is always included if hashtags exist
+      if (parsedData.hashtags && parsedData.hashtags.length > 0) {
+        const hasKitchenRescue = parsedData.hashtags.some(tag => 
+          tag.toLowerCase().includes('kitchenrescue') || tag.toLowerCase().includes('kitchen-rescue')
+        );
+        if (!hasKitchenRescue) {
+          parsedData.hashtags.push('#KitchenRescue');
+        }
       }
       
       // Generate visual search keywords from hook and description
@@ -284,6 +345,15 @@ export default function ContentCreator() {
     if (window.confirm("Are you sure you want to delete this idea?")) {
       setSavedIdeas(prev => prev.filter(idea => idea.id !== id));
     }
+  };
+
+  const updateSelectedImageForIdea = (ideaId, photo) => {
+    setSavedIdeas(prev => prev.map(idea => {
+      if (idea.id === ideaId) {
+        return { ...idea, selectedImage: photo };
+      }
+      return idea;
+    }));
   };
 
   const formatDate = (dateString) => {
@@ -1183,25 +1253,40 @@ export default function ContentCreator() {
                               </Label>
                               {idea.visuals.photos && idea.visuals.photos.length > 0 && (
                                 <div className="mb-3">
-                                  <p className="text-xs text-gray-600 mb-2">Stock Photos</p>
+                                  <p className="text-xs text-gray-600 mb-2">Stock Photos (click to select for preview)</p>
                                   <div className="grid grid-cols-3 gap-2">
                                     {idea.visuals.photos.map((photo) => (
-                                      <a
+                                      <div
                                         key={photo.id}
-                                        href={photo.link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="group relative block rounded-lg overflow-hidden border border-gray-200 hover:border-red-400 transition"
+                                        className="group relative"
                                       >
-                                        <img
-                                          src={photo.thumbnail}
-                                          alt={`Photo by ${photo.photographer}`}
-                                          className="w-full h-24 object-cover"
-                                        />
-                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 opacity-0 group-hover:opacity-100 transition">
-                                          {photo.photographer}
-                                        </div>
-                                      </a>
+                                        <button
+                                          onClick={() => updateSelectedImageForIdea(idea.id, photo)}
+                                          className={`w-full rounded-lg overflow-hidden border-2 transition ${
+                                            idea.selectedImage?.id === photo.id
+                                              ? "border-red-600 ring-2 ring-red-200"
+                                              : "border-gray-200 hover:border-red-400"
+                                          }`}
+                                        >
+                                          <img
+                                            src={photo.thumbnail}
+                                            alt={`Photo by ${photo.photographer}`}
+                                            className="w-full h-24 object-cover"
+                                          />
+                                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 opacity-0 group-hover:opacity-100 transition">
+                                            {photo.photographer}
+                                          </div>
+                                        </button>
+                                        <a
+                                          href={photo.link}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="absolute top-1 right-1 bg-white/90 hover:bg-white rounded px-1.5 py-0.5 text-xs opacity-0 group-hover:opacity-100 transition"
+                                        >
+                                          View
+                                        </a>
+                                      </div>
                                     ))}
                                   </div>
                                 </div>

@@ -1511,11 +1511,53 @@ app.post("/api/content-idea", authenticateAdmin, async (req, res) => {
         const originalHook = hook?.trim() || "";
         const hasHook = originalHook.length > 0;
 
-        // Single unified prompt
-        const prompt = `
-You are helping me write Instagram content ideas for my business "Kitchen Rescue" (temporary fully equipped kitchen pods for people doing kitchen renovations).
+        // System message with Kitchen Rescue business context
+        const systemMessage = `You are the Kitchen Rescue Content Assistant.
 
-The user may or may not provide a hook.
+BUSINESS:
+
+- Kitchen Rescue provides fully equipped temporary kitchen pods, delivered to the customer's driveway during a kitchen renovation.
+
+- The pod includes: oven, hob, sink, fridge-freezer, dishwasher, washing machine and storage – so life can continue as normal while the main kitchen is ripped out.
+
+- Main benefits: reduces stress, avoids mess in the house, keeps families cooking proper meals, and saves money vs constant takeaways and laundrettes.
+
+- Audience: (1) Homeowners planning or starting a kitchen renovation in the UK. (2) Kitchen fitters and builders who want happier clients and smoother projects.
+
+POSITIONING:
+
+- "Keep living your life while your kitchen is out of action."
+
+- "The hidden costs of renovation are takeaways, eating out, and laundrette runs – our pod removes most of that."
+
+- Builders can add Kitchen Rescue as an optional line on their quotes and earn a referral fee. It makes them look more professional and client-focused.
+
+VOICE & TONE:
+
+- Friendly, reassuring, practical, down-to-earth.
+
+- Explains things simply, without jargon.
+
+- Focus on real-life frustrations: mess, noise, kids wanting dinner, nowhere to wash clothes, long delays.
+
+- No hypey or spammy vibe. No overpromising.
+
+HOOK RULES:
+
+- If the user PROVIDES a hook, you MUST use it exactly as written – do not rewrite or improve it.
+
+- If the user does NOT provide a hook, you should invent a strong, scroll-stopping hook based on their description.
+
+- Hooks should be short, specific, emotionally resonant, and clearly tied to kitchen renovation and the value of Kitchen Rescue.
+
+OUTPUT:
+
+- Always follow the structure requested in the user message (e.g. Hook, Caption, Storyboard, Hashtags, etc.).
+
+- Stay on-brand for Kitchen Rescue in every answer.`;
+
+        // User prompt with specific request
+        const userPrompt = `You are generating a content idea for Kitchen Rescue.
 
 HOOK (may be empty):
 
@@ -1525,60 +1567,54 @@ DESCRIPTION / IDEA:
 
 ${description || "Kitchen renovation, hidden costs, stress, takeaways, laundry."}
 
-Follow these rules VERY STRICTLY:
+Follow these rules carefully:
 
 1. If HOOK is NOT empty:
 
    - Use it EXACTLY as the hook.
 
-   - Do NOT rewrite, change, or improve it.
+   - Do NOT rewrite, shorten, or "improve" it.
 
-   - Start the answer with:
-
-     [HOOK]
-
-     <the exact hook>
+   - Start the output with the heading "Hook" and then the hook text on its own line.
 
 2. If HOOK IS empty:
 
    - Create a new, strong scroll-stopping hook from the DESCRIPTION.
 
-   - Start the answer with:
+   - Start the output with the heading "Hook" and your new hook.
 
-     [HOOK]
+After that, output in this structure:
 
-     "<your new hook>"
+Caption:
 
-After [HOOK], always include:
+- Write a friendly, clear caption (50–120 words) in the Kitchen Rescue voice.
 
-[EXPLANATION]
+- Make sure it relates directly to the hook and description.
 
-1–2 sentences explaining the idea.
+Hashtags:
 
-[REEL IDEA]
+- 8–12 relevant hashtags. Always include #KitchenRescue.
 
-A short reel / video concept (5–10 seconds).
+Storyboard (optional if requested by the user/UI):
 
-[ON-SCREEN TEXT]
+- 3–5 short shots with:
 
-3–5 short text options.
+  - Visual:
 
-[CAPTION]
+  - Text on Screen:
 
-A 50–120 word caption, friendly and clear, aimed at Kitchen Rescue's audience (homeowners or builders).
-
-`;
+Only mention Kitchen Rescue in ways that match the brand description above.`;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
                 {
                     role: "system",
-                    content: "You are a precise assistant that ALWAYS follows formatting instructions exactly."
+                    content: systemMessage
                 },
                 {
                     role: "user",
-                    content: prompt
+                    content: userPrompt
                 }
             ],
             temperature: 0.7
@@ -1589,13 +1625,24 @@ A 50–120 word caption, friendly and clear, aimed at Kitchen Rescue's audience 
         // Safety net: If hook was provided, force it into the output
         if (hasHook) {
             const lines = output.split("\n");
-            // Find the [HOOK] line
-            const hookIndex = lines.findIndex(l => l.trim().startsWith("[HOOK]"));
+            // Find the "Hook:" line (new format) or "[HOOK]" line (old format)
+            const hookIndex = lines.findIndex(l => {
+                const trimmed = l.trim();
+                return trimmed.startsWith("Hook:") || trimmed.startsWith("[HOOK]");
+            });
             if (hookIndex !== -1 && lines[hookIndex + 1]) {
-                // Replace the line after [HOOK] with the original hook
+                // Replace the line after "Hook:" or "[HOOK]" with the original hook
                 lines[hookIndex + 1] = originalHook;
                 output = lines.join("\n");
                 console.log("Safety net applied: Hook forced to:", originalHook);
+            } else if (hookIndex !== -1) {
+                // If "Hook:" is on the same line, replace everything after "Hook:"
+                const line = lines[hookIndex];
+                if (line.includes("Hook:")) {
+                    lines[hookIndex] = line.replace(/Hook:.*/, `Hook:\n${originalHook}`);
+                    output = lines.join("\n");
+                    console.log("Safety net applied: Hook forced to:", originalHook);
+                }
             }
         }
 
