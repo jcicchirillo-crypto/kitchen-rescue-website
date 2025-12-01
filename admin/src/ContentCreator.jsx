@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock, Image, Play, Smartphone } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock, Image, Play, Smartphone, Plus } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -187,6 +187,42 @@ export default function ContentCreator() {
     });
   };
 
+  const handleNewIdea = () => {
+    // Save current result to list if it exists
+    if (result) {
+      const newIdea = {
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        hook: result.hook,
+        caption: result.caption,
+        hashtags: result.hashtags || [],
+        storyboardShots: result.storyboardShots || [],
+        visualSearchKeywords: result.visualSearchKeywords || [],
+        metadata: {
+          niche,
+          platform,
+          format,
+          videoDescription: videoDescription || "",
+          igUrl: igUrl || null,
+        },
+      };
+      setSavedIdeas(prev => [newIdea, ...prev]);
+    }
+
+    // Clear all form fields
+    setVideoDescription("");
+    setIgUrl("");
+    setFormat("Instagram Reel");
+    setNiche("Kitchen Rescue");
+    setPlatform("Instagram Reel");
+    
+    // Clear result and visuals
+    setResult(null);
+    setVisuals({ photos: [], videos: [] });
+    setSelectedImage(null);
+    setError("");
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-4">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -268,23 +304,36 @@ export default function ContentCreator() {
               </div>
             )}
 
-            <Button
-              onClick={handleGenerate}
-              disabled={loading}
-              className="w-full"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Content
-                </>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleGenerate}
+                disabled={loading}
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generate Content
+                  </>
+                )}
+              </Button>
+              {(result || videoDescription.trim() || igUrl.trim()) && (
+                <Button
+                  onClick={handleNewIdea}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Idea
+                </Button>
               )}
-            </Button>
+            </div>
           </CardContent>
         </Card>
 
