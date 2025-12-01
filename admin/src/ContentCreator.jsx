@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -15,6 +15,27 @@ export default function ContentCreator() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState({});
+  const [savedIdeas, setSavedIdeas] = useState([]);
+  const [expandedIdeas, setExpandedIdeas] = useState({});
+
+  // Load saved ideas from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("contentCreatorIdeas");
+    if (saved) {
+      try {
+        setSavedIdeas(JSON.parse(saved));
+      } catch (err) {
+        console.error("Error loading saved ideas:", err);
+      }
+    }
+  }, []);
+
+  // Save ideas to localStorage whenever they change
+  useEffect(() => {
+    if (savedIdeas.length > 0) {
+      localStorage.setItem("contentCreatorIdeas", JSON.stringify(savedIdeas));
+    }
+  }, [savedIdeas]);
 
   const handleGenerate = async () => {
     if (!videoDescription.trim()) {
@@ -49,6 +70,29 @@ export default function ContentCreator() {
 
       const data = await response.json();
       setResult(data);
+      
+      // Save to list
+      const newIdea = {
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        hook: data.hook,
+        caption: data.caption,
+        hashtags: data.hashtags || [],
+        storyboardShots: data.storyboardShots || [],
+        metadata: {
+          niche,
+          platform,
+          format,
+          videoDescription,
+          igUrl: igUrl || null,
+        },
+      };
+      
+      setSavedIdeas(prev => [newIdea, ...prev]);
+      
+      // Clear form after successful generation
+      setVideoDescription("");
+      setIgUrl("");
     } catch (err) {
       console.error("Error generating content:", err);
       setError(err.message || "Failed to generate content. Please try again.");
@@ -63,6 +107,30 @@ export default function ContentCreator() {
     setTimeout(() => {
       setCopied({ ...copied, [key]: false });
     }, 2000);
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedIdeas(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const deleteIdea = (id) => {
+    if (window.confirm("Are you sure you want to delete this idea?")) {
+      setSavedIdeas(prev => prev.filter(idea => idea.id !== id));
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -295,6 +363,196 @@ export default function ContentCreator() {
               </Card>
             )}
           </div>
+        )}
+
+        {/* Saved Ideas List */}
+        {savedIdeas.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Saved Ideas ({savedIdeas.length})
+              </CardTitle>
+              <CardDescription>
+                Previously generated content ideas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {savedIdeas.map((idea) => {
+                  const isExpanded = expandedIdeas[idea.id];
+                  return (
+                    <div
+                      key={idea.id}
+                      className="border rounded-lg overflow-hidden bg-white"
+                    >
+                      <div
+                        className="p-4 cursor-pointer hover:bg-slate-50 flex items-center justify-between"
+                        onClick={() => toggleExpand(idea.id)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-gray-900 line-clamp-1">
+                              {idea.hook}
+                            </p>
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                              {idea.metadata.niche}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                              {idea.metadata.platform}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(idea.createdAt)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteIdea(idea.id);
+                            }}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="border-t bg-slate-50 p-4 space-y-4">
+                          {/* Hook */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-sm font-medium flex items-center gap-2">
+                                <Video className="h-3 w-3" />
+                                Hook
+                              </Label>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(idea.hook, `hook-${idea.id}`)}
+                              >
+                                {copied[`hook-${idea.id}`] ? (
+                                  <Check className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                            <p className="text-sm font-semibold text-gray-900">{idea.hook}</p>
+                          </div>
+
+                          {/* Caption */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-sm font-medium flex items-center gap-2">
+                                <FileText className="h-3 w-3" />
+                                Caption
+                              </Label>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(idea.caption, `caption-${idea.id}`)}
+                              >
+                                {copied[`caption-${idea.id}`] ? (
+                                  <Check className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                            <p className="text-sm whitespace-pre-line text-gray-700">{idea.caption}</p>
+                          </div>
+
+                          {/* Hashtags */}
+                          {idea.hashtags && idea.hashtags.length > 0 && (
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm font-medium flex items-center gap-2">
+                                  <Hash className="h-3 w-3" />
+                                  Hashtags
+                                </Label>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(idea.hashtags.join(" "), `hashtags-${idea.id}`)}
+                                >
+                                  {copied[`hashtags-${idea.id}`] ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {idea.hashtags.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Storyboard */}
+                          {idea.storyboardShots && idea.storyboardShots.length > 0 && (
+                            <div>
+                              <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                                <Film className="h-3 w-3" />
+                                Storyboard ({idea.storyboardShots.length} shots)
+                              </Label>
+                              <div className="space-y-2">
+                                {idea.storyboardShots.map((shot, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="border rounded p-3 bg-white"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center font-semibold text-xs">
+                                        {idx + 1}
+                                      </div>
+                                      <div className="flex-1 space-y-1">
+                                        <div>
+                                          <p className="text-xs font-medium text-gray-500">Visual:</p>
+                                          <p className="text-sm text-gray-900">{shot.visual}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-xs font-medium text-gray-500">Text on Screen:</p>
+                                          <p className="text-sm text-gray-900 font-semibold">{shot.textOnScreen}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Metadata */}
+                          <div className="pt-2 border-t">
+                            <p className="text-xs text-gray-500 mb-1">Original Description:</p>
+                            <p className="text-xs text-gray-600 italic">{idea.metadata.videoDescription}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
