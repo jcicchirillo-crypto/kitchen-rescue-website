@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock, Image, Play, Smartphone, Plus } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, Video, Hash, FileText, Film, ChevronDown, ChevronUp, Trash2, Clock, Image, Play, Smartphone, Plus, Download, Instagram } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -91,6 +91,8 @@ export default function ContentCreator() {
         hashtags: data.hashtags || [],
         storyboardShots: data.storyboardShots || [],
         visualSearchKeywords: data.visualSearchKeywords || [],
+        visuals: visuals,
+        selectedImage: selectedImage,
         metadata: {
           niche,
           platform,
@@ -187,6 +189,55 @@ export default function ContentCreator() {
     });
   };
 
+  const downloadImage = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename || `kitchen-rescue-post-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error("Error downloading image:", err);
+      alert("Failed to download image. Please try right-clicking and saving the image instead.");
+    }
+  };
+
+  const copyToInstagram = (idea) => {
+    const hook = idea.hook || "";
+    const caption = idea.caption || "";
+    const hashtags = idea.hashtags ? idea.hashtags.join(" ") : "";
+    
+    let formatted = "";
+    if (hook) {
+      formatted += hook + "\n\n";
+    }
+    if (caption) {
+      formatted += caption;
+      if (hashtags) {
+        formatted += "\n\n";
+      }
+    }
+    if (hashtags) {
+      formatted += hashtags;
+    }
+    
+    navigator.clipboard.writeText(formatted);
+    const key = idea.id ? `instagram-${idea.id}` : "instagram";
+    setCopied({ ...copied, [key]: true });
+    setTimeout(() => {
+      setCopied({ ...copied, [key]: false });
+    }, 2000);
+  };
+
+  const openInstagram = () => {
+    window.open("https://www.instagram.com/create", "_blank");
+  };
+
   const handleNewIdea = () => {
     // Save current result to list if it exists
     if (result) {
@@ -198,6 +249,8 @@ export default function ContentCreator() {
         hashtags: result.hashtags || [],
         storyboardShots: result.storyboardShots || [],
         visualSearchKeywords: result.visualSearchKeywords || [],
+        visuals: visuals,
+        selectedImage: selectedImage,
         metadata: {
           niche,
           platform,
@@ -374,19 +427,50 @@ export default function ContentCreator() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-start justify-between gap-4">
-                  <p className="whitespace-pre-line text-gray-700">{result.caption}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(result.caption, "caption")}
-                  >
-                    {copied.caption ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="whitespace-pre-line text-gray-700">{result.caption}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(result.caption, "caption")}
+                    >
+                      {copied.caption ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToInstagram({ hook: result.hook, caption: result.caption, hashtags: result.hashtags })}
+                      className="gap-2"
+                    >
+                      {copied.instagram ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Instagram className="h-4 w-4" />
+                          Copy All for Instagram
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openInstagram}
+                      className="gap-2"
+                    >
+                      <Instagram className="h-4 w-4" />
+                      Open Instagram
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -479,56 +563,98 @@ export default function ContentCreator() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-center">
-                    <div className="relative" style={{ width: "375px", maxWidth: "100%" }}>
-                      {/* iPhone frame */}
-                      <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
-                        <div className="bg-white rounded-[2rem] overflow-hidden">
-                          {/* Status bar */}
-                          <div className="bg-white h-6 flex items-center justify-between px-4 text-xs text-black">
-                            <span>9:41</span>
-                            <div className="flex items-center gap-1">
-                              <div className="w-4 h-2 border border-black rounded-sm"></div>
-                              <div className="w-6 h-3 border-2 border-black rounded-sm"></div>
-                            </div>
-                          </div>
-                          
-                          {/* Image */}
-                          <div className="relative aspect-[4/5] bg-gray-100">
-                            <img
-                              src={selectedImage.url}
-                              alt="Post preview"
-                              className="w-full h-full object-cover"
-                            />
-                            {/* Hook overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-6">
-                              <p className="text-white text-xl font-bold leading-tight drop-shadow-lg">
-                                {result.hook}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Caption area */}
-                          <div className="p-4 bg-white">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 rounded-full bg-red-600"></div>
-                              <span className="font-semibold text-sm">kitchenrescue</span>
-                            </div>
-                            <p className="text-sm text-gray-800 whitespace-pre-line line-clamp-3">
-                              {result.caption}
-                            </p>
-                            {result.hashtags && result.hashtags.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {result.hashtags.slice(0, 3).map((tag, idx) => (
-                                  <span key={idx} className="text-xs text-blue-600">
-                                    {tag}
-                                  </span>
-                                ))}
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <div className="relative" style={{ width: "375px", maxWidth: "100%" }}>
+                        {/* iPhone frame */}
+                        <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
+                          <div className="bg-white rounded-[2rem] overflow-hidden">
+                            {/* Status bar */}
+                            <div className="bg-white h-6 flex items-center justify-between px-4 text-xs text-black">
+                              <span>9:41</span>
+                              <div className="flex items-center gap-1">
+                                <div className="w-4 h-2 border border-black rounded-sm"></div>
+                                <div className="w-6 h-3 border-2 border-black rounded-sm"></div>
                               </div>
-                            )}
+                            </div>
+                            
+                            {/* Image */}
+                            <div className="relative aspect-[4/5] bg-gray-100">
+                              <img
+                                src={selectedImage.url}
+                                alt="Post preview"
+                                className="w-full h-full object-cover"
+                              />
+                              {/* Hook overlay */}
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-6">
+                                <p className="text-white text-xl font-bold leading-tight drop-shadow-lg">
+                                  {result.hook}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Caption area */}
+                            <div className="p-4 bg-white">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-full bg-red-600"></div>
+                                <span className="font-semibold text-sm">kitchenrescue</span>
+                              </div>
+                              <p className="text-sm text-gray-800 whitespace-pre-line line-clamp-3">
+                                {result.caption}
+                              </p>
+                              {result.hashtags && result.hashtags.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {result.hashtags.slice(0, 3).map((tag, idx) => (
+                                    <span key={idx} className="text-xs text-blue-600">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
+                    </div>
+                    
+                    {/* Export buttons */}
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadImage(selectedImage.url, `kitchen-rescue-post-${Date.now()}.jpg`)}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download Image
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToInstagram({ hook: result.hook, caption: result.caption, hashtags: result.hashtags })}
+                        className="gap-2"
+                      >
+                        {copied.instagram ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            Copy to Instagram
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={openInstagram}
+                        className="gap-2"
+                      >
+                        <Instagram className="h-4 w-4" />
+                        Open Instagram
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -808,6 +934,174 @@ export default function ContentCreator() {
                               </div>
                             </div>
                           )}
+
+                          {/* Mobile Preview for Saved Idea */}
+                          {idea.selectedImage && (
+                            <div>
+                              <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                                <Smartphone className="h-3 w-3" />
+                                Mobile Preview
+                              </Label>
+                              <div className="space-y-3">
+                                <div className="flex justify-center">
+                                  <div className="relative" style={{ width: "300px", maxWidth: "100%" }}>
+                                    <div className="bg-black rounded-[2rem] p-1.5 shadow-xl">
+                                      <div className="bg-white rounded-[1.5rem] overflow-hidden">
+                                        <div className="relative aspect-[4/5] bg-gray-100">
+                                          <img
+                                            src={idea.selectedImage.url}
+                                            alt="Post preview"
+                                            className="w-full h-full object-cover"
+                                          />
+                                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4">
+                                            <p className="text-white text-lg font-bold leading-tight drop-shadow-lg">
+                                              {idea.hook}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 justify-center">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadImage(idea.selectedImage.url, `kitchen-rescue-post-${idea.id}.jpg`)}
+                                    className="gap-2 text-xs"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    Download
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => copyToInstagram(idea)}
+                                    className="gap-2 text-xs"
+                                  >
+                                    {copied[`instagram-${idea.id}`] ? (
+                                      <>
+                                        <Check className="h-3 w-3" />
+                                        Copied!
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="h-3 w-3" />
+                                        Copy for IG
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={openInstagram}
+                                    className="gap-2 text-xs"
+                                  >
+                                    <Instagram className="h-3 w-3" />
+                                    Open IG
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Visual Suggestions for Saved Idea */}
+                          {idea.visuals && (idea.visuals.photos?.length > 0 || idea.visuals.videos?.length > 0) && (
+                            <div>
+                              <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                                <Image className="h-3 w-3" />
+                                Visual Suggestions
+                              </Label>
+                              {idea.visuals.photos && idea.visuals.photos.length > 0 && (
+                                <div className="mb-3">
+                                  <p className="text-xs text-gray-600 mb-2">Stock Photos</p>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {idea.visuals.photos.map((photo) => (
+                                      <a
+                                        key={photo.id}
+                                        href={photo.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group relative block rounded-lg overflow-hidden border border-gray-200 hover:border-red-400 transition"
+                                      >
+                                        <img
+                                          src={photo.thumbnail}
+                                          alt={`Photo by ${photo.photographer}`}
+                                          className="w-full h-24 object-cover"
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 opacity-0 group-hover:opacity-100 transition">
+                                          {photo.photographer}
+                                        </div>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {idea.visuals.videos && idea.visuals.videos.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-600 mb-2">Stock Videos</p>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {idea.visuals.videos.map((video) => (
+                                      <a
+                                        key={video.id}
+                                        href={video.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group relative block rounded-lg overflow-hidden border border-gray-200 hover:border-red-400 transition"
+                                      >
+                                        <img
+                                          src={video.thumbnail}
+                                          alt={`Video by ${video.photographer}`}
+                                          className="w-full h-24 object-cover"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
+                                            <Play className="h-4 w-4 text-white ml-0.5" />
+                                          </div>
+                                        </div>
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 opacity-0 group-hover:opacity-100 transition">
+                                          {video.photographer}
+                                        </div>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Export Section */}
+                          <div className="pt-2 border-t">
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToInstagram(idea)}
+                                className="gap-2 text-xs"
+                              >
+                                {copied[`instagram-${idea.id}`] ? (
+                                  <>
+                                    <Check className="h-3 w-3" />
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Instagram className="h-3 w-3" />
+                                    Copy All for Instagram
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={openInstagram}
+                                className="gap-2 text-xs"
+                              >
+                                <Instagram className="h-3 w-3" />
+                                Open Instagram
+                              </Button>
+                            </div>
+                          </div>
 
                           {/* Metadata */}
                           <div className="pt-2 border-t">
