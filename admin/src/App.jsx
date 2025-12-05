@@ -291,6 +291,7 @@ function KitchenRescueAdmin() {
                     <TableCell>
                       {b.source === 'quote' && <Badge className="bg-blue-100 text-blue-700">Quote Request</Badge>}
                       {b.source === 'trade-quote' && <Badge className="bg-purple-100 text-purple-700">Trade Quote</Badge>}
+                      {b.source === 'trade-quote-calculated' && <Badge className="bg-orange-100 text-orange-700">Quote Calculated</Badge>}
                       {!b.source && <Badge className="bg-gray-100 text-gray-700">Direct</Badge>}
                     </TableCell>
                     <TableCell>

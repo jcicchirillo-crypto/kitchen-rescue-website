@@ -1158,14 +1158,44 @@ app.post('/api/quote/calculate', async (req, res) => {
         // Calculate total
         const total = basePrice + deliveryPrice;
         
-        res.json({
+        const quoteResult = {
             basePrice,
             deliveryPrice,
             total,
             distanceMiles: estimatedMiles,
             weeks,
             days
-        });
+        };
+        
+        // Save quote calculation to admin (even if they don't email it)
+        try {
+            const bookingId = `trade-quote-calc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const calculationBooking = {
+                id: bookingId,
+                name: `Quote Request - ${postcode}`,
+                email: `quote-${postcode.replace(/\s+/g, '').toLowerCase()}@temp.local`,
+                postcode: postcode || '',
+                phone: '',
+                source: 'trade-quote-calculated',
+                status: 'Quote Calculated',
+                totalCost: total,
+                dailyCost: 70,
+                deliveryCost: individualDeliveryCost,
+                collectionCost: individualDeliveryCost,
+                days: days,
+                notes: `Quote calculated for ${weeks} week(s).${startDate ? ` Start date: ${startDate}.` : ''}`,
+                timestamp: new Date().toISOString(),
+                createdAt: new Date().toISOString()
+            };
+            
+            await addBooking(calculationBooking);
+            console.log('✅ Quote calculation saved to admin:', postcode, weeks, 'weeks');
+        } catch (saveErr) {
+            console.error('⚠️ Error saving quote calculation to admin:', saveErr);
+            // Don't fail the request if saving fails
+        }
+        
+        res.json(quoteResult);
         
     } catch (error) {
         console.error('Error calculating quote:', error);
@@ -1206,6 +1236,7 @@ app.post('/api/quote/send', async (req, res) => {
 
     // --- Save builder info to admin area
     try {
+      console.log('💾 Saving trade quote to admin...');
       const bookingId = `trade-quote-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       const tradeQuoteBooking = {
         id: bookingId,
@@ -1226,9 +1257,9 @@ app.post('/api/quote/send', async (req, res) => {
       };
       
       await addBooking(tradeQuoteBooking);
-      console.log('Trade quote builder info saved to admin:', builderEmail);
+      console.log('✅ Trade quote builder info saved to admin:', builderEmail);
     } catch (saveErr) {
-      console.error('Error saving trade quote builder info:', saveErr);
+      console.error('❌ Error saving trade quote builder info:', saveErr);
       // Don't fail the request if saving fails
     }
 
