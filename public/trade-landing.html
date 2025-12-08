@@ -312,6 +312,8 @@
       align-items: center;
       gap: 10px;
       font-size: 0.9rem;
+      text-decoration: none;
+      color: inherit;
     }
 
     .whatsapp-pill {
@@ -324,11 +326,9 @@
       border-radius: 999px;
       font-size: 0.85rem;
       font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
     }
 
-    .whatsapp-pill:hover {
+    .whatsapp-cta:hover .whatsapp-pill {
       background: #20ba5a;
     }
 
@@ -585,16 +585,20 @@
           <li>You earn <strong>£50 per booking</strong> with your trade referral code.</li>
         </ul>
 
+        <a href="#trade-pack" class="btn-primary" style="margin-top: 8px;">
+          Get the trade pack & £50 details
+        </a>
+
         <p class="hero-note">
           Designed for kitchen renovations in Herts, Essex, Cambs & North London.
         </p>
 
-        <div class="whatsapp-cta">
-          <a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue,%20I%27d%20like%20to%20enquire%20about%20the%20trade%20pod%20service" class="whatsapp-pill" target="_blank" rel="noopener">
+        <a href="https://wa.me/447342606655" class="whatsapp-cta">
+          <div class="whatsapp-pill">
             💬 WhatsApp us
-          </a>
-          <span>(Prefer a quick chat? We can send you a short voice note to share with customers.)</span>
-        </div>
+          </div>
+          <span>Got a job coming up and not sure if the pod will work? WhatsApp me any questions.</span>
+        </a>
       </div>
 
       <div class="hero-media">
@@ -736,14 +740,14 @@
     <section class="section form-section" id="trade-pack">
       <div>
         <h2>Add Kitchen Rescue to your quotes</h2>
-        <p>Pop your details in and I'll send you:</p>
+        <p>Fill this in (takes 20 seconds) and I'll send you:</p>
         <ul>
           <li>A simple info sheet you can attach to your quotes.</li>
-          <li>Your own <strong>trade referral link & £50 per booking</strong> details.</li>
-          <li>Suggested wording to add to your kitchen proposals.</li>
+          <li>Your own trade referral link & £50 per booking details.</li>
+          <li>Suggested wording to drop straight into your kitchen proposals.</li>
         </ul>
         <p class="hint">
-          No spam, no big sales pitch – just something you can show customers when they ask "what do we do without a kitchen?"
+          No spam, no pressure – it just gives you something professional to show customers when they ask "what do we do without a kitchen?".
         </p>
       </div>
 
