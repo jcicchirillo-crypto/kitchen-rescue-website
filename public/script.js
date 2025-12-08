@@ -101,6 +101,40 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(style);
 });
 
+// Mobile Menu Toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileNav = document.getElementById('mobileNav');
+    const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+    const mobileNavClose = document.getElementById('mobileNavClose');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+
+    if (mobileMenuToggle && mobileNav) {
+        function openMobileMenu() {
+            mobileNav.classList.add('open');
+            mobileNavOverlay.classList.add('open');
+            document.body.classList.add('menu-open');
+        }
+
+        function closeMobileMenu() {
+            mobileNav.classList.remove('open');
+            mobileNavOverlay.classList.remove('open');
+            document.body.classList.remove('menu-open');
+        }
+
+        mobileMenuToggle.addEventListener('click', openMobileMenu);
+        if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
+        if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
+
+        // Close menu when clicking on a link
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                setTimeout(closeMobileMenu, 100);
+            });
+        });
+    }
+});
+
 // Check availability function
 function checkAvailability() {
     const postcodeInput = document.getElementById('postcode');

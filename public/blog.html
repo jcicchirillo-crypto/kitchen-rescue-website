@@ -48,6 +48,7 @@
                     <img src="assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
                     <a href="availability.html" class="mobile-availability">Availability</a>
                 </div>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
                 <nav class="nav">
                     <a href="index.html#features" class="nav-link">Features</a>
                     <a href="index.html#spec" class="nav-link">Spec</a>
@@ -214,6 +215,42 @@
             "url": "https://www.thekitchenrescue.co.uk"
         }
     }
+    </script>
+
+    <script>
+        // Mobile Menu Toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mobileNav = document.getElementById('mobileNav');
+            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+            const mobileNavClose = document.getElementById('mobileNavClose');
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+
+            if (mobileMenuToggle && mobileNav) {
+                function openMobileMenu() {
+                    mobileNav.classList.add('open');
+                    mobileNavOverlay.classList.add('open');
+                    document.body.classList.add('menu-open');
+                }
+
+                function closeMobileMenu() {
+                    mobileNav.classList.remove('open');
+                    mobileNavOverlay.classList.remove('open');
+                    document.body.classList.remove('menu-open');
+                }
+
+                mobileMenuToggle.addEventListener('click', openMobileMenu);
+                if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
+                if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
+
+                // Close menu when clicking on a link
+                mobileNavLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        setTimeout(closeMobileMenu, 100);
+                    });
+                });
+            }
+        });
     </script>
 </body>
 </html>

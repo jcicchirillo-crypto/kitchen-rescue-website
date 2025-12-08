@@ -73,6 +73,11 @@
       font-size: clamp(17px, 1.2vw, 19px);
       line-height: 1.7;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    html {
+      overflow-x: hidden;
     }
 
     a {
@@ -143,6 +148,114 @@
       .nav-links {
         display: none;
       }
+      .nav-cta {
+        display: none;
+      }
+    }
+
+    /* Mobile Menu Toggle Button */
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      line-height: 1;
+      z-index: 25;
+    }
+
+    @media (max-width: 640px) {
+      .mobile-menu-toggle {
+        display: block;
+      }
+    }
+
+    /* Mobile Navigation Drawer */
+    .mobile-nav-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .mobile-nav-overlay.open {
+      display: block;
+      opacity: 1;
+    }
+
+    .mobile-nav {
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 280px;
+      max-width: 85vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.98), rgba(20, 20, 20, 0.98));
+      z-index: 31;
+      padding: 60px 24px 24px;
+      overflow-y: auto;
+      transition: right 0.3s ease;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .mobile-nav.open {
+      right: 0;
+    }
+
+    .mobile-nav-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 28px;
+      cursor: pointer;
+      padding: 8px;
+      line-height: 1;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .mobile-nav-close:hover {
+      opacity: 1;
+    }
+
+    .mobile-nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mobile-nav-links a {
+      display: block;
+      padding: 14px 16px;
+      color: var(--muted);
+      font-size: 15px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .mobile-nav-links a:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+
+    .mobile-nav-links a:active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    body.menu-open {
+      overflow: hidden;
     }
 
     .nav-cta {
@@ -755,6 +868,9 @@
       font-size: 11px;
       color: var(--muted);
       text-align: center;
+      max-width: 100vw;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
   </style>
 </head>
@@ -767,6 +883,7 @@
           <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue">
         </a>
       </div>
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
       <nav class="nav-links">
         <a href="/index.html">Home</a>
         <a href="/availability.html">Availability</a>
@@ -782,6 +899,22 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
+    <div class="mobile-nav-links">
+      <a href="/index.html">Home</a>
+      <a href="/availability.html">Availability</a>
+      <a href="/index.html#features">Features</a>
+      <a href="/index.html#spec">Spec</a>
+      <a href="/index.html#gallery">Gallery</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/index.html#contact">Contact</a>
+      <a href="/trade-quote.html" style="margin-top: 12px; padding: 12px 16px; background: var(--accent); color: #fff; text-align: center; border-radius: 8px;">Get your referral code</a>
+    </div>
+  </nav>
 
   <main>
     <!-- HERO -->
@@ -1086,6 +1219,38 @@
 
 <script>
   document.getElementById("year").textContent = new Date().getFullYear();
+
+  // Mobile Menu Toggle
+  const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+  const mobileNav = document.getElementById('mobileNav');
+  const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+  const mobileNavClose = document.getElementById('mobileNavClose');
+  const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+
+  function openMobileMenu() {
+    mobileNav.classList.add('open');
+    mobileNavOverlay.classList.add('open');
+    document.body.classList.add('menu-open');
+  }
+
+  function closeMobileMenu() {
+    mobileNav.classList.remove('open');
+    mobileNavOverlay.classList.remove('open');
+    document.body.classList.remove('menu-open');
+  }
+
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', openMobileMenu);
+    mobileNavClose.addEventListener('click', closeMobileMenu);
+    mobileNavOverlay.addEventListener('click', closeMobileMenu);
+
+    // Close menu when clicking on a link
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        setTimeout(closeMobileMenu, 100);
+      });
+    });
+  }
 </script>
 </body>
 </html>

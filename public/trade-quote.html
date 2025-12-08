@@ -73,6 +73,11 @@
       font-size: clamp(17px, 1.2vw, 19px);
       line-height: 1.7;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    html {
+      overflow-x: hidden;
     }
 
     a {
@@ -387,6 +392,7 @@
             <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" />
           </a>
         </div>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
         <nav class="nav-links">
           <a href="/index.html">Home</a>
           <a href="/trade-partners.html">Trade Partners</a>
@@ -398,6 +404,23 @@
         </div>
       </div>
     </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+    <nav class="mobile-nav" id="mobileNav">
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
+      <div class="mobile-nav-links">
+        <a href="/index.html">Home</a>
+        <a href="/trade-partners.html">Trade Partners</a>
+        <a href="/availability.html">Availability</a>
+        <a href="/index.html#features">Features</a>
+        <a href="/index.html#spec">Spec</a>
+        <a href="/index.html#gallery">Gallery</a>
+        <a href="/blog.html">Blog</a>
+        <a href="/index.html#contact">Contact</a>
+        <a href="/trade-partners.html" style="margin-top: 12px; padding: 12px 16px; background: var(--accent); color: #fff; text-align: center; border-radius: 8px;">Back to Trade Page</a>
+      </div>
+    </nav>
 
     <main>
       <div class="container">
@@ -663,6 +686,40 @@
         sendEmailBtn.textContent = 'Email Quote to Me';
       }
     });
+  </script>
+
+  <script>
+    // Mobile Menu Toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileNav = document.getElementById('mobileNav');
+    const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+    const mobileNavClose = document.getElementById('mobileNavClose');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+
+    function openMobileMenu() {
+      mobileNav.classList.add('open');
+      mobileNavOverlay.classList.add('open');
+      document.body.classList.add('menu-open');
+    }
+
+    function closeMobileMenu() {
+      mobileNav.classList.remove('open');
+      mobileNavOverlay.classList.remove('open');
+      document.body.classList.remove('menu-open');
+    }
+
+    if (mobileMenuToggle) {
+      mobileMenuToggle.addEventListener('click', openMobileMenu);
+      mobileNavClose.addEventListener('click', closeMobileMenu);
+      mobileNavOverlay.addEventListener('click', closeMobileMenu);
+
+      // Close menu when clicking on a link
+      mobileNavLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          setTimeout(closeMobileMenu, 100);
+        });
+      });
+    }
   </script>
 </body>
 </html>

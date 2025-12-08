@@ -230,6 +230,11 @@ body {
     color: #1e293b;
     background: radial-gradient(circle at 20% 0%, #1a1a1a 0%, #040404 50%, #010101 100%);
     font-weight: 400;
+    overflow-x: hidden;
+}
+
+html {
+    overflow-x: hidden;
 }
 
 .container {
@@ -1148,8 +1153,110 @@ html {
     outline-offset: 2px;
 }
 
-/* Mobile menu toggle (if needed) */
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+    z-index: 25;
+}
+
+/* Mobile Navigation Drawer */
+.mobile-nav-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 30;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-nav-overlay.open {
+    display: block;
+    opacity: 1;
+}
+
+.mobile-nav {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 280px;
+    max-width: 85vw;
+    height: 100vh;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.98), rgba(20, 20, 20, 0.98));
+    z-index: 31;
+    padding: 60px 24px 24px;
+    overflow-y: auto;
+    transition: right 0.3s ease;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav.open {
+    right: 0;
+}
+
+.mobile-nav-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.mobile-nav-close:hover {
+    opacity: 1;
+}
+
+.mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mobile-nav-links a {
+    display: block;
+    padding: 14px 16px;
+    color: #dedede;
+    font-size: 15px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.mobile-nav-links a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.mobile-nav-links a:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.menu-open {
+    overflow: hidden;
+}
+
 @media (max-width: 767px) {
+    .mobile-menu-toggle {
+        display: block;
+    }
+    
     .nav {
         display: none;
     }

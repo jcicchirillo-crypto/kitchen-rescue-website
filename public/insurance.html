@@ -193,6 +193,7 @@
           </a>
           <a href="availability.html" class="mobile-availability">Availability</a>
         </div>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
         <nav class="nav">
           <a href="index.html#features" class="nav-link">Features</a>
           <a href="index.html#spec" class="nav-link">Spec</a>
@@ -204,6 +205,38 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+  <nav class="mobile-nav" id="mobileNav">
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
+      <div class="mobile-nav-links">
+          <a href="index.html">Home</a>
+          <a href="availability.html">Availability</a>
+          <a href="index.html#features">Features</a>
+          <a href="index.html#spec">Spec</a>
+          <a href="index.html#gallery">Gallery</a>
+          <a href="blog.html">Blog</a>
+          <a href="index.html#faqs">FAQs</a>
+          <a href="index.html#contact">Contact</a>
+      </div>
+  </nav>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+    <nav class="mobile-nav" id="mobileNav">
+        <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
+        <div class="mobile-nav-links">
+            <a href="index.html">Home</a>
+            <a href="availability.html">Availability</a>
+            <a href="index.html#features">Features</a>
+            <a href="index.html#spec">Spec</a>
+            <a href="index.html#gallery">Gallery</a>
+            <a href="blog.html">Blog</a>
+            <a href="index.html#faqs">FAQs</a>
+            <a href="index.html#contact">Contact</a>
+        </div>
+    </nav>
 
   <!-- HERO SECTION -->
   <div class="hero">
@@ -358,7 +391,7 @@
   </section>
 
   <!-- Footer -->
-  <footer style="background: #111827; color: #9ca3af; padding: 3rem 1rem; text-align: center; margin-top: 4rem;">
+  <footer style="background: #111827; color: #9ca3af; padding: 3rem 1rem; text-align: center; margin-top: 4rem; max-width: 100vw; word-wrap: break-word; overflow-wrap: break-word;">
     <div style="max-width: 1100px; margin: 0 auto;">
       <p style="margin-bottom: 1rem;">© 2024 Kitchen Rescue. All rights reserved.</p>
       <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-top: 2rem;">
@@ -368,6 +401,42 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    // Mobile Menu Toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileNav = document.getElementById('mobileNav');
+        const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+        const mobileNavClose = document.getElementById('mobileNavClose');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+
+        if (mobileMenuToggle && mobileNav) {
+            function openMobileMenu() {
+                mobileNav.classList.add('open');
+                mobileNavOverlay.classList.add('open');
+                document.body.classList.add('menu-open');
+            }
+
+            function closeMobileMenu() {
+                mobileNav.classList.remove('open');
+                mobileNavOverlay.classList.remove('open');
+                document.body.classList.remove('menu-open');
+            }
+
+            mobileMenuToggle.addEventListener('click', openMobileMenu);
+            if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
+            if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
+
+            // Close menu when clicking on a link
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    setTimeout(closeMobileMenu, 100);
+                });
+            });
+        }
+    });
+  </script>
 
 </body>
 </html>
