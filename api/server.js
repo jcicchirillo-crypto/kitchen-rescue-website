@@ -1324,6 +1324,193 @@ app.post('/api/quote/send', async (req, res) => {
     }
 });
 
+// Trade Pack Request Endpoint (Facebook Ad Landing Page)
+app.post('/api/trade-pack-request', async (req, res) => {
+    try {
+        const {
+            name,
+            company,
+            email,
+            phone,
+            kitchen_fits,
+            message
+        } = req.body || {};
+
+        if (!name || !company || !email) {
+            return res.status(400).json({ error: 'Name, company, and email are required' });
+        }
+
+        // Generate referral code
+        let referralCode = null;
+        try {
+            referralCode = 'KR-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+        } catch (refErr) {
+            console.error('Referral code error:', refErr);
+            referralCode = null;
+        }
+
+        // Save to admin system
+        try {
+            console.log('💾 Saving trade pack request to admin...');
+            const bookingId = `trade-landing-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const tradePackBooking = {
+                id: bookingId,
+                name: name,
+                email: email,
+                phone: phone || '',
+                postcode: '',
+                source: 'trade-landing',
+                status: 'Trade Pack Request',
+                totalCost: 0,
+                dailyCost: 0,
+                deliveryCost: 0,
+                collectionCost: 0,
+                days: 0,
+                notes: `Company: ${company}. Kitchen fits per month: ${kitchen_fits || 'Not specified'}. ${message ? `Message: ${message}` : ''}${referralCode ? ` Referral code: ${referralCode}` : ''}`,
+                timestamp: new Date().toISOString(),
+                createdAt: new Date().toISOString()
+            };
+
+            await addBooking(tradePackBooking);
+            console.log('✅ Trade pack request saved to admin:', email);
+        } catch (saveErr) {
+            console.error('❌ Error saving trade pack request to admin:', saveErr);
+            // Don't fail the request if saving fails
+        }
+
+        // Generate trade pack email HTML
+        const tradePackEmailHTML = generateTradePackEmailHTML({
+            name,
+            company,
+            email,
+            phone,
+            kitchen_fits,
+            referralCode
+        });
+
+        // Send email
+        if (!transporter) {
+            console.log('Email transporter not configured — skipping send.');
+            return res.json({ 
+                success: true, 
+                referralCode,
+                message: 'Trade pack request received. We will contact you within 24 hours.',
+                note: 'Email system not configured - manual follow-up required'
+            });
+        }
+
+        const mailOptions = {
+            from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `Your Kitchen Rescue Trade Pack & Referral Code`,
+            html: tradePackEmailHTML,
+        };
+
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log('✅ Trade pack email sent to:', email);
+        } catch (emailError) {
+            console.error('❌ Error sending trade pack email:', emailError);
+            // Still return success if email fails
+        }
+
+        return res.json({ success: true, referralCode });
+    } catch (err) {
+        console.error('Trade pack request error:', err);
+        return res.status(500).json({ error: 'Failed to process trade pack request' });
+    }
+});
+
+// Generate Trade Pack Email HTML
+function generateTradePackEmailHTML(data) {
+    const { name, company, referralCode } = data;
+    
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Your Kitchen Rescue Trade Pack</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; }
+            .header { background: #e30613; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+            .section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #e30613; }
+            .section h3 { margin-top: 0; color: #e30613; }
+            .referral-box { background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #10b981; }
+            .referral-code { font-size: 24px; font-weight: bold; color: #e30613; text-align: center; margin: 10px 0; }
+            .info-box { background: #eff6ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3b82f6; }
+            ul { margin: 10px 0; padding-left: 20px; }
+            li { margin-bottom: 8px; }
+            .cta-button { display: inline-block; background: #e30613; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 10px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1 style="margin: 0;">Your Kitchen Rescue Trade Pack</h1>
+            <p style="margin: 10px 0 0 0;">Everything you need to add temporary kitchens to your quotes</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h3>Hi ${name},</h3>
+                <p>Thanks for your interest in Kitchen Rescue! Here's everything you need to start offering temporary kitchen pods to your customers.</p>
+            </div>
+
+            ${referralCode ? `
+            <div class="referral-box">
+                <h3 style="margin-top: 0; color: #065f46;">🎯 Your Referral Code</h3>
+                <div class="referral-code">${referralCode}</div>
+                <p style="text-align: center; margin: 10px 0; color: #065f46;">
+                    <strong>You earn £50 per completed booking</strong> when customers use this code
+                </p>
+            </div>
+            ` : ''}
+
+            <div class="section">
+                <h3>📋 What's Included in Your Trade Pack</h3>
+                <ul>
+                    <li><strong>Info Sheet:</strong> A simple one-page PDF you can attach to your quotes explaining the temporary kitchen pod service</li>
+                    <li><strong>Suggested Wording:</strong> Ready-to-use text you can copy into your kitchen proposals</li>
+                    <li><strong>Referral Link:</strong> Your unique link to share with customers (coming in a follow-up email)</li>
+                    <li><strong>Pricing Guide:</strong> Current rates so you can add your margin when quoting</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>💡 How to Use This</h3>
+                <ol>
+                    <li>When quoting for a kitchen renovation, simply mention: <em>"Temporary kitchen pod available during the work - ask for details"</em></li>
+                    <li>If your customer is interested, share your referral link or code</li>
+                    <li>We handle everything from there - delivery, setup, customer communication</li>
+                    <li>Once the booking completes, you receive £50</li>
+                </ol>
+            </div>
+
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #1e40af;">📞 Need Help?</h3>
+                <p style="margin: 0;">
+                    <strong>Call us:</strong> <a href="tel:+447342606655" style="color: #1e40af;">+44 7342 606655</a><br/>
+                    <strong>WhatsApp:</strong> <a href="https://wa.me/447342606655" style="color: #1e40af;">Click to chat</a><br/>
+                    <strong>Email:</strong> <a href="mailto:hello@thekitchenrescue.co.uk" style="color: #1e40af;">hello@thekitchenrescue.co.uk</a>
+                </p>
+            </div>
+
+            <div class="section">
+                <p><strong>Next Steps:</strong></p>
+                <p>We'll send you the info sheet PDF and suggested wording in a follow-up email within 24 hours. In the meantime, if you have any questions, just give us a call!</p>
+                <p>Best regards,<br/>The Kitchen Rescue Team</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="https://www.thekitchenrescue.co.uk/trade-quote.html" class="cta-button">Get a Quick Quote for Your Customer</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

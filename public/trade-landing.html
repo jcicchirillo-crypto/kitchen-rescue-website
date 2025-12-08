@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>No Kitchen? No Problem | Kitchen Rescue Trade Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Fitting a new kitchen? Hire a fully equipped temporary kitchen pod for your customers. Keep fitting while they keep living." />
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9G81ZHPHGF"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-9G81ZHPHGF');
+  </script>
+  
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1166460888955394');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1166460888955394&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
+  <style>
+    :root {
+      --kr-red: #e30613;
+      --kr-black: #111111;
+      --kr-grey: #f5f5f5;
+      --kr-text: #242424;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--kr-text);
+      background: #ffffff;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    html {
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    /* Mobile Navigation */
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--kr-text);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      line-height: 1;
+      z-index: 25;
+    }
+
+    .mobile-nav-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .mobile-nav-overlay.open {
+      display: block;
+      opacity: 1;
+    }
+
+    .mobile-nav {
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 280px;
+      max-width: 85vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.98), rgba(20, 20, 20, 0.98));
+      z-index: 31;
+      padding: 60px 24px 24px;
+      overflow-y: auto;
+      transition: right 0.3s ease;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .mobile-nav.open {
+      right: 0;
+    }
+
+    .mobile-nav-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 8px;
+      line-height: 1;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .mobile-nav-close:hover {
+      opacity: 1;
+    }
+
+    .mobile-nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mobile-nav-links a {
+      display: block;
+      padding: 14px 16px;
+      color: #dedede;
+      font-size: 15px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .mobile-nav-links a:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+
+    body.menu-open {
+      overflow: hidden;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffecee;
+      color: var(--kr-red);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+
+    .badge span {
+      font-size: 1.1rem;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.7fr);
+      gap: 32px;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 3vw, 2.6rem);
+      line-height: 1.1;
+      margin-bottom: 12px;
+      color: var(--kr-black);
+    }
+
+    .hero h1 span {
+      color: var(--kr-red);
+    }
+
+    .hero-sub {
+      font-size: 1.02rem;
+      margin-bottom: 18px;
+    }
+
+    .price-strip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 10px;
+      background: var(--kr-black);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
+
+    .price-strip strong {
+      font-size: 1.05rem;
+      color: #fff;
+    }
+
+    .hero-points {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 16px;
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+    }
+
+    .hero-points li {
+      list-style: none;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .hero-points li::before {
+      content: "✓";
+      color: var(--kr-red);
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .hero-note {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .hero-media {
+      background: var(--kr-grey);
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid #e3e3e3;
+    }
+
+    .hero-media-inner {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      aspect-ratio: 4 / 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .hero-media-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0.85;
+    }
+
+    .hero-tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .hero-caption {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.78);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+    }
+
+    .hero-caption strong {
+      color: #fff;
+    }
+
+    .whatsapp-cta {
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+
+    .whatsapp-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #25d366;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .whatsapp-pill:hover {
+      background: #20ba5a;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section h2 {
+      font-size: 1.4rem;
+      margin-bottom: 14px;
+      color: var(--kr-black);
+    }
+
+    .section p {
+      margin-bottom: 10px;
+      font-size: 0.98rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--kr-grey);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #e3e3e3;
+      font-size: 0.95rem;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: var(--kr-black);
+    }
+
+    .card small {
+      font-size: 0.82rem;
+      color: #777;
+    }
+
+    .list {
+      margin-top: 8px;
+    }
+
+    .list li {
+      margin-left: 18px;
+      margin-bottom: 4px;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .compare h3 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .compare ul {
+      font-size: 0.95rem;
+    }
+
+    .compare li {
+      margin-left: 18px;
+      margin-bottom: 4px;
+    }
+
+    .highlight {
+      color: var(--kr-red);
+      font-weight: 600;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--kr-grey);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .form-section {
+      background: #fafafa;
+      border-radius: 16px;
+      border: 1px solid #e3e3e3;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr);
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .form-section h2 {
+      margin-bottom: 8px;
+    }
+
+    .form-section p {
+      margin-bottom: 6px;
+      font-size: 0.96rem;
+    }
+
+    .form-section ul {
+      font-size: 0.94rem;
+      margin-top: 6px;
+      margin-bottom: 8px;
+    }
+
+    .form-section li {
+      margin-left: 18px;
+      margin-bottom: 4px;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #cccccc;
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .btn-primary {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--kr-red);
+      color: #fff;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.96rem;
+      transition: background 0.2s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #c30510;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #777;
+    }
+
+    .form-message {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .form-message.success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      display: block;
+    }
+
+    .form-message.error {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .form-section,
+      .grid-3,
+      .compare {
+        grid-template-columns: 1fr;
+      }
+      .hero {
+        gap: 20px;
+      }
+      .page {
+        padding-inline: 14px;
+      }
+      .mobile-menu-toggle {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div>
+        <div class="badge">
+          <span>⬆</span> New for kitchen fitters & builders
+        </div>
+
+        <h1>
+          Fitting a new kitchen?<br />
+          <span>Your customer has no kitchen for 2–3 weeks?</span>
+        </h1>
+
+        <p class="hero-sub">
+          Hire a fully equipped temporary kitchen pod on their drive. You keep fitting. They keep living.
+        </p>
+
+        <div class="price-strip">
+          <strong>From £499 + VAT per week</strong>
+          <span>Cheaper than takeaways, laundrette trips & complaints.</span>
+        </div>
+
+        <ul class="hero-points">
+          <li>We deliver, connect and collect – you don't touch a thing.</li>
+          <li>Full oven, hob, fridge freezer, dishwasher & washing machine.</li>
+          <li>Clients aren't chasing you about laundry, cooking or mess.</li>
+          <li>You earn <strong>£50 per booking</strong> with your trade referral code.</li>
+        </ul>
+
+        <p class="hero-note">
+          Designed for kitchen renovations in Herts, Essex, Cambs & North London.
+        </p>
+
+        <div class="whatsapp-cta">
+          <a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue,%20I%27d%20like%20to%20enquire%20about%20the%20trade%20pod%20service" class="whatsapp-pill" target="_blank" rel="noopener">
+            💬 WhatsApp us
+          </a>
+          <span>(Prefer a quick chat? We can send you a short voice note to share with customers.)</span>
+        </div>
+      </div>
+
+      <div class="hero-media">
+        <div class="hero-media-inner">
+          <img src="/assets/hero.jpg" alt="Kitchen Rescue temporary kitchen pod on driveway" />
+          <div class="hero-tag">Kitchen Rescue Pod</div>
+          <div class="hero-caption">
+            <strong>No kitchen? No problem.</strong><br />
+            We park the pod on the drive, plug in, connect water and waste, and your customer has a working kitchen while you rip out the old one.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT HELPS YOU -->
+    <section class="section">
+      <h2>Why builders & kitchen fitters use Kitchen Rescue</h2>
+      <p>You already know the pain: dust, no sink, no cooker, and a client trying to wash up in the bath. Our pod removes all of that.</p>
+
+      <div class="grid-3" style="margin-top: 16px;">
+        <div class="card">
+          <h3>Less stress, fewer calls</h3>
+          <small>Happy client = calm job</small>
+          <ul class="list">
+            <li>No more "how am I meant to wash up?" messages.</li>
+            <li>They can cook, wash clothes and make a cuppa as normal.</li>
+            <li>You can focus on getting the kitchen finished.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>You don't install a thing</h3>
+          <small>We handle all connections</small>
+          <ul class="list">
+            <li>We bring the pod, plug into power, water & waste.</li>
+            <li>We check everything, then hand over to your customer.</li>
+            <li>When you're done, we collect and take it away.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Extra value, no awkward sales chat</h3>
+          <small>Add it to your quote as an option</small>
+          <ul class="list">
+            <li>Simply tick a box on your quote: "Temporary kitchen pod available".</li>
+            <li>We deal directly with your customer once they're interested.</li>
+            <li>You earn <span class="highlight">£50 per completed booking</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT'S INSIDE -->
+    <section class="section">
+      <h2>What's inside the pod?</h2>
+      <p>Everything you'd expect from a normal small kitchen – just on the driveway.</p>
+
+      <div class="grid-3" style="margin-top: 12px;">
+        <div class="card">
+          <h3>Appliances</h3>
+          <ul class="list">
+            <li>Full-size oven & hob</li>
+            <li>Fridge freezer</li>
+            <li>Dishwasher</li>
+            <li>Washing machine</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Comfort</h3>
+          <ul class="list">
+            <li>Heating & lighting</li>
+            <li>Plenty of worktop space</li>
+            <li>Storage cupboards</li>
+            <li>Good ventilation</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Set-up</h3>
+          <ul class="list">
+            <li>We position the pod on the drive</li>
+            <li>Connect power, water & waste</li>
+            <li>Show your client how everything works</li>
+            <li>24/7 contact number if they need us</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- COST COMPARE -->
+    <section class="section">
+      <h2>Costs less than "making do"</h2>
+      <p>Most homeowners underestimate how expensive a few weeks without a kitchen can be.</p>
+
+      <div class="compare" style="margin-top: 12px;">
+        <div class="card">
+          <h3>Without a pod</h3>
+          <ul>
+            <li>Takeaways a few nights a week.</li>
+            <li>Trips to the laundrette.</li>
+            <li>Eating out because there's nowhere to cook.</li>
+            <li>More mess inside the house.</li>
+            <li>Stress… and sometimes complaints.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>With Kitchen Rescue</h3>
+          <ul>
+            <li>One fixed weekly cost.</li>
+            <li>Normal meals, normal laundry, normal life.</li>
+            <li>Home stays tidy while you work.</li>
+            <li>Client feels looked after – by you.</li>
+          </ul>
+          <div class="pill">
+            From around <span class="highlight">£499 + VAT / week</span> for a full temporary kitchen.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AREA -->
+    <section class="section">
+      <h2>Where we currently cover</h2>
+      <p>We're based in Hertfordshire and cover:</p>
+      <ul class="list">
+        <li>Herts</li>
+        <li>Essex</li>
+        <li>Cambridgeshire</li>
+        <li>North London</li>
+      </ul>
+      <p style="margin-top: 6px; font-size: 0.9rem;">
+        If you're just outside these areas, still get in touch – we may be able to help.
+      </p>
+    </section>
+
+    <!-- FORM / MAIN CTA -->
+    <section class="section form-section" id="trade-pack">
+      <div>
+        <h2>Add Kitchen Rescue to your quotes</h2>
+        <p>Pop your details in and I'll send you:</p>
+        <ul>
+          <li>A simple info sheet you can attach to your quotes.</li>
+          <li>Your own <strong>trade referral link & £50 per booking</strong> details.</li>
+          <li>Suggested wording to add to your kitchen proposals.</li>
+        </ul>
+        <p class="hint">
+          No spam, no big sales pitch – just something you can show customers when they ask "what do we do without a kitchen?"
+        </p>
+      </div>
+
+      <div>
+        <form id="tradePackForm">
+          <div>
+            <label for="name">Name *</label>
+            <input id="name" name="name" type="text" required />
+          </div>
+
+          <div>
+            <label for="company">Company name *</label>
+            <input id="company" name="company" type="text" required />
+          </div>
+
+          <div>
+            <label for="email">Email *</label>
+            <input id="email" name="email" type="email" required />
+          </div>
+
+          <div>
+            <label for="phone">Mobile (optional)</label>
+            <input id="phone" name="phone" type="tel" />
+            <p class="hint">Handy if you'd like a quick WhatsApp or call instead of an email.</p>
+          </div>
+
+          <div>
+            <label for="fits">Roughly how many kitchens do you fit per month?</label>
+            <select id="fits" name="kitchen_fits">
+              <option value="">Select an option</option>
+              <option value="1-2">1–2</option>
+              <option value="3-5">3–5</option>
+              <option value="6-10">6–10</option>
+              <option value="11+">11+</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="message">Anything else you'd like to know?</label>
+            <textarea id="message" name="message" placeholder="Tell me about your typical projects or any questions."></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submitBtn">
+            Send me the trade pack
+          </button>
+
+          <div id="formMessage" class="form-message"></div>
+
+          <p class="footer-note">
+            By sending this form you're happy for Kitchen Rescue to contact you about the trade pod service. Your details won't be shared with anyone else.
+          </p>
+        </form>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // Form submission
+    document.getElementById('tradePackForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const formMessage = document.getElementById('formMessage');
+      const originalText = submitBtn.textContent;
+      
+      // Disable button and show loading
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      formMessage.className = 'form-message';
+      formMessage.textContent = '';
+      formMessage.style.display = 'none';
+      
+      // Get form data
+      const formData = {
+        name: document.getElementById('name').value.trim(),
+        company: document.getElementById('company').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        kitchen_fits: document.getElementById('fits').value,
+        message: document.getElementById('message').value.trim()
+      };
+      
+      try {
+        const response = await fetch('/api/trade-pack-request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Success
+          formMessage.className = 'form-message success';
+          formMessage.textContent = '✅ Thanks! Check your email for your trade pack and referral code.';
+          formMessage.style.display = 'block';
+          
+          // Track conversion
+          if (typeof fbq !== 'undefined') {
+            fbq('track', 'Lead');
+          }
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'conversion', {
+              'send_to': 'AW-CONVERSION_ID',
+              'event_category': 'Trade Pack Request',
+              'event_label': 'Form Submission'
+            });
+          }
+          
+          // Reset form
+          document.getElementById('tradePackForm').reset();
+          
+          // Scroll to message
+          formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          // Error
+          formMessage.className = 'form-message error';
+          formMessage.textContent = data.error || '❌ Something went wrong. Please try again or WhatsApp us.';
+          formMessage.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Form submission error:', error);
+        formMessage.className = 'form-message error';
+        formMessage.textContent = '❌ Network error. Please try again or WhatsApp us.';
+        formMessage.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+  </script>
+</body>
+</html>
+
