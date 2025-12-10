@@ -1487,8 +1487,6 @@ function generateTradePackEmailHTML(data) {
             </div>
 
             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 10px 0; color: #333;"><strong>Next Steps:</strong></p>
-                <p style="margin: 10px 0; color: #333;">We'll send you the info sheet PDF and suggested wording in a follow-up email within 24 hours. In the meantime, if you have any questions, just give us a call!</p>
                 <p style="margin: 10px 0; color: #333;">Best regards,<br/>The Kitchen Rescue Team</p>
             </div>
 
