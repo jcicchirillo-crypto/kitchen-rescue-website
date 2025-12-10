@@ -1463,7 +1463,8 @@ function generateTradePackEmailHTML(data) {
             </div>
             
             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 1px solid #e0e0e0;">
-                <h3 style="margin-top: 0; color: #333; font-size: 18px;">📄 Download Your Build Pack PDF</h3>
+                <h3 style="margin-top: 0; color: #333; font-size: 18px;">📄 Download Your One-Page PDF</h3>
+                <p style="margin: 10px 0 15px 0; color: #333; font-size: 16px;">A one-page info sheet you can attach to your quotes and send to your customers.</p>
                 <a href="https://www.thekitchenrescue.co.uk/assets/Build Pack.pdf" style="display: inline-block; text-decoration: none;">
                     <img src="https://www.thekitchenrescue.co.uk/assets/Build Pack Preview.png" alt="Build Pack Preview" style="max-width: 300px; width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; margin: 15px 0;" />
                 </a>
@@ -1477,7 +1478,9 @@ function generateTradePackEmailHTML(data) {
             <div style="margin: 20px 0;">
                 <h2 style="margin: 0 0 15px 0; color: #333; font-size: 18px; font-weight: bold;">🧾 Suggested Quote Wording</h2>
                 <p style="margin: 10px 0; color: #666; font-size: 14px; font-style: italic;">(Feel free to copy/paste this into your kitchen proposals)</p>
-                <p style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-left: 4px solid #e30613; color: #333; font-size: 16px;">"Optional: Temporary fully equipped kitchen pod available from Kitchen Rescue for clients needing full cooking and washing facilities during their renovation."</p>
+                <div style="margin: 15px 0; padding: 20px; background: #f5f5f5; border-left: 4px solid #e30613; color: #333; font-size: 16px; line-height: 1.8;">
+                    <p style="margin: 0; font-weight: 500;">"Optional: Temporary fully equipped kitchen pod available from Kitchen Rescue for clients needing full cooking and washing facilities during their renovation."</p>
+                </div>
             </div>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
