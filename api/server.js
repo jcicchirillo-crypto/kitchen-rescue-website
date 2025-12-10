@@ -249,8 +249,16 @@ async function storeBooking(bookingData, bookingReference) {
 }
 
 // Block out availability dates after deposit payment
-async function blockAvailabilityDates(bookingData) {
+// Only blocks dates for confirmed bookings, not quotes
+async function blockAvailabilityDates(bookingData, bookingStatus = 'confirmed') {
     try {
+        // Only block dates for confirmed bookings, not quotes or pending bookings
+        const confirmedStatuses = ['confirmed', 'Confirmed', 'Deposit Paid', 'deposit paid'];
+        if (!confirmedStatuses.includes(bookingStatus)) {
+            console.log(`Not blocking dates - booking status is "${bookingStatus}" (only confirmed bookings block dates)`);
+            return;
+        }
+        
         const availabilityPath = path.join(__dirname, '..', 'public', 'assets', 'availability.json');
         
         // Read existing availability
@@ -284,7 +292,7 @@ async function blockAvailabilityDates(bookingData) {
             
             // Write back to file
             fs.writeFileSync(availabilityPath, JSON.stringify(availability, null, 2));
-            console.log(`Availability blocked: ${startDateStr} to ${endDateStr}`);
+            console.log(`Availability blocked: ${startDateStr} to ${endDateStr} (status: ${bookingStatus})`);
         } else {
             console.log(`Date range already blocked: ${startDateStr} to ${endDateStr}`);
         }
@@ -770,10 +778,27 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
             return res.status(404).json({ error: 'Booking not found' });
         }
         
+        const oldBooking = bookings[bookingIndex];
+        const newStatus = req.body.status;
+        const oldStatus = oldBooking.status;
+        
         bookings[bookingIndex] = { ...bookings[bookingIndex], ...req.body };
         
         // Write back to file
         await saveAllBookings(bookings);
+        
+        // If status changed to confirmed, block dates (only block confirmed bookings, not quotes)
+        if (newStatus && newStatus !== oldStatus) {
+            const confirmedStatuses = ['confirmed', 'Confirmed', 'Deposit Paid', 'deposit paid'];
+            if (confirmedStatuses.includes(newStatus) && oldBooking.startDate && oldBooking.days) {
+                // Block dates only when status changes to confirmed
+                const bookingData = {
+                    deliveryDate: oldBooking.startDate,
+                    hireLength: oldBooking.days
+                };
+                await blockAvailabilityDates(bookingData, newStatus);
+            }
+        }
         
         res.json(bookings[bookingIndex]);
     } catch (error) {
