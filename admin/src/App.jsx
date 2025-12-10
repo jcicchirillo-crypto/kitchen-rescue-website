@@ -34,7 +34,7 @@ function MonthCalendar({
           <div className="text-xs font-semibold">{format(day, "d")}</div>
           <div className="mt-1 space-y-1">
             {bookings
-              .filter((b) => day >= startOfMonth(month) && day <= endOfMonth(month) && day >= new Date(b.startDate) && day <= new Date(b.endDate))
+              .filter((b) => b.status === "Confirmed" && day >= startOfMonth(month) && day <= endOfMonth(month) && day >= new Date(b.startDate) && day <= new Date(b.endDate))
               .map((b) => (
                 <button
                   key={b.id}
@@ -199,10 +199,10 @@ function KitchenRescueAdmin() {
 
       <main className="mx-auto max-w-7xl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Stat icon={CalendarIcon} label="Pods on hire" value={bookings.length} />
-          <Stat icon={CreditCard} label="Deposits pending" value={bookings.filter(b=>b.status!=="Confirmed").length} />
+          <Stat icon={CalendarIcon} label="Pod on hire" value={bookings.filter(b=>b.status==="Confirmed").length} />
+          <Stat icon={CreditCard} label="Deposits pending" value={bookings.filter(b=>b.status!=="Confirmed" && b.status!=="Quote Calculated" && b.status!=="Trade Quote Request" && b.status!=="Cancelled").length} />
           <Stat icon={Users} label="Customers" value={new Set(bookings.map(b=>b.email)).size} />
-          <Stat icon={Wallet} label="This month revenue" value={`£${bookings.reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
+          <Stat icon={Wallet} label="This month revenue" value={`£${bookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
