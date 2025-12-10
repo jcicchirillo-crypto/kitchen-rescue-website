@@ -553,27 +553,55 @@
       }
     }
 
-    .kr-xmas-banner {
-      background: #E10600; /* Kitchen Rescue red */
+    .kr-xmas-banner-small {
+      background: linear-gradient(135deg, #E10600 0%, #c00000 100%);
       color: #fff;
-      padding: 24px 20px;
-      border-radius: 8px;
+      padding: 10px 14px;
+      border-radius: 6px;
       text-align: center;
-      margin: 30px 0;
+      margin: 16px 0;
       font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 0.95rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      position: relative;
+      overflow: hidden;
     }
 
-    .kr-xmas-banner h2 {
-      font-size: 1.6rem;
-      margin-bottom: 8px;
-      font-weight: 600;
+    /* soft sparkle, very subtle */
+    .kr-xmas-banner-small::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(255,255,255,0.2) 0, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(255,255,255,0.15) 0, transparent 40%);
+      opacity: 0.35;
+      pointer-events: none;
     }
 
-    .kr-xmas-banner p {
-      font-size: 1rem;
-      opacity: 0.95;
+    .kr-xmas-banner-small p {
       margin: 0;
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kr-xmas-banner-small span {
+      opacity: 0.9;
+      font-size: 0.85rem;
+    }
+
+    /* MOBILE OPTIMISATION */
+    @media (max-width: 600px) {
+      .kr-xmas-banner-small {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+        border-radius: 5px;
+      }
+
+      .kr-xmas-banner-small span {
+        font-size: 0.8rem;
+      }
     }
   </style>
 </head>
@@ -637,9 +665,9 @@
     </section>
 
     <!-- CHRISTMAS BANNER -->
-    <div class="kr-xmas-banner">
-      <h2>Project running over? We still have Christmas availability.</h2>
-      <p>Keep your clients cooking during festive overruns with a fully equipped Kitchen Pod.</p>
+    <div class="kr-xmas-banner-small">
+      <p><strong>🎄 Project running over? We still have Christmas availability.</strong><br>
+      <span>Keep your clients cooking during festive overruns.</span></p>
     </div>
 
     <!-- HOW IT HELPS YOU -->
