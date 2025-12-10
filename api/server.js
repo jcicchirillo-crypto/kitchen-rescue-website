@@ -1433,36 +1433,36 @@ function generateTradePackEmailHTML(data) {
         <title>Your Kitchen Rescue Trade Pack</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-        <h1 style="font-size: 24px; font-weight: bold; margin: 20px 0 10px 0; color: #333;">Your Kitchen Rescue Trade Pack</h1>
-        <p style="margin: 0 0 30px 0; color: #666; font-size: 16px;">Everything you need to add temporary kitchens to your quotes</p>
-        
-        <div style="background: #f9fafb; padding: 30px; border-radius: 8px;">
-            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #333; font-size: 18px;">Hi ${name},</h3>
-                <p style="margin: 10px 0; color: #333;">Thanks for your interest in Kitchen Rescue! Here's everything you need to start offering temporary kitchen pods to your customers.</p>
+        <div style="max-width: 600px; margin: 0 auto;">
+            <p style="margin: 20px 0 10px 0; color: #333; font-size: 16px;">Hi ${name},</p>
+            
+            <p style="margin: 10px 0; color: #333; font-size: 16px;">Thanks for your interest in Kitchen Rescue. Here's everything you need to start offering temporary kitchen pods to your customers during their renovation.</p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+            
+            <div style="margin: 20px 0;">
+                <h2 style="margin: 0 0 15px 0; color: #333; font-size: 18px; font-weight: bold;">🔑 Your Trade Referral Code</h2>
+                ${referralCode ? `
+                <div style="font-size: 24px; font-weight: bold; color: #e30613; margin: 15px 0;">${referralCode}</div>
+                <p style="margin: 10px 0; color: #333; font-size: 16px;">Use this code on any booking and you'll receive £50 per completed hire.</p>
+                <p style="margin: 10px 0; color: #333; font-size: 16px;">You're welcome to add your own margin when including the pod as an optional extra in your quote.</p>
+                ` : ''}
             </div>
-
-            ${referralCode ? `
-            <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #10b981;">
-                <h3 style="margin-top: 0; color: #065f46; font-size: 16px;">🎯 Your Referral Code</h3>
-                <div style="font-size: 24px; font-weight: bold; color: #e30613; text-align: center; margin: 10px 0;">${referralCode}</div>
-                <p style="text-align: center; margin: 10px 0; color: #065f46;">
-                    <strong>You earn £50 per completed booking</strong> when customers use this code
-                </p>
-            </div>
-            ` : ''}
-
-            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #333; font-size: 18px;">📋 What's Included in Your Trade Pack</h3>
-                <ul style="margin: 10px 0; padding-left: 20px; color: #333;">
-                    <li style="margin-bottom: 8px;"><strong>Info Sheet:</strong> A simple one-page PDF you can attach to your quotes explaining the temporary kitchen pod service</li>
-                    <li style="margin-bottom: 8px;"><strong>Suggested Wording:</strong> Ready-to-use text you can copy into your kitchen proposals</li>
-                    <li style="margin-bottom: 8px;"><strong>Referral Link:</strong> Your unique link to share with customers (coming in a follow-up email)</li>
-                    <li style="margin-bottom: 8px;"><strong>Pricing Guide:</strong> Current rates so you can add your margin when quoting</li>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+            
+            <div style="margin: 20px 0;">
+                <h2 style="margin: 0 0 15px 0; color: #333; font-size: 18px; font-weight: bold;">📋 What's Included in Your Trade Pack</h2>
+                <ul style="margin: 10px 0; padding-left: 20px; color: #333; font-size: 16px;">
+                    <li style="margin-bottom: 8px;">A one-page info sheet you can attach to your quotes</li>
+                    <li style="margin-bottom: 8px;">Simple wording you can copy straight into your proposals</li>
+                    <li style="margin-bottom: 8px;">A referral code for earning commission</li>
+                    <li style="margin-bottom: 8px;">A customer-friendly overview of how the pod works</li>
+                    <li style="margin-bottom: 8px;">A link to check availability online</li>
                 </ul>
             </div>
-
-            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 1px solid #e0e0e0;">
                 <h3 style="margin-top: 0; color: #333; font-size: 18px;">📄 Download Your Build Pack PDF</h3>
                 <a href="https://www.thekitchenrescue.co.uk/assets/Build Pack.pdf" style="display: inline-block; text-decoration: none;">
                     <img src="https://www.thekitchenrescue.co.uk/assets/Build Pack Preview.png" alt="Build Pack Preview" style="max-width: 300px; width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; margin: 15px 0;" />
@@ -1471,32 +1471,33 @@ function generateTradePackEmailHTML(data) {
                     <a href="https://www.thekitchenrescue.co.uk/assets/Build Pack.pdf" style="display: inline-block; background: #e30613; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 10px;">Download Build Pack PDF</a>
                 </p>
             </div>
-
-            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #333; font-size: 18px;">💡 How to Use This</h3>
-                <ol style="margin: 10px 0; padding-left: 20px; color: #333;">
-                    <li style="margin-bottom: 8px;">When quoting for a kitchen renovation, simply mention: <em>"Temporary kitchen pod available during the work - ask for details"</em></li>
-                    <li style="margin-bottom: 8px;">If your customer is interested, share your referral link or code</li>
-                    <li style="margin-bottom: 8px;">We handle everything from there - delivery, setup, customer communication</li>
-                    <li style="margin-bottom: 8px;">Once the booking completes, you receive £50</li>
-                </ol>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+            
+            <div style="margin: 20px 0;">
+                <h2 style="margin: 0 0 15px 0; color: #333; font-size: 18px; font-weight: bold;">🧾 Suggested Quote Wording</h2>
+                <p style="margin: 10px 0; color: #666; font-size: 14px; font-style: italic;">(Feel free to copy/paste this into your kitchen proposals)</p>
+                <p style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-left: 4px solid #e30613; color: #333; font-size: 16px;">"Optional: Temporary fully equipped kitchen pod available from Kitchen Rescue for clients needing full cooking and washing facilities during their renovation."</p>
             </div>
-
-            <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3b82f6;">
-                <h3 style="margin-top: 0; color: #1e40af; font-size: 16px;">📞 Need Help?</h3>
-                <p style="margin: 0; color: #333;">
-                    <strong>Call us:</strong> <a href="tel:+447342606655" style="color: #1e40af;">+44 7342 606655</a><br/>
-                    <strong>WhatsApp:</strong> <a href="https://wa.me/447342606655" style="color: #1e40af;">Click to chat</a><br/>
-                    <strong>Email:</strong> <a href="mailto:hello@thekitchenrescue.co.uk" style="color: #1e40af;">hello@thekitchenrescue.co.uk</a>
-                </p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+            
+            <div style="margin: 20px 0;">
+                <h2 style="margin: 0 0 15px 0; color: #333; font-size: 18px; font-weight: bold;">🌐 Your Customers Can Book Online</h2>
+                <p style="margin: 10px 0; color: #333; font-size: 16px;">They can check availability and book directly at:</p>
+                <p style="margin: 10px 0; color: #333; font-size: 16px;"><a href="https://www.thekitchenrescue.co.uk" style="color: #e30613; text-decoration: none;">www.thekitchenrescue.co.uk</a></p>
             </div>
-
-            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 10px 0; color: #333;">Best regards,<br/>The Kitchen Rescue Team</p>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px;">
-                <a href="https://www.thekitchenrescue.co.uk/trade-quote.html" style="display: inline-block; background: #e30613; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 10px 0;">Get a Quick Quote for Your Customer</a>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+            
+            <p style="margin: 20px 0; color: #333; font-size: 16px;">If you have any upcoming jobs where the client will be without a kitchen, just send them the link or give me a call.</p>
+            
+            <p style="margin: 20px 0; color: #333; font-size: 16px;">Thanks,<br/>Janine<br/>Kitchen Rescue</p>
+            
+            <div style="margin: 20px 0; color: #333; font-size: 16px;">
+                <p style="margin: 5px 0;">📞 <a href="tel:07872460097" style="color: #333; text-decoration: none;">07872 460097</a></p>
+                <p style="margin: 5px 0;">📧 <a href="mailto:hello@thekitchenrescue.co.uk" style="color: #333; text-decoration: none;">hello@thekitchenrescue.co.uk</a></p>
+                <p style="margin: 5px 0;">🌐 <a href="https://www.thekitchenrescue.co.uk" style="color: #333; text-decoration: none;">www.thekitchenrescue.co.uk</a></p>
             </div>
         </div>
     </body>
