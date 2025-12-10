@@ -1399,16 +1399,11 @@ app.post('/api/trade-pack-request', async (req, res) => {
             });
         }
 
-        const pdfPath = path.join(__dirname, '..', 'public', 'assets', 'Build Pack.pdf');
         const mailOptions = {
             from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: `Your Kitchen Rescue Trade Pack & Referral Code`,
-            html: tradePackEmailHTML,
-            attachments: fs.existsSync(pdfPath) ? [{
-                filename: 'Build Pack.pdf',
-                path: pdfPath
-            }] : []
+            html: tradePackEmailHTML
         };
 
         try {
@@ -1465,6 +1460,16 @@ function generateTradePackEmailHTML(data) {
                     <li style="margin-bottom: 8px;"><strong>Referral Link:</strong> Your unique link to share with customers (coming in a follow-up email)</li>
                     <li style="margin-bottom: 8px;"><strong>Pricing Guide:</strong> Current rates so you can add your margin when quoting</li>
                 </ul>
+            </div>
+
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <h3 style="margin-top: 0; color: #333; font-size: 18px;">📄 Download Your Build Pack PDF</h3>
+                <a href="https://www.thekitchenrescue.co.uk/assets/Build Pack.pdf" style="display: inline-block; text-decoration: none;">
+                    <img src="https://www.thekitchenrescue.co.uk/assets/Build Pack Preview.png" alt="Build Pack Preview" style="max-width: 300px; width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; margin: 15px 0;" />
+                </a>
+                <p style="margin: 10px 0; color: #333;">
+                    <a href="https://www.thekitchenrescue.co.uk/assets/Build Pack.pdf" style="display: inline-block; background: #e30613; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 10px;">Download Build Pack PDF</a>
+                </p>
             </div>
 
             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
