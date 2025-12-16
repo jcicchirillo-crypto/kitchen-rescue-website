@@ -553,55 +553,27 @@
       }
     }
 
-    .kr-xmas-banner-small {
-      background: linear-gradient(135deg, #E10600 0%, #c00000 100%);
+    .kr-xmas-banner {
+      background: #E10600; /* Kitchen Rescue red */
       color: #fff;
-      padding: 10px 14px;
-      border-radius: 6px;
+      padding: 24px 20px;
+      border-radius: 8px;
       text-align: center;
-      margin: 16px 0;
+      margin: 30px 0;
       font-weight: 500;
-      font-size: 0.95rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-      position: relative;
-      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    /* soft sparkle, very subtle */
-    .kr-xmas-banner-small::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        radial-gradient(circle at 15% 10%, rgba(255,255,255,0.2) 0, transparent 40%),
-        radial-gradient(circle at 85% 30%, rgba(255,255,255,0.15) 0, transparent 40%);
-      opacity: 0.35;
-      pointer-events: none;
+    .kr-xmas-banner h2 {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      font-weight: 600;
     }
 
-    .kr-xmas-banner-small p {
+    .kr-xmas-banner p {
+      font-size: 1rem;
+      opacity: 0.95;
       margin: 0;
-      line-height: 1.3;
-      position: relative;
-      z-index: 1;
-    }
-
-    .kr-xmas-banner-small span {
-      opacity: 0.9;
-      font-size: 0.85rem;
-    }
-
-    /* MOBILE OPTIMISATION */
-    @media (max-width: 600px) {
-      .kr-xmas-banner-small {
-        padding: 8px 10px;
-        font-size: 0.9rem;
-        border-radius: 5px;
-      }
-
-      .kr-xmas-banner-small span {
-        font-size: 0.8rem;
-      }
     }
   </style>
 </head>
@@ -665,9 +637,9 @@
     </section>
 
     <!-- CHRISTMAS BANNER -->
-    <div class="kr-xmas-banner-small">
-      <p><strong>🎄 Project running over? We still have Christmas availability.</strong><br>
-      <span>Keep your clients cooking during festive overruns.</span></p>
+    <div class="kr-xmas-banner">
+      <h2>Project running over? We still have Christmas availability.</h2>
+      <p>Keep your clients cooking during festive overruns with a fully equipped Kitchen Pod.</p>
     </div>
 
     <!-- HOW IT HELPS YOU -->
@@ -863,13 +835,119 @@
   </div>
 
   <script>
-    // Form submission
+    // Helper function to track events
+    function trackEvent(eventName, eventCategory, eventLabel, value) {
+      // Google Analytics
+      if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, {
+          'event_category': eventCategory,
+          'event_label': eventLabel,
+          'value': value
+        });
+      }
+      
+      // Facebook Pixel
+      if (typeof fbq !== 'undefined') {
+        if (eventName === 'click') {
+          fbq('trackCustom', eventCategory + '_' + eventLabel);
+        }
+      }
+      
+      // Console log for debugging
+      console.log('📊 Event tracked:', eventName, eventCategory, eventLabel);
+    }
+
+    // Track scroll depth
+    let scrollDepthTracked = {
+      25: false,
+      50: false,
+      75: false,
+      90: false
+    };
+
+    function trackScrollDepth() {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = Math.round((scrollTop / docHeight) * 100);
+
+      Object.keys(scrollDepthTracked).forEach(depth => {
+        if (scrollPercent >= depth && !scrollDepthTracked[depth]) {
+          scrollDepthTracked[depth] = true;
+          trackEvent('scroll', 'Engagement', depth + '% Scroll Depth', depth);
+        }
+      });
+    }
+
+    window.addEventListener('scroll', trackScrollDepth, { passive: true });
+
+    // Track when form section becomes visible
+    function trackFormVisibility() {
+      const formSection = document.getElementById('trade-pack');
+      if (!formSection) return;
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            trackEvent('view', 'Engagement', 'Form Section Viewed', 1);
+            observer.disconnect(); // Only track once
+          }
+        });
+      }, {
+        threshold: 0.5
+      });
+
+      observer.observe(formSection);
+    }
+
+    // Track CTA button click (hero section)
+    document.addEventListener('DOMContentLoaded', function() {
+      // Track form visibility
+      trackFormVisibility();
+
+      const ctaButton = document.querySelector('a.btn-primary[href="#trade-pack"]');
+      if (ctaButton) {
+        ctaButton.addEventListener('click', function() {
+          trackEvent('click', 'CTA', 'Hero CTA Button Click', 1);
+        });
+      }
+
+      // Track form submit button click
+      const submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', function() {
+          trackEvent('click', 'Form', 'Form Submit Button Click', 1);
+        });
+      }
+
+      // Track WhatsApp link clicks
+      const whatsappLinks = document.querySelectorAll('a[href*="wa.me"]');
+      whatsappLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          trackEvent('click', 'Contact', 'WhatsApp Link Click', 1);
+        });
+      });
+
+      // Track PDF download link clicks (when email is sent)
+      // This will be tracked when the download link is clicked from the email
+      // We can also track if they visit the PDF directly
+      const pdfLinks = document.querySelectorAll('a[href*="Build Pack.pdf"]');
+      pdfLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          trackEvent('click', 'Download', 'PDF Download Click', 1);
+        });
+      });
+    });
+
+    // Form submission with enhanced tracking
     document.getElementById('tradePackForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const submitBtn = document.getElementById('submitBtn');
       const formMessage = document.getElementById('formMessage');
       const originalText = submitBtn.textContent;
+      
+      // Track form start
+      trackEvent('form_start', 'Form', 'Trade Pack Form Started', 1);
       
       // Disable button and show loading
       submitBtn.disabled = true;
@@ -888,7 +966,20 @@
         message: document.getElementById('message').value.trim()
       };
       
+      // Validate required fields
+      if (!formData.name || !formData.company || !formData.email) {
+        formMessage.className = 'form-message error';
+        formMessage.textContent = '❌ Please fill in all required fields.';
+        formMessage.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        trackEvent('form_error', 'Form', 'Validation Error', 1);
+        return;
+      }
+      
       try {
+        console.log('📤 Submitting trade pack request:', formData.email);
+        
         const response = await fetch('/api/trade-pack-request', {
           method: 'POST',
           headers: {
@@ -901,19 +992,28 @@
         
         if (response.ok && data.success) {
           // Success
+          console.log('✅ Form submitted successfully:', formData.email);
           formMessage.className = 'form-message success';
           formMessage.textContent = '✅ Thanks! Check your email for your trade pack and referral code.';
           formMessage.style.display = 'block';
           
-          // Track conversion
+          // Track successful conversion
+          trackEvent('conversion', 'Form', 'Trade Pack Request Submitted', 1);
+          
+          // Facebook Pixel Lead event
           if (typeof fbq !== 'undefined') {
-            fbq('track', 'Lead');
+            fbq('track', 'Lead', {
+              content_name: 'Trade Pack Request',
+              content_category: 'Form Submission'
+            });
           }
+          
+          // Google Analytics conversion (fixed - removed placeholder)
           if (typeof gtag !== 'undefined') {
             gtag('event', 'conversion', {
-              'send_to': 'AW-CONVERSION_ID',
               'event_category': 'Trade Pack Request',
-              'event_label': 'Form Submission'
+              'event_label': 'Form Submission',
+              'value': 1
             });
           }
           
@@ -923,16 +1023,20 @@
           // Scroll to message
           formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
-          // Error
+          // Error from server
+          console.error('❌ Form submission error:', data.error);
           formMessage.className = 'form-message error';
           formMessage.textContent = data.error || '❌ Something went wrong. Please try again or WhatsApp us.';
           formMessage.style.display = 'block';
+          trackEvent('form_error', 'Form', 'Server Error', 1);
         }
       } catch (error) {
-        console.error('Form submission error:', error);
+        // Network or other error
+        console.error('❌ Form submission network error:', error);
         formMessage.className = 'form-message error';
         formMessage.textContent = '❌ Network error. Please try again or WhatsApp us.';
         formMessage.style.display = 'block';
+        trackEvent('form_error', 'Form', 'Network Error', 1);
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;

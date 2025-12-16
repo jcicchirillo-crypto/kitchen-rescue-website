@@ -1337,8 +1337,8 @@ app.post('/api/quote/send', async (req, res) => {
                 to: builderEmail,
       subject: `Kitchen Rescue Trade Quote – ${postcode}`,
       html: quoteEmailHTML,
-    };
-
+            };
+            
                 await transporter.sendMail(mailOptions);
     console.log('Trade quote email sent to:', builderEmail);
 
@@ -1351,6 +1351,10 @@ app.post('/api/quote/send', async (req, res) => {
 
 // Trade Pack Request Endpoint (Facebook Ad Landing Page)
 app.post('/api/trade-pack-request', async (req, res) => {
+    const timestamp = new Date().toISOString();
+    console.log('\n📥 ===== TRADE PACK REQUEST RECEIVED =====');
+    console.log('⏰ Time:', timestamp);
+    
     try {
         const {
             name,
@@ -1361,7 +1365,16 @@ app.post('/api/trade-pack-request', async (req, res) => {
             message
         } = req.body || {};
 
+        console.log('📋 Request data:', { 
+            name: name || 'MISSING', 
+            company: company || 'MISSING', 
+            email: email || 'MISSING',
+            phone: phone || 'Not provided',
+            kitchen_fits: kitchen_fits || 'Not specified'
+        });
+
         if (!name || !company || !email) {
+            console.error('❌ VALIDATION FAILED: Missing required fields');
             return res.status(400).json({ error: 'Name, company, and email are required' });
         }
 
@@ -1397,9 +1410,14 @@ app.post('/api/trade-pack-request', async (req, res) => {
             };
 
             await addBooking(tradePackBooking);
-            console.log('✅ Trade pack request saved to admin:', email);
+            console.log('✅ Trade pack request SAVED to admin');
+            console.log('   📧 Email:', email);
+            console.log('   🏢 Company:', company);
+            console.log('   🆔 Booking ID:', bookingId);
+            console.log('   🔑 Referral Code:', referralCode || 'N/A');
         } catch (saveErr) {
-            console.error('❌ Error saving trade pack request to admin:', saveErr);
+            console.error('❌ ERROR saving trade pack request to admin:', saveErr);
+            console.error('   Stack:', saveErr.stack);
             // Don't fail the request if saving fails
         }
 
@@ -1417,7 +1435,7 @@ app.post('/api/trade-pack-request', async (req, res) => {
         if (!transporter) {
             console.log('Email transporter not configured — skipping send.');
             return res.json({ 
-                success: true, 
+            success: true,
                 referralCode,
                 message: 'Trade pack request received. We will contact you within 24 hours.',
                 note: 'Email system not configured - manual follow-up required'
@@ -1433,15 +1451,22 @@ app.post('/api/trade-pack-request', async (req, res) => {
 
         try {
             await transporter.sendMail(mailOptions);
-            console.log('✅ Trade pack email sent to:', email);
+            console.log('✅ Trade pack email SENT successfully');
+            console.log('   📧 To:', email);
         } catch (emailError) {
-            console.error('❌ Error sending trade pack email:', emailError);
+            console.error('❌ ERROR sending trade pack email:', emailError);
+            console.error('   📧 Failed to send to:', email);
             // Still return success if email fails
         }
 
+        console.log('✅ ===== TRADE PACK REQUEST COMPLETED SUCCESSFULLY =====\n');
         return res.json({ success: true, referralCode });
     } catch (err) {
-        console.error('Trade pack request error:', err);
+        console.error('\n❌ ===== TRADE PACK REQUEST ERROR =====');
+        console.error('⏰ Time:', timestamp);
+        console.error('❌ Error:', err);
+        console.error('   Stack:', err.stack);
+        console.error('❌ ============================================\n');
         return res.status(500).json({ error: 'Failed to process trade pack request' });
     }
 });
