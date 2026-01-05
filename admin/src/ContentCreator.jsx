@@ -440,7 +440,7 @@ export default function ContentCreator() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div id="main-content" tabIndex={-1} className="mx-auto max-w-6xl space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -10,6 +10,15 @@ import { Badge } from "./components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/table";
 import Planner from "./Planner";
 import ContentCreator from "./ContentCreator";
+import Availability from "./pages/Availability";
+import AccessibilityPage from "./pages/Accessibility";
+import PrivacyPage from "./pages/Privacy";
+import TermsPage from "./pages/Terms";
+import RefundsPage from "./pages/Refunds";
+import { Footer } from "./components/Footer";
+import { AnalyticsGate } from "./components/AnalyticsGate";
+import { CookieBanner } from "./components/CookieBanner";
+import { BUSINESS } from "./config/business";
 import "./App.css";
 
 const STATUS_MAP = {
@@ -197,7 +206,7 @@ function KitchenRescueAdmin() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl p-4">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <Stat icon={CalendarIcon} label="Pod on hire" value={bookings.filter(b=>b.status==="Confirmed").length} />
           <Stat icon={CreditCard} label="Deposits pending" value={bookings.filter(b=>b.status!=="Confirmed" && b.status!=="Quote Calculated" && b.status!=="Trade Quote Request" && b.status!=="Cancelled").length} />
@@ -304,6 +313,8 @@ function KitchenRescueAdmin() {
           </CardContent>
         </Card>
       </main>
+
+      <Footer />
     </div>
   );
 }
@@ -311,10 +322,29 @@ function KitchenRescueAdmin() {
 export default function App() {
   return (
     <Router>
+      {/* Cookie Consent Banner */}
+      <CookieBanner />
+      
+      {/* Analytics - only loads if consent is "all" */}
+      <AnalyticsGate />
+      
+      {/* Skip to content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow focus:outline focus:outline-2 focus:outline-red-600 focus:outline-offset-2"
+      >
+        Skip to content
+      </a>
+      
       <Routes>
         <Route path="/" element={<KitchenRescueAdmin />} />
         <Route path="/planner" element={<Planner />} />
         <Route path="/content-creator" element={<ContentCreator />} />
+        <Route path="/availability" element={<Availability />} />
+        <Route path="/accessibility" element={<AccessibilityPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/refunds" element={<RefundsPage />} />
       </Routes>
     </Router>
   );

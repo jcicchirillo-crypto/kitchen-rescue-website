@@ -1085,7 +1085,7 @@ export default function Planner() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl p-4">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl p-4">
         {/* Manage Projects Modal */}
         {showManageProjects && (
           <Card className="mb-4 bg-white border-2 border-blue-200">

@@ -22,34 +22,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="js/business-constants.js"></script>
     
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9G81ZHPHGF"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-9G81ZHPHGF');
-    </script>
+    <!-- Cookie Consent - Must load before analytics -->
+    <script src="js/cookie-consent.js"></script>
     
-    <!-- Meta Pixel Code -->
-    <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1166460888955394');
-    fbq('track', 'PageView');
-    </script>
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=1166460888955394&ev=PageView&noscript=1"
-    /></noscript>
-    <!-- End Meta Pixel Code -->
+    <!-- Analytics scripts are loaded by cookie-consent.js only if user accepts -->
     
     <!-- FAQ Schema -->
     <script type="application/ld+json">
@@ -150,6 +128,7 @@
     </script>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
     <!-- Top bar -->
     <header class="header">
         <div class="container">
@@ -194,7 +173,7 @@
     </nav>
 
     <!-- Hero -->
-    <section class="hero">
+    <section id="main-content" class="hero">
         <div class="container">
             <div class="hero-content">
                 <div class="hero-text">
@@ -501,12 +480,12 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start;">
                 <!-- LEFT: Pricing guide -->
                 <div style="border-radius: 1rem; background: white; border: 1px solid #e5e7eb; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                    <h3 style="font-size: 1.5rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">£499/week • flexible hire</h3>
+                    <h3 style="font-size: 1.5rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">£499 per week (incl. VAT) • flexible hire</h3>
                     <p style="font-size: 0.875rem; color: #6b7280;">Guide pricing. Final quote depends on distance, dates and site access.</p>
 
                     <div style="margin-top: 2rem; border-radius: 0.75rem; border: 1px solid #f3f4f6; padding: 1.5rem; background: #f9fafb;">
                         <p style="font-size: 0.875rem; color: #6b7280;">Weekly Hire Rate</p>
-                        <p style="font-size: 1.875rem; font-weight: 700; color: #dc2626; margin-top: 0.25rem;">£499.00 per week</p>
+                        <p style="font-size: 1.875rem; font-weight: 700; color: #dc2626; margin-top: 0.25rem;">£499 per week (incl. VAT)</p>
                         </div>
                         
                     <div style="margin-top: 2rem; border-radius: 0.75rem; border: 1px solid #f3f4f6; overflow: hidden;">
@@ -585,7 +564,7 @@
                         <span class="faq-icon">+</span>
                     </div>
                     <div class="faq-answer">
-                        <p>Our portable kitchen pod costs £499 per week (incl. VAT). Delivery from £75.00 – enter your postcode for delivery and setup costs.</p>
+                        <p>Our portable kitchen pod costs £499 per week (incl. VAT). Delivery & collection from £150 + VAT – enter your postcode for delivery and setup costs.</p>
                     </div>
                 </div>
                 <div class="faq-card">
@@ -770,6 +749,7 @@
                         <a href="privacy-policy.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Privacy Policy</a>
                         <a href="terms-conditions.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Terms & Conditions</a>
                         <a href="refund-cancellation-policy.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Refund Policy</a>
+                        <a href="accessibility-statement.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Accessibility Statement</a>
                         <a href="#" id="cookieSettingsLink" style="color: #9ca3af; text-decoration: none;">Cookie Settings</a>
                     </p>
                 </div>
