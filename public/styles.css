@@ -5,6 +5,13 @@
     box-sizing: border-box;
 }
 
+/* Ensure no red lines or borders at top of viewport */
+html, body {
+    border-top: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 /* Smooth scrolling for all devices */
 html {
     scroll-behavior: smooth;
@@ -229,6 +236,12 @@ html {
     /* Hide scrollbars but allow scrolling */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
+    /* Remove any borders or outlines */
+    border: none;
+    border-top: none;
+    outline: none;
+    margin: 0;
+    padding: 0;
 }
 
 html::-webkit-scrollbar {
@@ -245,6 +258,12 @@ body {
     /* Hide scrollbars but allow scrolling */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
+    /* Remove any borders or outlines */
+    border: none;
+    border-top: none;
+    outline: none;
+    margin: 0;
+    padding: 0;
 }
 
 body::-webkit-scrollbar {
@@ -267,6 +286,9 @@ body::-webkit-scrollbar {
     background-color: #000000;
     color: #ffffff;
     overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    position: relative;
 }
 
 .header .container {
@@ -1163,7 +1185,7 @@ html {
 /* Skip to content link for accessibility */
 .skip-to-content {
     position: absolute;
-    top: -40px;
+    top: -100px;
     left: 0;
     background: #dc2626;
     color: white;
@@ -1172,6 +1194,10 @@ html {
     font-weight: 600;
     z-index: 10000;
     border-radius: 0 0 0.5rem 0;
+    clip: rect(0, 0, 0, 0);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
 }
 
 .skip-to-content:focus {
