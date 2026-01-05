@@ -224,6 +224,17 @@ body {
     }
 }
 
+html {
+    overflow-x: hidden;
+    /* Hide scrollbars but allow scrolling */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     line-height: 1.6;
@@ -231,10 +242,13 @@ body {
     background: radial-gradient(circle at 20% 0%, #1a1a1a 0%, #040404 50%, #010101 100%);
     font-weight: 400;
     overflow-x: hidden;
+    /* Hide scrollbars but allow scrolling */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
-html {
-    overflow-x: hidden;
+body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .container {
@@ -247,9 +261,12 @@ html {
 /* Header */
 .header {
     width: 100%;
+    max-width: 100%;
     border-bottom: 1px solid #e2e8f0;
+    border-top: none;
     background-color: #000000;
     color: #ffffff;
+    overflow-x: hidden;
 }
 
 .header .container {
