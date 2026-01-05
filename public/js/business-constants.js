@@ -17,7 +17,7 @@ const BUSINESS_INFO = {
 const PRICING = {
     weeklyRate: "£499 per week (incl. VAT)",
     dailyRate: "£70 per day",
-    deliveryFrom: "from £150 + VAT",
+    deliveryFrom: "£150 + VAT (£75 delivery + £75 collection)",
     securityDeposit: "£250",
     securityDepositAmount: 250
 };

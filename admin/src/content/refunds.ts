@@ -15,17 +15,29 @@ This policy applies to services provided by **${BUSINESS.legalEntityName}** trad
 
 Registered and trading address: ${BUSINESS.registeredOffice}
 
-## 2. Booking Confirmation
-All bookings are confirmed upon receipt of the required security deposit payment. The security deposit amount is £250 and is required to secure your booking dates. This security deposit will be refunded once we have inspected the pod upon return, normally within 5 working days of receiving the unit back, provided the pod is returned in the same condition as delivered with all appliances clean and functioning, no damage, and all accessories returned.
+## 2. Booking & Security Deposit (£250)
+A £250 deposit is required to secure your booking.
+
+If you cancel more than 1 month before the scheduled delivery date, the £250 deposit will be refunded in full.
+
+If the hire goes ahead, the £250 deposit is retained as a security deposit for the duration of the hire. The deposit is refundable after collection and inspection of the unit, subject to deductions for:
+- damage beyond fair wear and tear
+- missing items
+- excessive cleaning
+- misuse of the equipment
+
+Any deductions will be itemised on request.
+
+Refunds of any remaining balance will be processed within 5 working days of inspection.
 
 ## 3. Cancellation Policy
 
 ### 3.1 Customer Cancellation
 You may cancel your booking at any time by contacting us at ${BUSINESS.supportEmail} or ${BUSINESS.phone}. Cancellation charges apply as follows:
 
-- **More than 1 month before delivery:** Full refund of deposit, no cancellation fee
-- **7–30 days before delivery:** 50% of deposit refunded
-- **Less than 7 days before delivery:** No refund of deposit
+- **More than 1 month before delivery:** Full refund of the £250 deposit and any hire payments made
+- **7–30 days before delivery:** 50% refund of hire payments (deposit retained)
+- **Less than 7 days before delivery:** No refund of hire payments (deposit retained)
 - **On or after delivery day:** No refund available
 
 ### 3.2 Company Cancellation
@@ -41,11 +53,13 @@ In the event of cancellation by The Kitchen Rescue, we will provide a full refun
 ## 4. Refund Policy
 
 ### 4.1 Security Deposit Refund (£250)
-Your £250 deposit will be refunded in full upon successful return and inspection of the kitchen pod, provided that:
-- The pod is returned in the same condition as delivered
-- All appliances are clean and functioning
-- No damage has occurred during the hire period
-- All accessories and equipment are returned
+If the hire goes ahead, the £250 deposit is retained as a security deposit for the duration of the hire. The deposit is refundable after collection and inspection of the unit, subject to deductions for:
+- damage beyond fair wear and tear
+- missing items
+- excessive cleaning
+- misuse of the equipment
+
+Any deductions will be itemised on request.
 
 ### 4.2 Damage Charges
 Any damage to the kitchen pod or its contents will result in charges being deducted from your deposit. Charges will be based on repair costs or replacement value. You will be notified of any charges before they are applied.

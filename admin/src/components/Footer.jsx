@@ -24,7 +24,7 @@ export function Footer() {
           © {new Date().getFullYear()} {BUSINESS.tradingName}. {BUSINESS.legalEntityName} (Company No.{" "}
           {BUSINESS.companyNumber}) VAT No. {BUSINESS.vatNumber}.
         </p>
-        <p className="text-sm text-slate-600 opacity-80">{BUSINESS.tradingAddress}</p>
+        <p className="text-sm text-slate-600 opacity-80">Registered office: {BUSINESS.registeredOffice}</p>
       </div>
     </footer>
   );

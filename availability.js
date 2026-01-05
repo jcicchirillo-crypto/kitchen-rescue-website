@@ -57,24 +57,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     };
 
-    // Admin reveal: show only with ?admin=1 or on localhost
-    const adminSection = document.getElementById('adminSection');
-    const isAdmin = location.search.includes('admin=1') || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (adminSection && isAdmin) adminSection.style.display = '';
-
     // Load initial JSON
     fetch('assets/availability.json')
         .then(r => r.json())
         .then(data => {
             state.unavailable = Array.isArray(data.unavailable) ? data.unavailable : [];
             renderAll();
-            hydrateAdmin();
             hydrateNavigation();
         })
         .catch(() => {
             state.unavailable = [];
             renderAll();
-            hydrateAdmin();
             hydrateNavigation();
         });
 
@@ -84,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         calendarGrid.appendChild(renderMonth(currentMonth, state));
         calendarGrid.appendChild(renderMonth(nextMonth, state));
         currentMonthDisplay.textContent = `${currentMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })} & ${nextMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}`;
-        renderRangesList();
     }
 
     function hydrateNavigation() {
@@ -105,95 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Admin form logic
-    const rangeStart = document.getElementById('rangeStart');
-    const rangeEnd = document.getElementById('rangeEnd');
-    const addRangeBtn = document.getElementById('addRangeBtn');
-    const clearRangesBtn = document.getElementById('clearRangesBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const rangesList = document.getElementById('rangesList');
-    const copyJsonBtn = document.getElementById('copyJsonBtn');
-
-    function hydrateAdmin() {
-        addRangeBtn?.addEventListener('click', () => {
-            const s = rangeStart.value;
-            const e = rangeEnd.value || s;
-            if (!s) {
-                alert('Pick a start date');
-                return;
-            }
-            if (e < s) {
-                alert('End date must be the same or after start');
-                return;
-            }
-            state.unavailable.push({ start: s, end: e });
-            rangeStart.value = '';
-            rangeEnd.value = '';
-            renderAll();
-        });
-
-        clearRangesBtn?.addEventListener('click', () => {
-            if (confirm('Clear all unavailable ranges?')) {
-                state.unavailable = [];
-                renderAll();
-            }
-        });
-
-        downloadBtn?.addEventListener('click', () => {
-            const jsonStr = JSON.stringify({ unavailable: state.unavailable }, null, 2);
-            try {
-                const blob = new Blob([jsonStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'availability.json';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-            } catch (e) {
-                // Fallback: open in new tab
-                const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
-                window.open(dataUrl, '_blank');
-            }
-        });
-
-        copyJsonBtn?.addEventListener('click', async () => {
-            const jsonStr = JSON.stringify({ unavailable: state.unavailable }, null, 2);
-            try {
-                await navigator.clipboard.writeText(jsonStr);
-                alert('JSON copied to clipboard');
-            } catch (e) {
-                // Fallback: prompt
-                window.prompt('Copy JSON:', jsonStr);
-            }
-        });
-    }
-
-    function renderRangesList() {
-        if (!rangesList) return;
-        rangesList.innerHTML = '';
-        state.unavailable.forEach((r, idx) => {
-            const li = document.createElement('li');
-            li.style.display = 'flex';
-            li.style.alignItems = 'center';
-            li.style.justifyContent = 'space-between';
-            li.style.border = '1px solid #e5e7eb';
-            li.style.borderRadius = '0.5rem';
-            li.style.padding = '0.5rem 0.75rem';
-            li.innerHTML = `<span style="font-size: 0.875rem; color: #374151;">${r.start} → ${r.end}</span>`;
-            const btn = document.createElement('button');
-            btn.textContent = 'Remove';
-            btn.className = 'btn';
-            btn.style.border = '1px solid #d1d5db';
-            btn.addEventListener('click', () => {
-                state.unavailable.splice(idx, 1);
-                renderAll();
-            });
-            li.appendChild(btn);
-            rangesList.appendChild(li);
-        });
-    }
 });
 
 function renderMonth(monthStart, availability) {

@@ -32,17 +32,20 @@ These Terms & Conditions apply to hire of a temporary kitchen provided by **${BU
 Hire is charged at **£499 per week (incl. VAT)** unless stated otherwise in writing.
 
 ### 3.2 Delivery & collection
-Delivery and collection charges will be confirmed in your quote/booking. Where stated as "from £150 + VAT", the final cost depends on distance and access.
+Delivery and collection charges will be confirmed in your quote/booking. Where stated as "Delivery & collection: £150 + VAT (£75 delivery + £75 collection)", the final cost depends on distance and access.
 
-### 3.3 Security Deposit (£250)
-We take a **£250 Security Deposit** before delivery (or at the time of booking).  
-This is **refundable** after the Equipment is collected and inspected, subject to any deductions for:
+### 3.3 Booking & Security Deposit (£250)
+A **£250 deposit** is required to secure your booking.
+
+If you cancel more than 1 month before the scheduled delivery date, the £250 deposit will be refunded in full.
+
+If the hire goes ahead, the £250 deposit is retained as a security deposit for the duration of the hire. The deposit is refundable after collection and inspection of the unit, subject to deductions for:
 - damage beyond fair wear and tear,
 - missing items,
-- excessive cleaning required,
-- call-outs caused by misuse.
+- excessive cleaning,
+- misuse of the equipment.
 
-We will provide a breakdown of any deductions on request.
+Any deductions will be itemised on request.
 
 Refunds of any remaining balance will be processed within 5 working days of inspection.
 
@@ -57,12 +60,10 @@ You agree to:
 
 ## 5. Cancellations and changes
 ### 5.1 If you cancel
-- **More than 1 month before delivery:** Full refund of any hire payments made (Security Deposit retained).
-- **7–30 days before delivery:** 50% refund of hire payments (Security Deposit retained).
-- **Less than 7 days before delivery:** No refund of hire payments (Security Deposit retained).
+- **More than 1 month before delivery:** Full refund of the £250 deposit and any hire payments made.
+- **7–30 days before delivery:** 50% refund of hire payments (deposit retained).
+- **Less than 7 days before delivery:** No refund of hire payments (deposit retained).
 - **On or after delivery day:** No refund available.
-
-The £250 Security Deposit is non-refundable in the event of customer cancellation, as it secures your booking slot and delivery allocation.
 
 ### 5.2 If we cancel
 If we need to cancel and cannot provide a suitable alternative, we will refund any amounts paid for the affected period (including the Security Deposit).

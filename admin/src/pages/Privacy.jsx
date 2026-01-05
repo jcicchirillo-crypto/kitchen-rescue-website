@@ -7,8 +7,15 @@ export default function PrivacyPage() {
       <p className="mt-4 text-sm text-slate-600">Last updated: 5 January 2026</p>
       
       <div className="mt-8 prose prose-slate max-w-none">
-        <p>
+        <h2 className="mt-8 text-xl font-semibold">Who we are</h2>
+        <p className="mt-2">
           This Privacy Policy applies to services provided by <strong>{BUSINESS.legalEntityName}</strong> trading as <strong>{BUSINESS.tradingName}</strong>.
+        </p>
+        <p className="mt-2">
+          <strong>Registered office:</strong> {BUSINESS.registeredOffice}
+        </p>
+        <p className="mt-2">
+          Company No. {BUSINESS.companyNumber}, VAT No. {BUSINESS.vatNumber}
         </p>
         
         <h2 className="mt-8 text-xl font-semibold">How we use your information</h2>
@@ -33,6 +40,7 @@ export default function PrivacyPage() {
         <ul className="mt-2 list-disc pl-6">
           <li>Email: <a href={`mailto:${BUSINESS.supportEmail}`} className="text-blue-600 hover:underline">{BUSINESS.supportEmail}</a></li>
           <li>Phone: <a href={`tel:${BUSINESS.phone.replace(/\s/g, '')}`} className="text-blue-600 hover:underline">{BUSINESS.phone}</a></li>
+          <li>Registered office: {BUSINESS.registeredOffice}</li>
         </ul>
       </div>
     </div>
