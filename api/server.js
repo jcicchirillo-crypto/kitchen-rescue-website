@@ -102,62 +102,86 @@ app.get('/api/test-supabase', async (req, res) => {
     const { supabaseAdmin } = require('./lib/supabaseAdmin');
     const result = {
         timestamp: new Date().toISOString(),
-        supabaseUrl: process.env.SUPABASE_URL ? 'Set' : 'MISSING',
-        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'MISSING',
+        supabaseUrl: process.env.SUPABASE_URL || 'MISSING',
+        supabaseUrlSet: !!process.env.SUPABASE_URL,
+        supabaseKeySet: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        supabaseKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0,
         supabaseConnected: !!supabaseAdmin,
         test: null,
-        error: null
+        error: null,
+        errorDetails: null
     };
     
-    if (supabaseAdmin) {
-        try {
-            // Get total count
-            const { count, error: countError } = await supabaseAdmin
-                .from('bookings')
-                .select('*', { count: 'exact', head: true });
-            
-            if (countError) {
-                result.error = countError.message;
-                result.errorCode = countError.code;
-            } else {
-                result.test = 'Connection successful';
-                result.totalBookings = count || 0;
-                
-                // Get sample data
-                const { data, error: dataError } = await supabaseAdmin
-                    .from('bookings')
-                    .select('*')
-                    .limit(5)
-                    .order('created_at', { ascending: false });
-                
-                if (!dataError && data) {
-                    result.sampleBookings = data.length;
-                    result.sample = data.map(b => ({
-                        id: b.id,
-                        booking_reference: b.booking_reference,
-                        customer_name: b.customer_name,
-                        customer_email: b.customer_email,
-                        status: b.status,
-                        source: b.source,
-                        created_at: b.created_at
-                    }));
-                    
-                    // Count trade pack requests
-                    const tradePack = data.filter(b => 
-                        b.status === 'Trade Pack Request' || 
-                        b.source === 'trade-landing' || 
-                        b.source === 'trade-quote' ||
-                        b.source === 'trade-quote-calculated'
-                    );
-                    result.tradePackInSample = tradePack.length;
-                }
-            }
-        } catch (e) {
-            result.error = e.message;
-            result.errorStack = e.stack;
-        }
-    } else {
+    if (!supabaseAdmin) {
         result.error = 'Supabase admin client not initialized';
+        result.errorDetails = 'Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables';
+        return res.json(result);
+    }
+    
+    try {
+        console.log('🔍 Test endpoint: Attempting Supabase query...');
+        console.log('   URL:', process.env.SUPABASE_URL);
+        console.log('   Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+        
+        // Get total count with better error handling
+        const { count, error: countError } = await supabaseAdmin
+            .from('bookings')
+            .select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+            result.error = countError.message;
+            result.errorCode = countError.code;
+            result.errorDetails = countError.details || countError.hint || 'No additional details';
+            result.errorFull = JSON.stringify(countError, null, 2);
+            console.error('❌ Supabase query error:', countError);
+            return res.json(result);
+        }
+        
+        result.test = 'Connection successful';
+        result.totalBookings = count || 0;
+        console.log('✅ Supabase query successful, count:', count);
+        
+        // Get sample data
+        const { data, error: dataError } = await supabaseAdmin
+            .from('bookings')
+            .select('*')
+            .limit(5)
+            .order('created_at', { ascending: false });
+        
+        if (dataError) {
+            result.error = 'Error fetching sample data: ' + dataError.message;
+            result.errorCode = dataError.code;
+            return res.json(result);
+        }
+        
+        if (data) {
+            result.sampleBookings = data.length;
+            result.sample = data.map(b => ({
+                id: b.id,
+                booking_reference: b.booking_reference,
+                customer_name: b.customer_name,
+                customer_email: b.customer_email,
+                status: b.status,
+                source: b.source,
+                created_at: b.created_at
+            }));
+            
+            // Count trade pack requests
+            const tradePack = data.filter(b => 
+                b.status === 'Trade Pack Request' || 
+                b.source === 'trade-landing' || 
+                b.source === 'trade-quote' ||
+                b.source === 'trade-quote-calculated'
+            );
+            result.tradePackInSample = tradePack.length;
+        }
+        
+    } catch (e) {
+        result.error = e.message;
+        result.errorType = e.constructor.name;
+        result.errorStack = e.stack;
+        result.errorDetails = 'This is a network/connection error. Possible causes: wrong URL, network issue, or Supabase project paused.';
+        console.error('❌ Exception in test endpoint:', e);
     }
     
     res.json(result);
