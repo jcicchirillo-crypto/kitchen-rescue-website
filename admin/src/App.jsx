@@ -150,9 +150,34 @@ function KitchenRescueAdmin() {
     if (res.ok) {
       const data = await res.json();
       console.log('📥 Admin received bookings:', data.length);
+      
+      // Count trade pack requests
+      const tradePackRequests = data.filter(b => 
+        b.status === 'Trade Pack Request' || 
+        b.source === 'trade-landing' || 
+        b.source === 'trade-quote' ||
+        b.source === 'trade-quote-calculated'
+      );
+      console.log('📦 Trade pack requests in response:', tradePackRequests.length);
+      
+      // Count December 2024
+      const december2024 = data.filter(b => {
+        if (!b.createdAt && !b.timestamp) return false;
+        const date = new Date(b.createdAt || b.timestamp);
+        return date.getMonth() === 11 && date.getFullYear() === 2024;
+      });
+      console.log('📅 December 2024 bookings in response:', december2024.length);
+      
       if (data.length > 0) {
         console.log('Sample booking:', data[0]);
       }
+      if (tradePackRequests.length > 0) {
+        console.log('Sample trade pack request:', tradePackRequests[0]);
+      }
+      if (december2024.length > 0) {
+        console.log('Sample December booking:', december2024[0]);
+      }
+      
       // Data is already mapped from Supabase schema in bookings-storage.js
       const mappedBookings = data.map(b => ({
         ...b,
@@ -160,6 +185,26 @@ function KitchenRescueAdmin() {
         endDate: b.endDate || b.selectedDates?.[b.selectedDates?.length - 1] || new Date().toISOString(),
       }));
       console.log('📊 Mapped bookings:', mappedBookings.length);
+      
+      // Log all trade pack requests after mapping
+      const mappedTradePack = mappedBookings.filter(b => 
+        b.status === 'Trade Pack Request' || 
+        b.source === 'trade-landing' || 
+        b.source === 'trade-quote' ||
+        b.source === 'trade-quote-calculated'
+      );
+      console.log('📦 Trade pack requests after mapping:', mappedTradePack.length);
+      if (mappedTradePack.length > 0) {
+        console.log('All trade pack requests:', mappedTradePack.map(b => ({
+          id: b.id,
+          name: b.name,
+          email: b.email,
+          status: b.status,
+          source: b.source,
+          createdAt: b.createdAt || b.timestamp
+        })));
+      }
+      
       setBookings(mappedBookings);
     } else {
       console.error('❌ Failed to fetch bookings:', res.status, res.statusText);
@@ -301,7 +346,9 @@ function KitchenRescueAdmin() {
                       {b.source === 'quote' && <Badge className="bg-blue-100 text-blue-700">Quote Request</Badge>}
                       {b.source === 'trade-quote' && <Badge className="bg-purple-100 text-purple-700">Trade Quote</Badge>}
                       {b.source === 'trade-quote-calculated' && <Badge className="bg-orange-100 text-orange-700">Quote Calculated</Badge>}
-                      {!b.source && <Badge className="bg-gray-100 text-gray-700">Direct</Badge>}
+                      {b.source === 'trade-landing' && <Badge className="bg-green-100 text-green-700">Trade Pack</Badge>}
+                      {b.status === 'Trade Pack Request' && <Badge className="bg-green-100 text-green-700">Trade Pack</Badge>}
+                      {!b.source && b.status !== 'Trade Pack Request' && <Badge className="bg-gray-100 text-gray-700">Direct</Badge>}
                     </TableCell>
                     <TableCell>
                       <Badge className={STATUS_MAP[b.status]?.color}>{b.status}</Badge>

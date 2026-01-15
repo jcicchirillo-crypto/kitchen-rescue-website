@@ -19,10 +19,18 @@ async function getAllBookings() {
     if (useSupabase && supabase) {
         try {
             console.log('📥 Fetching bookings from Supabase (admin client)...');
+            console.log('🔍 Supabase client available:', !!supabase);
+            console.log('🔍 Supabase URL:', process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 30) + '...' : 'MISSING');
+            
             const { data, error } = await supabase
                 .from('bookings')
                 .select('*')
                 .order('created_at', { ascending: false });
+            
+            console.log('🔍 Supabase query completed');
+            console.log('   Data present:', !!data);
+            console.log('   Data length:', data?.length || 0);
+            console.log('   Error present:', !!error);
             
             if (error) {
                 console.error('❌❌❌ SUPABASE SELECT ERROR ❌❌❌');
@@ -31,7 +39,17 @@ async function getAllBookings() {
                 console.error('Error message:', error.message);
                 console.error('Error details:', error.details);
                 console.error('Error hint:', error.hint);
+                console.error('⚠️ Returning empty array due to error - this will cause 0 bookings in admin!');
                 return [];
+            }
+            
+            // Log if we got data but it's empty
+            if (!data || data.length === 0) {
+                console.warn('⚠️ Supabase query returned empty array (no bookings in database)');
+                console.warn('   This could mean:');
+                console.warn('   1. Database is actually empty');
+                console.warn('   2. Wrong Supabase project (check SUPABASE_URL)');
+                console.warn('   3. Table name is wrong or table doesn\'t exist');
             }
             
             console.log(`✅ Fetched ${data?.length || 0} bookings from Supabase`);
@@ -134,7 +152,7 @@ async function getAllBookings() {
             ).length;
             console.log(`📦 Trade pack requests before filter: ${tradePackBeforeFilter}`);
             
-            // Apply filter - be VERY lenient with trade pack requests
+            // Apply filter - be VERY lenient, only filter out completely invalid records
             const filteredData = mappedData.filter(booking => {
                 // NEVER filter out trade pack requests or trade quotes - these are valuable leads
                 // Keep ALL of them regardless of data quality
@@ -146,12 +164,17 @@ async function getAllBookings() {
                     return true; // Always keep trade pack requests
                 }
                 
-                // For other bookings, require at least name (email is preferred but not always required for quotes)
-                if (!booking.name || booking.name === 'Unknown') {
-                    console.warn('⚠️ Filtering out booking with invalid name:', booking.id, 'Status:', booking.status);
+                // For other bookings, only filter if BOTH name AND email are completely missing
+                // Don't filter just because name is 'Unknown' - that's a default value
+                const hasName = booking.name && booking.name !== 'Unknown' && booking.name.trim() !== '';
+                const hasEmail = booking.email && booking.email.trim() !== '';
+                
+                if (!hasName && !hasEmail) {
+                    console.warn('⚠️ Filtering out booking with no name AND no email:', booking.id, 'Status:', booking.status);
                     return false;
                 }
-                return true;
+                
+                return true; // Keep if it has at least name OR email
             });
             
             // Count trade pack requests after filtering

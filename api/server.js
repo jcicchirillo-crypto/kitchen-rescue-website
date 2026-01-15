@@ -97,6 +97,41 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// Simple test endpoint to check Supabase connection (no auth required for testing)
+app.get('/api/test-supabase', async (req, res) => {
+    const { supabaseAdmin } = require('./lib/supabaseAdmin');
+    const result = {
+        timestamp: new Date().toISOString(),
+        supabaseUrl: process.env.SUPABASE_URL ? 'Set' : 'MISSING',
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'MISSING',
+        supabaseConnected: !!supabaseAdmin,
+        test: null,
+        error: null
+    };
+    
+    if (supabaseAdmin) {
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('bookings')
+                .select('count', { count: 'exact', head: true });
+            
+            if (error) {
+                result.error = error.message;
+                result.errorCode = error.code;
+            } else {
+                result.test = 'Connection successful';
+                result.bookingCount = data?.length || 'unknown';
+            }
+        } catch (e) {
+            result.error = e.message;
+        }
+    } else {
+        result.error = 'Supabase admin client not initialized';
+    }
+    
+    res.json(result);
+});
+
 // Serve all HTML files
 app.get('/*.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', req.path));
@@ -730,9 +765,33 @@ const authenticateAdmin = (req, res, next) => {
 // Get all bookings
 app.get('/api/bookings', authenticateAdmin, async (req, res) => {
     try {
+        // Check if diagnostic info is requested
+        const includeDiagnostics = req.query.diagnose === 'true';
+        
         console.log('📥 Admin requesting bookings...');
+        console.log('🔍 Supabase URL set:', !!process.env.SUPABASE_URL);
+        console.log('🔍 Supabase key set:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+        
+        const { supabaseAdmin } = require('./lib/supabaseAdmin');
+        const diagnostics = {
+            supabase: {
+                connected: !!supabaseAdmin,
+                url: process.env.SUPABASE_URL ? 'Set' : 'MISSING',
+                serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'MISSING',
+            }
+        };
+        
         const bookings = await getAllBookings();
-        console.log(`✅ Returning ${bookings.length} bookings to admin`);
+        console.log(`✅ getAllBookings() returned ${bookings.length} bookings`);
+        
+        if (bookings.length === 0) {
+            console.warn('⚠️ WARNING: No bookings returned from getAllBookings()');
+            console.warn('   This could mean:');
+            console.warn('   1. Supabase connection failed');
+            console.warn('   2. Wrong Supabase project (check environment variables)');
+            console.warn('   3. Database is empty');
+            console.warn('   4. All bookings were filtered out');
+        }
         
         // Debug: Count trade pack requests
         const tradePackRequests = bookings.filter(b => 
@@ -751,10 +810,72 @@ app.get('/api/bookings', authenticateAdmin, async (req, res) => {
         });
         console.log(`📅 Found ${decemberBookings.length} bookings from December 2024`);
         
+        // Log sample if we have bookings
+        if (bookings.length > 0) {
+            console.log('📋 Sample booking:', {
+                id: bookings[0].id,
+                name: bookings[0].name,
+                email: bookings[0].email,
+                status: bookings[0].status,
+                source: bookings[0].source
+            });
+        }
+        
+        // If diagnostic requested, include diagnostic info
+        if (includeDiagnostics) {
+            // Try to get raw data from Supabase
+            if (supabaseAdmin) {
+                try {
+                    const { data: rawData, error: rawError } = await supabaseAdmin
+                        .from('bookings')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (!rawError) {
+                        diagnostics.rawData = {
+                            totalCount: rawData?.length || 0,
+                            tradePackCount: (rawData || []).filter(b => 
+                                b.status === 'Trade Pack Request' || 
+                                b.source === 'trade-landing' || 
+                                b.source === 'trade-quote' ||
+                                b.source === 'trade-quote-calculated'
+                            ).length,
+                            december2024Count: (rawData || []).filter(b => {
+                                if (!b.created_at) return false;
+                                const date = new Date(b.created_at);
+                                return date.getMonth() === 11 && date.getFullYear() === 2024;
+                            }).length
+                        };
+                    } else {
+                        diagnostics.rawError = rawError.message;
+                    }
+                } catch (e) {
+                    diagnostics.rawError = e.message;
+                }
+            }
+            
+            diagnostics.mappedData = {
+                totalCount: bookings.length,
+                tradePackCount: tradePackRequests.length,
+                december2024Count: decemberBookings.length
+            };
+            
+            return res.json({
+                bookings: bookings,
+                diagnostics: diagnostics
+            });
+        }
+        
         res.json(bookings);
     } catch (error) {
         console.error('❌ Error fetching bookings:', error);
-        res.json([]);
+        console.error('   Error message:', error.message);
+        console.error('   Error stack:', error.stack);
+        res.status(500).json({ 
+            error: 'Failed to fetch bookings',
+            message: error.message,
+            bookings: [] 
+        });
     }
 });
 
