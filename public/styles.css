@@ -1454,23 +1454,35 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     font-weight: 700 !important;
 }
 
+/* Dark background text in spec - general rule for paragraphs on dark background */
+.spec p:not([style*="color"]) {
+    color: #dedede !important;
+}
+
+/* Cards with light backgrounds - make text dark and readable (must come after general rule) */
+/* Use very specific selectors to ensure these override any other rules */
 .spec [style*="background: white"] p,
 .spec [style*="background:#f9fafb"] p,
 .spec [style*="background: #f9fafb"] p,
 .spec [style*="background:#ffffff"] p,
-.spec [style*="background:white"] p {
+.spec [style*="background:white"] p,
+.spec div[style*="background: #f9fafb"] p,
+.spec div[style*="background:#f9fafb"] p,
+.spec div[style*="background: white"] p,
+.spec div[style*="background:#ffffff"] p,
+.spec div[style*="background:white"] p,
+.spec > div > div[style*="background: #f9fafb"] p,
+.spec > div > div[style*="background:#f9fafb"] p {
     color: #1f2937 !important;
     font-weight: 500 !important;
 }
 
-/* Dark background text in spec */
-.spec p:not([style*="background"]),
 .spec li:not([style*="background"]) {
     color: #dedede !important;
 }
 
-.spec [style*="color: #111827"]:not([style*="background"]),
-.spec [style*="color: #374151"]:not([style*="background"]) {
+.spec [style*="color: #111827"]:not([style*="background"]):not([style*="color: #1f2937"]),
+.spec [style*="color: #374151"]:not([style*="background"]):not([style*="color: #1f2937"]) {
     color: #dedede !important;
 }
 
@@ -1518,4 +1530,13 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     .gallery-item img {
         height: 160px;
     }
+}
+
+/* Force dark text in light background cards - must be last to override everything */
+.spec div[style*="background: #f9fafb"] p[style*="color: #1f2937"],
+.spec div[style*="background:#f9fafb"] p[style*="color: #1f2937"],
+.spec div[style*="background: #f9fafb"] p[style*="color:#1f2937"],
+.spec div[style*="background:#f9fafb"] p[style*="color:#1f2937"] {
+    color: #1f2937 !important;
+    font-weight: 500 !important;
 }
