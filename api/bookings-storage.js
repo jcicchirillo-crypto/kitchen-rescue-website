@@ -55,7 +55,8 @@ async function getAllBookings() {
                 const customerName = booking.customer_name || booking.name || booking.customerName || 'Unknown';
                 
                 // Try multiple possible email fields
-                const customerEmail = booking.customer_email || booking.email || booking.customerEmail || '';
+                // Handle null/undefined explicitly - don't convert to empty string yet
+                const customerEmail = booking.customer_email || booking.email || booking.customerEmail || null;
                 
                 // Try multiple possible phone fields
                 const customerPhone = booking.customer_phone || booking.phone || booking.customerPhone || null;
@@ -92,7 +93,7 @@ async function getAllBookings() {
                 return {
                     id: bookingId,
                     name: customerName,
-                    email: customerEmail,
+                    email: customerEmail || '', // Convert null to empty string for consistency
                     phone: customerPhone,
                     postcode: booking.postcode || null,
                     selectedDates: selectedDates,
@@ -111,9 +112,20 @@ async function getAllBookings() {
                     timestamp: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString()
                 };
             }).filter(booking => {
-                // Filter out bookings with invalid data (no name or email)
-                if (!booking.name || booking.name === 'Unknown' || !booking.email) {
-                    console.warn('⚠️ Filtering out booking with invalid data:', booking.id);
+                // Don't filter out trade pack requests or trade quotes - these are important leads even if missing some fields
+                if (booking.status === 'Trade Pack Request' || booking.source === 'trade-landing' || booking.source === 'trade-quote' || booking.source === 'trade-quote-calculated') {
+                    // For trade pack/quote requests, only filter if name is completely missing (not just "Unknown")
+                    // Email can be empty for these - they're still valuable leads
+                    if (!booking.name) {
+                        console.warn('⚠️ Filtering out trade pack/quote with no name:', booking.id, 'Status:', booking.status, 'Source:', booking.source);
+                        return false;
+                    }
+                    return true;
+                }
+                
+                // For other bookings, require at least name (email is preferred but not always required for quotes)
+                if (!booking.name || booking.name === 'Unknown') {
+                    console.warn('⚠️ Filtering out booking with invalid name:', booking.id);
                     return false;
                 }
                 return true;
