@@ -549,7 +549,41 @@
                 }
             }
             
-            console.log('All 7 days are available. Adding new block dates:', newBlockDates);
+            // Check if this block is consecutive with existing selected dates
+            if (selectedDates.length > 0) {
+                // Sort existing dates to find the range
+                const sortedDates = [...selectedDates].sort();
+                const firstSelected = new Date(sortedDates[0]);
+                const lastSelected = new Date(sortedDates[sortedDates.length - 1]);
+                
+                // Calculate the day after the last selected date
+                const dayAfterLast = new Date(lastSelected);
+                dayAfterLast.setDate(lastSelected.getDate() + 1);
+                const dayAfterLastStr = dayAfterLast.toISOString().slice(0, 10);
+                
+                // Calculate the day before the first selected date
+                const dayBeforeFirst = new Date(firstSelected);
+                dayBeforeFirst.setDate(firstSelected.getDate() - 1);
+                const dayBeforeFirstStr = dayBeforeFirst.toISOString().slice(0, 10);
+                
+                const newBlockStart = newBlockDates[0];
+                const newBlockEnd = newBlockDates[6];
+                
+                // Check if new block starts the day after the last selected date
+                const isConsecutiveAfter = newBlockStart === dayAfterLastStr;
+                
+                // Check if new block ends the day before the first selected date
+                const isConsecutiveBefore = newBlockEnd === dayBeforeFirstStr;
+                
+                if (!isConsecutiveAfter && !isConsecutiveBefore) {
+                    const firstDateStr = firstSelected.toISOString().slice(0, 10);
+                    const lastDateStr = lastSelected.toISOString().slice(0, 10);
+                    alert(`Weeks must be booked consecutively with no gaps.\n\nYou have selected: ${firstDateStr} to ${lastDateStr}\n\nPlease select a date that continues from your existing selection (the day after ${lastDateStr} or the day before ${firstDateStr}).`);
+                    return;
+                }
+            }
+            
+            console.log('All 7 days are available and consecutive. Adding new block dates:', newBlockDates);
             
             // Add the new block to selected dates
             selectedDates.push(...newBlockDates);

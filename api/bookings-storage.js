@@ -46,27 +46,78 @@ async function getAllBookings() {
             }
             
             // Map Supabase schema to expected format for admin
-            const mappedData = (data || []).map(booking => ({
-                id: booking.booking_reference || booking.id,
-                name: booking.customer_name,
-                email: booking.customer_email,
-                phone: booking.customer_phone,
-                postcode: booking.postcode,
-                selectedDates: Array.isArray(booking.selected_dates) ? booking.selected_dates : (booking.selected_dates ? [booking.selected_dates] : []),
-                startDate: booking.delivery_date ? new Date(booking.delivery_date).toISOString() : null,
-                endDate: booking.delivery_date && booking.hire_length ? new Date(new Date(booking.delivery_date).getTime() + (booking.hire_length - 1) * 24 * 60 * 60 * 1000).toISOString() : null,
-                days: booking.hire_length,
-                dailyCost: booking.daily_cost,
-                deliveryCost: booking.delivery_cost,
-                collectionCost: booking.collection_cost,
-                totalCost: booking.total_cost,
-                notes: booking.notes,
-                status: booking.status,
-                source: 'quote', // Default since not in schema
-                pod: '16ft Pod', // Default since not in schema
-                createdAt: booking.created_at,
-                timestamp: booking.created_at
-            }));
+            // Handle edge cases for old bookings that might have different field names
+            const mappedData = (data || []).map(booking => {
+                // Try multiple possible ID fields for backwards compatibility
+                const bookingId = booking.booking_reference || booking.id || booking.booking_id || `booking-${booking.created_at || Date.now()}`;
+                
+                // Try multiple possible name fields
+                const customerName = booking.customer_name || booking.name || booking.customerName || 'Unknown';
+                
+                // Try multiple possible email fields
+                const customerEmail = booking.customer_email || booking.email || booking.customerEmail || '';
+                
+                // Try multiple possible phone fields
+                const customerPhone = booking.customer_phone || booking.phone || booking.customerPhone || null;
+                
+                // Handle selected dates - could be array or string
+                let selectedDates = [];
+                if (Array.isArray(booking.selected_dates)) {
+                    selectedDates = booking.selected_dates;
+                } else if (booking.selected_dates) {
+                    selectedDates = [booking.selected_dates];
+                } else if (booking.selectedDates) {
+                    selectedDates = Array.isArray(booking.selectedDates) ? booking.selectedDates : [booking.selectedDates];
+                }
+                
+                // Handle dates - try multiple field names
+                const deliveryDate = booking.delivery_date || booking.deliveryDate || booking.startDate || null;
+                const hireLength = booking.hire_length || booking.hireLength || booking.days || null;
+                
+                let startDate = null;
+                let endDate = null;
+                if (deliveryDate) {
+                    try {
+                        startDate = new Date(deliveryDate).toISOString();
+                        if (hireLength) {
+                            const end = new Date(deliveryDate);
+                            end.setDate(end.getDate() + (hireLength - 1));
+                            endDate = end.toISOString();
+                        }
+                    } catch (e) {
+                        console.error('Error parsing dates for booking:', bookingId, e);
+                    }
+                }
+                
+                return {
+                    id: bookingId,
+                    name: customerName,
+                    email: customerEmail,
+                    phone: customerPhone,
+                    postcode: booking.postcode || null,
+                    selectedDates: selectedDates,
+                    startDate: startDate,
+                    endDate: endDate,
+                    days: hireLength,
+                    dailyCost: booking.daily_cost || booking.dailyCost || null,
+                    deliveryCost: booking.delivery_cost || booking.deliveryCost || null,
+                    collectionCost: booking.collection_cost || booking.collectionCost || null,
+                    totalCost: booking.total_cost || booking.totalCost || null,
+                    notes: booking.notes || null,
+                    status: booking.status || 'Awaiting deposit',
+                    source: booking.source || 'quote',
+                    pod: booking.pod || '16ft Pod',
+                    createdAt: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString(),
+                    timestamp: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString()
+                };
+            }).filter(booking => {
+                // Filter out bookings with invalid data (no name or email)
+                if (!booking.name || booking.name === 'Unknown' || !booking.email) {
+                    console.warn('⚠️ Filtering out booking with invalid data:', booking.id);
+                    return false;
+                }
+                return true;
+            });
             
             return mappedData;
         } catch (error) {
