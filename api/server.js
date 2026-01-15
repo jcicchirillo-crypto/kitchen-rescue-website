@@ -97,6 +97,81 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// Test endpoint: Try to save and retrieve a test booking
+app.get('/api/test-save-retrieve', async (req, res) => {
+    const { addBooking, getAllBookings } = require('./bookings-storage');
+    const result = {
+        timestamp: new Date().toISOString(),
+        testSave: null,
+        testRetrieve: null,
+        allBookings: null,
+        error: null
+    };
+    
+    try {
+        // Step 1: Try to save a test booking
+        const testBooking = {
+            id: `TEST-${Date.now()}`,
+            name: 'Test User',
+            email: 'test@example.com',
+            phone: '1234567890',
+            postcode: 'EN10',
+            selectedDates: [],
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date().toISOString().split('T')[0],
+            days: 7,
+            dailyCost: 70,
+            deliveryCost: 75,
+            collectionCost: 75,
+            totalCost: 700,
+            notes: 'Test booking from diagnostic endpoint',
+            status: 'Awaiting deposit',
+            source: 'test',
+            pod: '16ft Pod',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        
+        console.log('🧪 Test: Attempting to save test booking...');
+        const saveResult = await addBooking(testBooking);
+        result.testSave = {
+            success: saveResult,
+            bookingId: testBooking.id
+        };
+        console.log('🧪 Test: Save result:', saveResult);
+        
+        // Step 2: Wait a moment for Supabase to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Step 3: Try to retrieve all bookings
+        console.log('🧪 Test: Attempting to retrieve all bookings...');
+        const allBookings = await getAllBookings();
+        result.testRetrieve = {
+            success: true,
+            count: allBookings.length
+        };
+        result.allBookings = allBookings.map(b => ({
+            id: b.id,
+            name: b.name,
+            email: b.email,
+            status: b.status,
+            source: b.source,
+            createdAt: b.createdAt || b.timestamp
+        }));
+        
+        // Check if our test booking is in the results
+        const testFound = allBookings.find(b => b.id === testBooking.id);
+        result.testSave.foundInRetrieve = !!testFound;
+        
+    } catch (e) {
+        result.error = e.message;
+        result.errorStack = e.stack;
+        console.error('🧪 Test error:', e);
+    }
+    
+    res.json(result);
+});
+
 // Simple test endpoint to check Supabase connection (no auth required for testing)
 app.get('/api/test-supabase', async (req, res) => {
     const { supabaseAdmin } = require('./lib/supabaseAdmin');

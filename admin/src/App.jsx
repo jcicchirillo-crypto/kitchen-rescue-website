@@ -332,6 +332,7 @@ function KitchenRescueAdmin() {
                   <TableHead>Booking</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -352,6 +353,9 @@ function KitchenRescueAdmin() {
                     </TableCell>
                     <TableCell>
                       <Badge className={STATUS_MAP[b.status]?.color}>{b.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500">
+                      {b.createdAt || b.timestamp ? format(new Date(b.createdAt || b.timestamp), "d MMM yyyy") : 'N/A'}
                     </TableCell>
                   </TableRow>
                 ))}
