@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node api/server.js",
     "dev": "nodemon api/server.js",
-    "build": "cd admin && npm install && npm run build"
+    "build": "cd admin && npm install && npm run build",
+    "check-db": "node scripts/check-database.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",

@@ -758,6 +758,171 @@ app.get('/api/bookings', authenticateAdmin, async (req, res) => {
     }
 });
 
+// Diagnostic endpoint to check Supabase connection and database contents
+app.get('/api/diagnose', authenticateAdmin, async (req, res) => {
+    try {
+        const { supabaseAdmin } = require('./lib/supabaseAdmin');
+        const diagnostics = {
+            timestamp: new Date().toISOString(),
+            supabase: {
+                connected: !!supabaseAdmin,
+                url: process.env.SUPABASE_URL ? 'Set' : 'MISSING',
+                serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'MISSING',
+            },
+            rawData: null,
+            mappedData: null,
+            statistics: {}
+        };
+
+        if (!supabaseAdmin) {
+            diagnostics.error = 'Supabase admin client not available - check environment variables';
+            return res.json(diagnostics);
+        }
+
+        // Try to fetch raw data from Supabase
+        try {
+            console.log('🔍 Diagnostic: Fetching raw data from Supabase...');
+            const { data: rawData, error: rawError } = await supabaseAdmin
+                .from('bookings')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (rawError) {
+                diagnostics.error = `Supabase query error: ${rawError.message}`;
+                diagnostics.rawError = rawError;
+            } else {
+                diagnostics.rawData = {
+                    totalCount: rawData?.length || 0,
+                    sample: rawData?.slice(0, 5).map(b => ({
+                        id: b.id,
+                        booking_reference: b.booking_reference,
+                        customer_name: b.customer_name,
+                        customer_email: b.customer_email,
+                        status: b.status,
+                        source: b.source,
+                        created_at: b.created_at
+                    })) || []
+                };
+
+                // Count by status
+                const statusCounts = {};
+                (rawData || []).forEach(b => {
+                    const status = b.status || 'Unknown';
+                    statusCounts[status] = (statusCounts[status] || 0) + 1;
+                });
+
+                // Count by source
+                const sourceCounts = {};
+                (rawData || []).forEach(b => {
+                    const source = b.source || 'Unknown';
+                    sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+                });
+
+                // Count trade pack requests
+                const tradePackRaw = (rawData || []).filter(b => 
+                    b.status === 'Trade Pack Request' || 
+                    b.source === 'trade-landing' || 
+                    b.source === 'trade-quote' ||
+                    b.source === 'trade-quote-calculated'
+                );
+
+                // Count December 2024 bookings
+                const decemberRaw = (rawData || []).filter(b => {
+                    if (!b.created_at) return false;
+                    const date = new Date(b.created_at);
+                    return date.getMonth() === 11 && date.getFullYear() === 2024;
+                });
+
+                // Count by month
+                const monthCounts = {};
+                (rawData || []).forEach(b => {
+                    if (b.created_at) {
+                        const date = new Date(b.created_at);
+                        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+                    }
+                });
+
+                diagnostics.statistics = {
+                    totalBookings: rawData?.length || 0,
+                    byStatus: statusCounts,
+                    bySource: sourceCounts,
+                    tradePackRequests: {
+                        total: tradePackRaw.length,
+                        samples: tradePackRaw.slice(0, 10).map(b => ({
+                            id: b.id,
+                            booking_reference: b.booking_reference,
+                            customer_name: b.customer_name,
+                            customer_email: b.customer_email,
+                            status: b.status,
+                            source: b.source,
+                            created_at: b.created_at
+                        }))
+                    },
+                    december2024: {
+                        total: decemberRaw.length,
+                        samples: decemberRaw.slice(0, 10).map(b => ({
+                            id: b.id,
+                            booking_reference: b.booking_reference,
+                            customer_name: b.customer_name,
+                            customer_email: b.customer_email,
+                            status: b.status,
+                            source: b.source,
+                            created_at: b.created_at
+                        }))
+                    },
+                    byMonth: monthCounts
+                };
+            }
+        } catch (fetchError) {
+            diagnostics.error = `Error fetching from Supabase: ${fetchError.message}`;
+            diagnostics.fetchErrorStack = fetchError.stack;
+        }
+
+        // Now test the mapped data
+        try {
+            console.log('🔍 Diagnostic: Testing mapped data...');
+            const { getAllBookings } = require('./bookings-storage');
+            const mappedBookings = await getAllBookings();
+            
+            diagnostics.mappedData = {
+                totalCount: mappedBookings.length,
+                tradePackRequests: mappedBookings.filter(b => 
+                    b.status === 'Trade Pack Request' || 
+                    b.source === 'trade-landing' || 
+                    b.source === 'trade-quote' ||
+                    b.source === 'trade-quote-calculated'
+                ).length,
+                december2024: mappedBookings.filter(b => {
+                    if (!b.createdAt && !b.timestamp) return false;
+                    const date = new Date(b.createdAt || b.timestamp);
+                    return date.getMonth() === 11 && date.getFullYear() === 2024;
+                }).length,
+                sample: mappedBookings.slice(0, 5).map(b => ({
+                    id: b.id,
+                    name: b.name,
+                    email: b.email,
+                    status: b.status,
+                    source: b.source,
+                    createdAt: b.createdAt || b.timestamp
+                }))
+            };
+        } catch (mapError) {
+            diagnostics.mapError = `Error mapping data: ${mapError.message}`;
+            diagnostics.mapErrorStack = mapError.stack;
+        }
+
+        res.json(diagnostics);
+    } catch (error) {
+        console.error('❌ Diagnostic error:', error);
+        res.status(500).json({
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Create new booking
 app.post('/api/bookings', authenticateAdmin, async (req, res) => {
     try {

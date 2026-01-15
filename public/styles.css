@@ -270,7 +270,7 @@ body::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
 }
 
-.container {
+    .container {
     max-width: 100%;
     margin: 0 auto;
     padding: 0;
