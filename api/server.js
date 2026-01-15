@@ -111,19 +111,50 @@ app.get('/api/test-supabase', async (req, res) => {
     
     if (supabaseAdmin) {
         try {
-            const { data, error } = await supabaseAdmin
+            // Get total count
+            const { count, error: countError } = await supabaseAdmin
                 .from('bookings')
-                .select('count', { count: 'exact', head: true });
+                .select('*', { count: 'exact', head: true });
             
-            if (error) {
-                result.error = error.message;
-                result.errorCode = error.code;
+            if (countError) {
+                result.error = countError.message;
+                result.errorCode = countError.code;
             } else {
                 result.test = 'Connection successful';
-                result.bookingCount = data?.length || 'unknown';
+                result.totalBookings = count || 0;
+                
+                // Get sample data
+                const { data, error: dataError } = await supabaseAdmin
+                    .from('bookings')
+                    .select('*')
+                    .limit(5)
+                    .order('created_at', { ascending: false });
+                
+                if (!dataError && data) {
+                    result.sampleBookings = data.length;
+                    result.sample = data.map(b => ({
+                        id: b.id,
+                        booking_reference: b.booking_reference,
+                        customer_name: b.customer_name,
+                        customer_email: b.customer_email,
+                        status: b.status,
+                        source: b.source,
+                        created_at: b.created_at
+                    }));
+                    
+                    // Count trade pack requests
+                    const tradePack = data.filter(b => 
+                        b.status === 'Trade Pack Request' || 
+                        b.source === 'trade-landing' || 
+                        b.source === 'trade-quote' ||
+                        b.source === 'trade-quote-calculated'
+                    );
+                    result.tradePackInSample = tradePack.length;
+                }
             }
         } catch (e) {
             result.error = e.message;
+            result.errorStack = e.stack;
         }
     } else {
         result.error = 'Supabase admin client not initialized';
