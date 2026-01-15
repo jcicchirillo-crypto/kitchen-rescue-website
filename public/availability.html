@@ -289,7 +289,9 @@
             }
         });
         
-        let currentMonth = new Date(2025, 11, 1); // December 1st, 2025
+        // Initialize to current month
+        const today = new Date();
+        let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         let selectedDates = [];
         let availabilityData = { unavailable: [] };
         
@@ -299,11 +301,30 @@
             const prevMonthBtn = document.getElementById('prevMonthBtn');
             const nextMonthBtn = document.getElementById('nextMonthBtn');
             
-            // Load availability data
+            // Load availability data and filter out past dates
             fetch('assets/availability.json')
                 .then(r => r.json())
                 .then(data => {
-                    availabilityData = data;
+                    // Filter out past dates from unavailable ranges
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Reset to start of day
+                    const todayStr = today.toISOString().slice(0, 10);
+                    
+                    availabilityData = {
+                        unavailable: (data.unavailable || []).filter(range => {
+                            // Only keep ranges that end on or after today
+                            return range.end >= todayStr;
+                        }).map(range => {
+                            // If range starts before today, adjust start to today
+                            if (range.start < todayStr) {
+                                return {
+                                    start: todayStr,
+                                    end: range.end
+                                };
+                            }
+                            return range;
+                        })
+                    };
                     renderAll();
                 })
                 .catch(() => {
@@ -311,8 +332,10 @@
                     renderAll();
                 });
             
-            // Navigation handlers
-            const startDate = new Date(2025, 11, 1); // December 1st, 2025
+            // Navigation handlers - don't allow going before today
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            const startDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
             
             prevMonthBtn.addEventListener('click', () => {
                 const prevMonth = new Date(currentMonth);
@@ -386,8 +409,10 @@
                 }
             });
             
+            // Use today's date for past date checking
             const today = new Date();
-            const startDateStr = '2025-12-01'; // December 1st, 2025
+            today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+            const todayStr = today.toISOString().slice(0,10);
             
             for (let day = 1; day <= lastDay.getDate(); day++) {
                 const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
@@ -396,7 +421,7 @@
                 cell.className = 'date';
                 cell.setAttribute('data-date', iso); // Add data attribute for easy finding
                 const isUnavailable = unavailableSet.has(iso);
-                const isPast = iso < startDateStr; // Use startDate instead of today
+                const isPast = iso < todayStr; // Compare against today's date
                 cell.classList.add(isUnavailable ? 'disabled' : 'available');
                 if (isPast) cell.classList.add('past-date');
                 cell.textContent = String(day);
@@ -593,15 +618,21 @@
                 }
             });
             
-            // Also check for booked dates from localStorage
+            // Also check for booked dates from localStorage (but filter out past dates)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().slice(0,10);
+            
             const bookedDates = JSON.parse(localStorage.getItem('bookedDates') || '[]');
             bookedDates.forEach(date => {
-                unavailableSet.add(date);
-                console.log('Added booked date as unavailable:', date);
+                // Only add booked dates that are today or in the future
+                if (date >= todayStr) {
+                    unavailableSet.add(date);
+                    console.log('Added booked date as unavailable:', date);
+                } else {
+                    console.log('Skipping past booked date:', date);
+                }
             });
-            
-            const today = new Date();
-            const todayStr = today.toISOString().slice(0,10);
             
             const isUnavailable = unavailableSet.has(dateStr);
             const isPast = dateStr < todayStr;
