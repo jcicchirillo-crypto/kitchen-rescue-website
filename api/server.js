@@ -733,6 +733,24 @@ app.get('/api/bookings', authenticateAdmin, async (req, res) => {
         console.log('📥 Admin requesting bookings...');
         const bookings = await getAllBookings();
         console.log(`✅ Returning ${bookings.length} bookings to admin`);
+        
+        // Debug: Count trade pack requests
+        const tradePackRequests = bookings.filter(b => 
+            b.status === 'Trade Pack Request' || 
+            b.source === 'trade-landing' || 
+            b.source === 'trade-quote' ||
+            b.source === 'trade-quote-calculated'
+        );
+        console.log(`📦 Found ${tradePackRequests.length} trade pack/quote requests in response`);
+        
+        // Debug: Check for December bookings
+        const decemberBookings = bookings.filter(b => {
+            if (!b.createdAt && !b.timestamp) return false;
+            const date = new Date(b.createdAt || b.timestamp);
+            return date.getMonth() === 11 && date.getFullYear() === 2024; // December 2024
+        });
+        console.log(`📅 Found ${decemberBookings.length} bookings from December 2024`);
+        
         res.json(bookings);
     } catch (error) {
         console.error('❌ Error fetching bookings:', error);

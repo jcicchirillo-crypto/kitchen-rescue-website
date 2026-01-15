@@ -35,13 +35,25 @@ async function getAllBookings() {
             }
             
             console.log(`✅ Fetched ${data?.length || 0} bookings from Supabase`);
+            
+            // Count trade pack requests specifically
+            const tradePackCount = (data || []).filter(b => 
+                b.status === 'Trade Pack Request' || 
+                b.source === 'trade-landing' || 
+                b.source === 'trade-quote' ||
+                b.source === 'trade-quote-calculated'
+            ).length;
+            console.log(`📦 Found ${tradePackCount} trade pack/quote requests in raw data`);
+            
             if (data && data.length > 0) {
                 console.log('Sample booking:', {
                     id: data[0].id,
                     booking_reference: data[0].booking_reference,
                     customer_name: data[0].customer_name,
                     customer_email: data[0].customer_email,
-                    status: data[0].status
+                    status: data[0].status,
+                    source: data[0].source,
+                    created_at: data[0].created_at
                 });
             }
             
@@ -111,27 +123,51 @@ async function getAllBookings() {
                     createdAt: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString(),
                     timestamp: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString()
                 };
-            }).filter(booking => {
-                // Don't filter out trade pack requests or trade quotes - these are important leads even if missing some fields
-                if (booking.status === 'Trade Pack Request' || booking.source === 'trade-landing' || booking.source === 'trade-quote' || booking.source === 'trade-quote-calculated') {
-                    // For trade pack/quote requests, only filter if name is completely missing (not just "Unknown")
-                    // Email can be empty for these - they're still valuable leads
-                    if (!booking.name) {
-                        console.warn('⚠️ Filtering out trade pack/quote with no name:', booking.id, 'Status:', booking.status, 'Source:', booking.source);
-                        return false;
-                    }
-                    return true;
+            });
+            
+            // Count trade pack requests before filtering
+            const tradePackBeforeFilter = mappedData.filter(b => 
+                b.status === 'Trade Pack Request' || 
+                b.source === 'trade-landing' || 
+                b.source === 'trade-quote' ||
+                b.source === 'trade-quote-calculated'
+            ).length;
+            console.log(`📦 Trade pack requests before filter: ${tradePackBeforeFilter}`);
+            
+            // Apply filter - be VERY lenient with trade pack requests
+            const filteredData = mappedData.filter(booking => {
+                // NEVER filter out trade pack requests or trade quotes - these are valuable leads
+                // Keep ALL of them regardless of data quality
+                if (booking.status === 'Trade Pack Request' || 
+                    booking.source === 'trade-landing' || 
+                    booking.source === 'trade-quote' || 
+                    booking.source === 'trade-quote-calculated') {
+                    console.log('✅ Keeping trade pack/quote request:', booking.id, 'Name:', booking.name || 'MISSING', 'Email:', booking.email || 'MISSING', 'Status:', booking.status, 'Source:', booking.source);
+                    return true; // Always keep trade pack requests
                 }
                 
                 // For other bookings, require at least name (email is preferred but not always required for quotes)
                 if (!booking.name || booking.name === 'Unknown') {
-                    console.warn('⚠️ Filtering out booking with invalid name:', booking.id);
+                    console.warn('⚠️ Filtering out booking with invalid name:', booking.id, 'Status:', booking.status);
                     return false;
                 }
                 return true;
             });
             
-            return mappedData;
+            // Count trade pack requests after filtering
+            const tradePackAfterFilter = filteredData.filter(b => 
+                b.status === 'Trade Pack Request' || 
+                b.source === 'trade-landing' || 
+                b.source === 'trade-quote' ||
+                b.source === 'trade-quote-calculated'
+            ).length;
+            console.log(`📦 Trade pack requests after filter: ${tradePackAfterFilter}`);
+            
+            if (tradePackBeforeFilter !== tradePackAfterFilter) {
+                console.error('❌ ERROR: Trade pack requests were filtered out! This should never happen.');
+            }
+            
+            return filteredData;
         } catch (error) {
             console.error('❌ Exception reading from Supabase:', error);
             console.error('Error stack:', error.stack);
