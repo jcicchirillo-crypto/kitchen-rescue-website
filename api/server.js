@@ -2427,4 +2427,117 @@ app.post("/api/search-visuals", authenticateAdmin, async (req, res) => {
     }
 });
 
+// Insurance Claims Enquiry Endpoint
+app.post('/api/insurance-claims-enquiry', async (req, res) => {
+    const timestamp = new Date().toISOString();
+    console.log('\n📥 ===== INSURANCE CLAIMS ENQUIRY RECEIVED =====');
+    console.log('⏰ Time:', timestamp);
+    
+    try {
+        const {
+            fullName,
+            company,
+            role,
+            email,
+            phone,
+            claimPostcode,
+            preferredStartDate,
+            notes,
+            consent
+        } = req.body || {};
+
+        console.log('📋 Request data:', { 
+            fullName: fullName || 'MISSING', 
+            company: company || 'MISSING', 
+            email: email || 'MISSING',
+            phone: phone || 'Not provided',
+            claimPostcode: claimPostcode || 'Not provided'
+        });
+
+        if (!fullName || !company || !email || !notes || !consent) {
+            console.error('❌ VALIDATION FAILED: Missing required fields');
+            return res.status(400).json({ error: 'Full name, company, email, notes, and consent are required' });
+        }
+
+        // Save to admin system
+        try {
+            console.log('💾 Saving insurance claims enquiry to admin...');
+            const bookingId = `insurance-claims-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const insuranceBooking = {
+                id: bookingId,
+                name: fullName,
+                email: email,
+                phone: phone || '',
+                postcode: claimPostcode || '',
+                source: 'insurance-claims',
+                status: 'Insurance Claims Enquiry',
+                totalCost: 0,
+                dailyCost: 0,
+                deliveryCost: 0,
+                collectionCost: 0,
+                days: 0,
+                notes: `Company: ${company}.${role ? ` Role: ${role}.` : ''}${claimPostcode ? ` Claim Postcode: ${claimPostcode}.` : ''}${preferredStartDate ? ` Preferred Start Date: ${preferredStartDate}.` : ''} Notes: ${notes}`,
+                timestamp: new Date().toISOString(),
+                createdAt: new Date().toISOString()
+            };
+
+            await addBooking(insuranceBooking);
+            console.log('✅ Insurance claims enquiry SAVED to admin');
+            console.log('   📧 Email:', email);
+            console.log('   🏢 Company:', company);
+            console.log('   🆔 Booking ID:', bookingId);
+        } catch (saveErr) {
+            console.error('❌ ERROR saving insurance claims enquiry to admin:', saveErr);
+            console.error('   Stack:', saveErr.stack);
+            // Don't fail the request if saving fails
+        }
+
+        // Send notification email if email is configured
+        if (transporter && process.env.EMAIL_USER) {
+            try {
+                const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+                const businessMailOptions = {
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: adminEmail,
+                    subject: `📋 New Insurance Claims Enquiry - ${fullName} (${company})`,
+                    html: `
+                        <h2>New Insurance Claims Enquiry</h2>
+                        <p><strong>Name:</strong> ${fullName}</p>
+                        <p><strong>Company:</strong> ${company}</p>
+                        ${role ? `<p><strong>Role:</strong> ${role}</p>` : ''}
+                        <p><strong>Email:</strong> ${email}</p>
+                        ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ''}
+                        ${claimPostcode ? `<p><strong>Claim Postcode:</strong> ${claimPostcode}</p>` : ''}
+                        ${preferredStartDate ? `<p><strong>Preferred Start Date:</strong> ${preferredStartDate}</p>` : ''}
+                        <p><strong>Notes:</strong></p>
+                        <p>${notes.replace(/\n/g, '<br>')}</p>
+                        <p><strong>Consent:</strong> ${consent ? 'Yes' : 'No'}</p>
+                        <p><strong>Timestamp:</strong> ${timestamp}</p>
+                    `
+                };
+
+                await transporter.sendMail(businessMailOptions);
+                console.log('✅ Business notification email sent successfully to:', adminEmail);
+            } catch (emailError) {
+                console.error('Error sending business email:', emailError.message);
+            }
+        } else {
+            console.log('Email not configured - enquiry stored for manual follow-up');
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Your enquiry has been received. We will contact you within 24 hours.' 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error processing insurance claims enquiry:', error);
+        console.error('   Stack:', error.stack);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to process enquiry. Please try again or call us directly.' 
+        });
+    }
+});
+
 module.exports = app;

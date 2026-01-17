@@ -383,6 +383,11 @@ body::-webkit-scrollbar {
     color: #f87171;
 }
 
+.nav-link.active {
+    color: #f87171;
+    font-weight: 600;
+}
+
 .nav-cta {
     display: inline-flex;
     align-items: center;
