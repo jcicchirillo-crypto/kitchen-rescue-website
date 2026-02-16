@@ -5,6 +5,10 @@
     box-sizing: border-box;
 }
 
+:root {
+    --brand: #dc2626;
+}
+
 /* Ensure no red lines or borders at top of viewport */
 html, body {
     border-top: none !important;
@@ -629,6 +633,125 @@ body::-webkit-scrollbar {
 .card-note {
     font-size: 0.75rem;
     color: #6b7280;
+}
+
+/* Audience cards section (Builder / Homeowner / Insurance) */
+.audience-cards {
+    background: #ffffff;
+}
+
+.audience-cards .audience-cards-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 2.5rem 1rem 4rem;
+}
+
+@media (min-width: 640px) {
+    .audience-cards .audience-cards-inner {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .audience-cards .audience-cards-inner {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+.audience-cards-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .audience-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.audience-card {
+    display: block;
+    border: 1px solid #e5e7eb;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    padding: 2rem;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.10);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.audience-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+}
+
+.audience-card:focus {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+.audience-card-icon-wrap {
+    width: 6rem;
+    height: 6rem;
+    margin: 0 auto;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--brand) 14%, white);
+    color: var(--brand);
+}
+
+.audience-card-icon-wrap svg {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.audience-card h3 {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 1.875rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: #111827;
+}
+
+.audience-card-desc {
+    margin-top: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 20rem;
+    text-align: center;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #4b5563;
+}
+
+.audience-card-link {
+    margin-top: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--brand);
+}
+
+.audience-card:hover .audience-card-link {
+    opacity: 0.9;
+}
+
+.audience-card-arrow {
+    transition: transform 0.3s ease;
+}
+
+.audience-card:hover .audience-card-arrow {
+    transform: translateX(4px);
 }
 
 /* Features Section */
