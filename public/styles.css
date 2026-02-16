@@ -637,7 +637,7 @@ body::-webkit-scrollbar {
 
 /* Audience cards section (Builder / Homeowner / Insurance) */
 .audience-cards {
-    background: #ffffff;
+    background: #000000;
 }
 
 .audience-cards .audience-cards-inner {
