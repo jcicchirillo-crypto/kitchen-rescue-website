@@ -491,6 +491,60 @@ app.post('/schedule-reminder', async (req, res) => {
     }
 });
 
+// Homepage: request quote (email only) — we'll send them a quote
+app.post('/request-quote', async (req, res) => {
+    try {
+        const { email, name } = req.body || {};
+        const trimmedEmail = (email || '').trim().toLowerCase();
+        const trimmedName = (name || '').trim();
+
+        if (!trimmedEmail) {
+            return res.status(400).json({ success: false, message: 'Please enter your email address.' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+        }
+
+        const newBooking = {
+            id: `KR-Q-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            name: trimmedName || 'Quote request',
+            email: trimmedEmail,
+            phone: '',
+            postcode: null,
+            selectedDates: [],
+            startDate: null,
+            endDate: null,
+            days: null,
+            dailyCost: null,
+            deliveryCost: null,
+            collectionCost: null,
+            totalCost: null,
+            notes: 'Quote requested from homepage (email only).',
+            status: 'Quote request',
+            source: 'homepage',
+            pod: '16ft Pod'
+        };
+
+        const saved = await addBooking(newBooking);
+        if (saved) {
+            console.log('Homepage quote request saved:', trimmedEmail);
+        } else {
+            console.error('Failed to save homepage quote request:', trimmedEmail);
+        }
+
+        return res.json({
+            success: true,
+            message: 'Thanks! We\'ll send your quote to this email address shortly.'
+        });
+    } catch (error) {
+        console.error('Error in /request-quote:', error);
+        return res.status(500).json({ success: false, message: 'Something went wrong. Please try again or call us.' });
+    }
+});
+
 // Send quote email
 app.post('/send-quote-email', async (req, res) => {
     try {
