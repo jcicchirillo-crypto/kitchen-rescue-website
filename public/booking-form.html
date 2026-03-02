@@ -3,340 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Your Kitchen Pod • Kitchen Rescue</title>
+    <title>Your Details • Kitchen Rescue</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .booking-container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
-        .booking-header { text-align: center; margin-bottom: 2rem; }
-        .booking-title { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #ffffff; }
-        .booking-subtitle { font-size: 1.125rem; color: #ffffff; margin-bottom: 2rem; }
-        .form-container { background: #f9fafb; border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151; }
-        .form-input, .form-textarea, .form-select { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; }
-        .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1); }
-        .form-textarea { min-height: 100px; resize: vertical; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .calendar-picker { background: white; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; cursor: pointer; }
-        .calendar-picker:hover { border-color: #dc2626; }
-        .btn { border-radius: 0.75rem; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
-        .btn-primary { background-color: #dc2626; color: #fff; }
-        .btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; }
-        .btn-secondary { background-color: #6b7280; color: #fff; margin-right: 1rem; }
-        .progress-bar { background: #e5e7eb; border-radius: 0.5rem; height: 0.5rem; margin-bottom: 2rem; }
-        .progress-fill { background: #dc2626; height: 100%; border-radius: 0.5rem; width: 50%; }
-        .booking-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem; }
-        .booking-summary h3 { margin: 0 0 0.5rem 0; color: #dc2626; }
-        .booking-summary p { margin: 0; color: #b91c1c; }
-        .error-message { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
-        .required { color: #dc2626; }
+        * { box-sizing: border-box; }
+        .bf-page { max-width: 700px; margin: 0 auto; padding: 2rem 1rem 5rem; }
+        .stepper { display:flex; align-items:center; justify-content:center; margin-bottom:2rem; }
+        .step { display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; max-width:100px; }
+        .step-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.78rem; font-weight:700; border:2px solid #e5e7eb; background:#f9fafb; color:#9ca3af; }
+        .step-dot.done   { background:#dc2626; border-color:#dc2626; color:#fff; }
+        .step-dot.active { background:#fff; border-color:#dc2626; color:#dc2626; }
+        .step-lbl { font-size:0.68rem; color:#9ca3af; font-weight:500; text-align:center; line-height:1.3; }
+        .step-lbl.active { color:#dc2626; font-weight:700; }
+        .step-lbl.done   { color:#374151; }
+        .step-line { flex:1; height:2px; background:#e5e7eb; max-width:40px; }
+        .step-line.done { background:#dc2626; }
+        .summary-bar { background:#111827; border-radius:12px; padding:16px 20px; color:#fff; display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; margin-bottom:24px; }
+        .sb-item .sb-l { font-size:0.7rem; opacity:0.55; margin-bottom:1px; }
+        .sb-item .sb-v { font-size:0.875rem; font-weight:700; }
+        .form-card { background:#fff; border-radius:14px; border:1px solid #e5e7eb; box-shadow:0 1px 6px rgba(0,0,0,0.05); padding:24px; margin-bottom:20px; }
+        .form-card h2 { font-size:1rem; font-weight:700; color:#111827; margin:0 0 4px; }
+        .form-card p  { font-size:0.82rem; color:#6b7280; margin:0 0 20px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        @media (max-width:520px) { .form-row { grid-template-columns:1fr; } }
+        .form-group { margin-bottom:16px; }
+        .form-label { display:block; font-weight:600; font-size:0.82rem; color:#374151; margin-bottom:5px; }
+        .req { color:#dc2626; }
+        .form-input, .form-textarea { width:100%; padding:10px 12px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.9rem; font-family:inherit; transition:border-color 0.2s; background:#fafafa; }
+        .form-input:focus, .form-textarea:focus { outline:none; border-color:#dc2626; background:#fff; box-shadow:0 0 0 3px rgba(220,38,38,0.08); }
+        .form-input.error { border-color:#dc2626; }
+        .form-input[readonly] { background:#f3f4f6; color:#6b7280; cursor:not-allowed; }
+        .form-textarea { min-height:90px; resize:vertical; }
+        .err-msg { font-size:0.75rem; color:#dc2626; margin-top:3px; }
+        .prefill-notice { background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:0.8rem; color:#991b1b; margin-bottom:20px; display:flex; gap:8px; align-items:center; }
+        .actions { display:flex; gap:10px; }
+        .btn-back { padding:13px 18px; background:#fff; color:#6b7280; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.875rem; font-weight:600; cursor:pointer; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.15s; }
+        .btn-back:hover { border-color:#d1d5db; }
+        .btn-cont { flex:1; padding:13px; background:#dc2626; color:#fff; border:none; border-radius:8px; font-size:0.95rem; font-weight:700; cursor:pointer; font-family:inherit; transition:background 0.2s; }
+        .btn-cont:hover { background:#b91c1c; }
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo-section">
-                    <img src="assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
-                    <a href="availability.html" class="mobile-availability">Availability</a>
-                </div>
-                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
-                <nav class="nav">
-                    <a href="index.html#features" class="nav-link">Features</a>
-                    <a href="index.html#spec" class="nav-link">Spec</a>
-                    <a href="index.html#gallery" class="nav-link">Gallery</a>
-                    <a href="index.html#faqs" class="nav-link">FAQs</a>
-                    <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
-                </nav>
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <div class="logo-section">
+                <a href="index.html"><img src="assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img"></a>
+                <a href="availability.html" class="mobile-availability">Availability</a>
             </div>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
+            <nav class="nav">
+                <a href="index.html#features" class="nav-link">Features</a>
+                <a href="index.html#spec" class="nav-link">Spec</a>
+                <a href="index.html#gallery" class="nav-link">Gallery</a>
+                <a href="index.html#faqs" class="nav-link">FAQs</a>
+                <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
+            </nav>
         </div>
-    </header>
+    </div>
+</header>
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+<nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-close" id="mobileNavClose">×</button>
+    <div class="mobile-nav-links">
+        <a href="index.html">Home</a><a href="availability.html">Availability</a>
+        <a href="index.html#features">Features</a><a href="index.html#spec">Spec</a>
+        <a href="index.html#gallery">Gallery</a><a href="blog.html">Blog</a>
+        <a href="index.html#faqs">FAQs</a><a href="index.html#contact">Contact</a>
+    </div>
+</nav>
 
-    <!-- Mobile Navigation Drawer -->
-    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
-    <nav class="mobile-nav" id="mobileNav">
-        <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
-        <div class="mobile-nav-links">
-            <a href="index.html">Home</a>
-            <a href="availability.html">Availability</a>
-            <a href="index.html#features">Features</a>
-            <a href="index.html#spec">Spec</a>
-            <a href="index.html#gallery">Gallery</a>
-            <a href="blog.html">Blog</a>
-            <a href="index.html#faqs">FAQs</a>
-            <a href="index.html#contact">Contact</a>
-        </div>
-    </nav>
+<main class="bf-page">
+    <div class="stepper">
+        <div class="step"><div class="step-dot done">✓</div><div class="step-lbl done">Dates</div></div>
+        <div class="step-line done"></div>
+        <div class="step"><div class="step-dot done">✓</div><div class="step-lbl done">Site check</div></div>
+        <div class="step-line done"></div>
+        <div class="step"><div class="step-dot active">3</div><div class="step-lbl active">Your details</div></div>
+        <div class="step-line"></div>
+        <div class="step"><div class="step-dot">4</div><div class="step-lbl">Confirm</div></div>
+    </div>
 
-    <main class="booking-container">
-        <div class="progress-bar">
-            <div class="progress-fill"></div>
-        </div>
-        
-        <div class="booking-header">
-            <h1 class="booking-title">📅 Book Your Kitchen Pod</h1>
-        </div>
+    <div class="summary-bar">
+        <div class="sb-item"><div class="sb-l">Delivery</div><div class="sb-v" id="sb-del">—</div></div>
+        <div class="sb-item"><div class="sb-l">Collection</div><div class="sb-v" id="sb-col">—</div></div>
+        <div class="sb-item"><div class="sb-l">Duration</div><div class="sb-v" id="sb-dur">—</div></div>
+        <div class="sb-item"><div class="sb-l">Est. total</div><div class="sb-v" id="sb-tot">—</div></div>
+    </div>
 
-        <div id="bookingSummary" class="booking-summary" style="display: none;">
-            <h3>Selected Dates</h3>
-            <p id="summaryDates"></p>
-            <p id="summaryPostcode"></p>
-        </div>
+    <div class="prefill-notice" id="prefillNotice" style="display:none;">
+        ✅ We've pre-filled your details from earlier — just check and update if needed.
+    </div>
 
-        <form id="bookingForm" class="form-container">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="fullName" class="form-label">Full Name <span class="required">*</span></label>
-                    <input type="text" id="fullName" name="fullName" class="form-input" required>
-                    <div class="error-message" id="fullNameError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="email" class="form-label">Email Address <span class="required">*</span></label>
-                    <input type="email" id="email" name="email" class="form-input" required>
-                    <div class="error-message" id="emailError"></div>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="phone" class="form-label">Phone Number <span class="required">*</span></label>
-                    <input type="tel" id="phone" name="phone" class="form-input" required>
-                    <div class="error-message" id="phoneError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="postcode" class="form-label">Postcode <span class="required">*</span></label>
-                    <input type="text" id="postcode" name="postcode" class="form-input" required>
-                    <div class="error-message" id="postcodeError"></div>
-                </div>
-            </div>
-
+    <div class="form-card">
+        <h2>Your contact details</h2>
+        <p>So we can confirm your booking and send joining instructions.</p>
+        <div class="form-row">
             <div class="form-group">
-                <label for="deliveryAddress" class="form-label">Delivery Address <span class="required">*</span></label>
-                <textarea id="deliveryAddress" name="deliveryAddress" class="form-textarea" placeholder="Please provide full delivery address including house number, street, city, and postcode" required></textarea>
-                <div class="error-message" id="deliveryAddressError"></div>
+                <label class="form-label">Full name <span class="req">*</span></label>
+                <input type="text" id="fullName" class="form-input" required>
+                <div class="err-msg" id="fullNameErr"></div>
             </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="deliveryDate" class="form-label">Delivery Date <span class="required">*</span></label>
-                    <input type="date" id="deliveryDate" name="deliveryDate" class="form-input" required>
-                    <div class="error-message" id="deliveryDateError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="hireLength" class="form-label">Hire Length</label>
-                    <input type="text" id="hireLength" name="hireLength" class="form-input" readonly>
-                </div>
-            </div>
-
             <div class="form-group">
-                <label for="notes" class="form-label">Notes</label>
-                <textarea id="notes" name="notes" class="form-textarea" placeholder="e.g. site access instructions, appliance preferences, any restrictions or special requirements"></textarea>
+                <label class="form-label">Email address <span class="req">*</span></label>
+                <input type="email" id="email" class="form-input" required>
+                <div class="err-msg" id="emailErr"></div>
             </div>
-        </form>
-
-        <div style="text-align: center;">
-            <a href="booking-checklist.html" class="btn btn-secondary">← Back to Checklist</a>
-            <button id="proceedBtn" class="btn btn-primary">➡️ Proceed to Payment</button>
         </div>
-    </main>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Phone number <span class="req">*</span></label>
+                <input type="tel" id="phone" class="form-input" required>
+                <div class="err-msg" id="phoneErr"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Postcode <span class="req">*</span></label>
+                <input type="text" id="postcode" class="form-input" required>
+                <div class="err-msg" id="postcodeErr"></div>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if user completed checklist
-            if (!sessionStorage.getItem('checklistCompleted')) {
-                window.location.href = 'booking-checklist.html';
-                return;
-            }
+    <div class="form-card">
+        <h2>Delivery details</h2>
+        <p>Where should we deliver the pod?</p>
+        <div class="form-group">
+            <label class="form-label">Delivery address <span class="req">*</span></label>
+            <textarea id="deliveryAddress" class="form-textarea" placeholder="House number, street, town, postcode" required></textarea>
+            <div class="err-msg" id="addressErr"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Delivery date</label>
+                <input type="text" id="deliveryDate" class="form-input" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Hire length</label>
+                <input type="text" id="hireLength" class="form-input" readonly>
+            </div>
+        </div>
+    </div>
 
-            // Set minimum date to December 1st, 2025
-            const deliveryDateInput = document.getElementById('deliveryDate');
-            const minDate = new Date(2025, 11, 1); // December 1st, 2025 (month is 0-indexed)
-            deliveryDateInput.min = minDate.toISOString().split('T')[0];
-            
-            // Add validation for minimum date
-            deliveryDateInput.addEventListener('change', function() {
-                const selectedDate = new Date(this.value);
-                const errorElement = document.getElementById('deliveryDateError');
-                
-                if (selectedDate < minDate) {
-                    errorElement.textContent = 'Delivery date must be December 1st, 2025 or later';
-                    this.style.borderColor = '#dc2626';
-                } else {
-                    errorElement.textContent = '';
-                    this.style.borderColor = '#d1d5db';
-                }
-            });
+    <div class="form-card">
+        <h2>Anything else?</h2>
+        <p>Site access instructions, insurance claim reference, or any special requirements.</p>
+        <div class="form-group" style="margin-bottom:0;">
+            <textarea id="notes" class="form-textarea" placeholder="e.g. gate code, insurance ref #12345, narrow entrance…"></textarea>
+        </div>
+    </div>
 
-            // Load booking data from availability page
-            const selectedDates = sessionStorage.getItem('selectedDates');
-            const postcode = sessionStorage.getItem('postcode');
-            
-            if (selectedDates && postcode) {
-                // Parse selected dates
-                const dates = selectedDates.split(',');
-                const startDate = new Date(dates[0]);
-                const endDate = new Date(dates[dates.length - 1]);
-                const hireLength = dates.length;
-                
-                // Set form values
-                document.getElementById('postcode').value = postcode;
-                document.getElementById('deliveryDate').value = startDate.toISOString().split('T')[0];
-                document.getElementById('hireLength').value = `${hireLength} days`;
-                
-                // Show booking summary
-                const summary = document.getElementById('bookingSummary');
-                const summaryDates = document.getElementById('summaryDates');
-                const summaryPostcode = document.getElementById('summaryPostcode');
-                
-                summaryDates.textContent = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-                summaryPostcode.textContent = `Postcode: ${postcode}`;
-                summary.style.display = 'block';
-            }
+    <div class="actions">
+        <a href="booking-checklist.html" id="backBtn" class="btn-back">← Back</a>
+        <button id="continueBtn" class="btn-cont">Continue to payment →</button>
+    </div>
+</main>
 
-            // Form validation
-            const form = document.getElementById('bookingForm');
-            const proceedBtn = document.getElementById('proceedBtn');
+<a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue%2C%20I%27d%20like%20to%20enquire%20about%20temporary%20kitchen%20hire" class="whatsapp-button" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>
+</a>
 
-            function validateForm() {
-                let isValid = true;
-                const requiredFields = ['fullName', 'email', 'phone', 'deliveryAddress', 'deliveryDate'];
-                
-                requiredFields.forEach(fieldName => {
-                    const field = document.getElementById(fieldName);
-                    const errorElement = document.getElementById(fieldName + 'Error');
-                    
-                    if (!field.value.trim()) {
-                        errorElement.textContent = 'This field is required';
-                        field.style.borderColor = '#dc2626';
-                        isValid = false;
-                    } else {
-                        errorElement.textContent = '';
-                        field.style.borderColor = '#d1d5db';
-                    }
-                });
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (!sessionStorage.getItem('checklistCompleted')) {
+        window.location.href = 'booking-checklist.html';
+        return;
+    }
 
-                // Email validation
-                const email = document.getElementById('email');
-                const emailError = document.getElementById('emailError');
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (email.value && !emailRegex.test(email.value)) {
-                    emailError.textContent = 'Please enter a valid email address';
-                    email.style.borderColor = '#dc2626';
-                    isValid = false;
-                }
+    const urlParams  = new URLSearchParams(window.location.search);
+    const datesParam = urlParams.get('dates') || sessionStorage.getItem('selectedDates') || '';
+    const postcode   = urlParams.get('postcode') || sessionStorage.getItem('postcode') || '';
 
-                // Phone validation
-                const phone = document.getElementById('phone');
-                const phoneError = document.getElementById('phoneError');
-                const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-                if (phone.value && !phoneRegex.test(phone.value)) {
-                    phoneError.textContent = 'Please enter a valid phone number';
-                    phone.style.borderColor = '#dc2626';
-                    isValid = false;
-                }
+    if (datesParam) {
+        const dates = datesParam.split(',').sort();
+        const start = new Date(dates[0]);
+        const end   = new Date(dates[dates.length-1]);
+        const days  = dates.length;
+        const fd    = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+        document.getElementById('sb-del').textContent  = fd(start);
+        document.getElementById('sb-col').textContent  = fd(end);
+        document.getElementById('sb-dur').textContent  = `${days} day${days>1?'s':''}`;
+        const dc = delivCost(postcode);
+        document.getElementById('sb-tot').textContent  = `£${days*70+dc*2} +VAT`;
+        document.getElementById('deliveryDate').value  = fd(start);
+        document.getElementById('hireLength').value    = `${days} days`;
+        document.getElementById('postcode').value      = postcode;
+        document.getElementById('backBtn').href        = `booking-checklist.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}`;
+    }
 
-                // Date validation - must be December 1st, 2025 or later
-                const deliveryDate = document.getElementById('deliveryDate');
-                const deliveryDateError = document.getElementById('deliveryDateError');
-                const selectedDate = new Date(deliveryDate.value);
-                const minDate = new Date(2025, 11, 1); // December 1st, 2025
-                
-                if (deliveryDate.value && selectedDate < minDate) {
-                    deliveryDateError.textContent = 'Delivery date must be December 1st, 2025 or later';
-                    deliveryDate.style.borderColor = '#dc2626';
-                    isValid = false;
-                }
+    // Pre-fill from lead gate
+    const lead = sessionStorage.getItem('kr_lead');
+    if (lead) {
+        const l = JSON.parse(lead);
+        if (l.name)  document.getElementById('fullName').value = l.name;
+        if (l.email) document.getElementById('email').value    = l.email;
+        if (l.phone) document.getElementById('phone').value    = l.phone;
+        document.getElementById('prefillNotice').style.display = 'flex';
+    }
 
-                return isValid;
-            }
-
-            // Real-time validation
-            const inputs = form.querySelectorAll('input, textarea');
-            inputs.forEach(input => {
-                input.addEventListener('blur', validateForm);
-                input.addEventListener('input', function() {
-                    const errorElement = document.getElementById(this.name + 'Error');
-                    if (errorElement.textContent) {
-                        validateForm();
-                    }
-                });
-            });
-
-            // Handle form submission
-            proceedBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                if (validateForm()) {
-                    // Store form data
-                    const formData = {
-                        fullName: document.getElementById('fullName').value,
-                        email: document.getElementById('email').value,
-                        phone: document.getElementById('phone').value,
-                        deliveryAddress: document.getElementById('deliveryAddress').value,
-                        postcode: document.getElementById('postcode').value,
-                        deliveryDate: document.getElementById('deliveryDate').value,
-                        hireLength: document.getElementById('hireLength').value,
-                        notes: document.getElementById('notes').value,
-                        selectedDates: selectedDates
-                    };
-                    
-                    sessionStorage.setItem('bookingData', JSON.stringify(formData));
-                    window.location.href = 'booking-payment.html';
-                }
-            });
+    function validate() {
+        let ok = true;
+        [['fullName','fullNameErr','Name is required'],
+         ['email','emailErr','Email is required'],
+         ['phone','phoneErr','Phone is required'],
+         ['deliveryAddress','addressErr','Delivery address is required']
+        ].forEach(([id,errId,msg]) => {
+            const f = document.getElementById(id);
+            const e = document.getElementById(errId);
+            if (!f.value.trim()) { e.textContent=msg; f.classList.add('error'); ok=false; }
+            else { e.textContent=''; f.classList.remove('error'); }
         });
-    </script>
+        const em = document.getElementById('email');
+        if (em.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value)) {
+            document.getElementById('emailErr').textContent='Enter a valid email address';
+            em.classList.add('error'); ok=false;
+        }
+        return ok;
+    }
 
-    <!-- WhatsApp Button -->
-    <a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue,%20I%27d%20like%20to%20enquire%20about%20temporary%20kitchen%20hire" 
-       class="whatsapp-button" 
-       target="_blank" 
-       rel="noopener noreferrer"
-       aria-label="Chat with us on WhatsApp">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-        </svg>
-    </a>
+    document.getElementById('continueBtn').addEventListener('click', function() {
+        if (!validate()) return;
+        const formData = {
+            fullName:        document.getElementById('fullName').value.trim(),
+            email:           document.getElementById('email').value.trim(),
+            phone:           document.getElementById('phone').value.trim(),
+            deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
+            postcode:        document.getElementById('postcode').value.trim(),
+            deliveryDate:    document.getElementById('deliveryDate').value,
+            hireLength:      document.getElementById('hireLength').value,
+            notes:           document.getElementById('notes').value.trim(),
+            selectedDates:   datesParam
+        };
+        sessionStorage.setItem('bookingData', JSON.stringify(formData));
+        window.location.href = 'booking-payment.html';
+    });
 
-    <script>
-        // Mobile Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const mobileNav = document.getElementById('mobileNav');
-            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
-            const mobileNavClose = document.getElementById('mobileNavClose');
-            const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+    const toggle = document.getElementById('mobileMenuToggle');
+    const nav    = document.getElementById('mobileNav');
+    const ov     = document.getElementById('mobileNavOverlay');
+    const cl     = document.getElementById('mobileNavClose');
+    if (toggle) {
+        const open = () => { nav.classList.add('open'); ov.classList.add('open'); document.body.classList.add('menu-open'); };
+        const shut = () => { nav.classList.remove('open'); ov.classList.remove('open'); document.body.classList.remove('menu-open'); };
+        toggle.addEventListener('click', open);
+        cl.addEventListener('click', shut);
+        ov.addEventListener('click', shut);
+    }
+});
 
-            if (mobileMenuToggle && mobileNav) {
-                function openMobileMenu() {
-                    mobileNav.classList.add('open');
-                    mobileNavOverlay.classList.add('open');
-                    document.body.classList.add('menu-open');
-                }
-
-                function closeMobileMenu() {
-                    mobileNav.classList.remove('open');
-                    mobileNavOverlay.classList.remove('open');
-                    document.body.classList.remove('menu-open');
-                }
-
-                mobileMenuToggle.addEventListener('click', openMobileMenu);
-                if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
-                if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
-
-                // Close menu when clicking on a link
-                mobileNavLinks.forEach(link => {
-                    link.addEventListener('click', () => {
-                        setTimeout(closeMobileMenu, 100);
-                    });
-                });
-            }
-        });
-    </script>
+function delivCost(pc) {
+    if (!pc) return 100;
+    if (pc.startsWith('EN10')) return 75;
+    const area = pc.substring(0,2).toUpperCase();
+    const map = {'EN':5,'AL':15,'HP':20,'LU':25,'MK':30,'SG':35,'CB':40,'CM':45,'CO':50,'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45};
+    const miles = map[area] || 100;
+    if (miles<=50) return 75; if (miles<=100) return 100; if (miles<=150) return 125; if (miles<=200) return 150; return 225;
+}
+</script>
 </body>
 </html>
-
 

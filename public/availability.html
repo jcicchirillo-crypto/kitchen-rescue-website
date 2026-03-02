@@ -3,1098 +3,740 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Availability • Kitchen Rescue</title>
+    <title>Check Availability • Kitchen Rescue</title>
     <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
     <link rel="stylesheet" href="/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Cookie Consent - Must load before analytics -->
     <script src="js/cookie-consent.js"></script>
-    
-    <!-- Analytics scripts are loaded by cookie-consent.js only if user accepts -->
-    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .availability-container { max-width: 1024px; margin: 0 auto; padding: 2rem 1rem; }
-        .availability-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-        .availability-title { font-size: 1.5rem; font-weight: 600; }
-        .postcode-pill { font-size: 0.875rem; color: #374151; }
-        .calendar-grid { display: grid; gap: 1rem; }
-        @media (min-width: 768px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
-        .calendar { border: 1px solid #e5e7eb; border-radius: 1rem; padding: 1rem; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-        .calendar h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
-        .weekday-row, .date-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; }
-        .weekday { text-align: center; font-size: 0.75rem; color: #6b7280; padding: 0.25rem 0; }
-        .date { text-align: center; padding: 0.5rem 0; border-radius: 0.5rem; font-size: 0.875rem; }
-        .date.disabled { color: #9ca3af; background: #f3f4f6; cursor: not-allowed; }
-        .date.available { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; cursor: pointer; }
-        .legend { display: flex; gap: 1rem; align-items: center; font-size: 0.875rem; color: #6b7280; margin-top: 0.75rem; }
-        .badge { width: 0.75rem; height: 0.75rem; border-radius: 0.25rem; display: inline-block; margin-right: 0.25rem; }
-        .badge-available { background: #a7f3d0; border: 1px solid #34d399; }
-        .badge-unavailable { background: #e5e7eb; border: 1px solid #d1d5db; }
-        .past-date { text-decoration: line-through; opacity: 0.6; }
-        .date.selected { 
-            background: #dc2626 !important; 
-            color: #fff !important; 
-            border: 1px solid #b91c1c !important; 
+        * { box-sizing: border-box; }
+        #leadGateOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
         }
-        .tools { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
-        .input { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .btn { border-radius: 0.75rem; padding: 0.6rem 0.9rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; }
-        .btn-primary { background-color: #dc2626; color: #fff; }
-        .notice { margin-top: 1rem; font-size: 0.875rem; color: #6b7280; }
+        #leadGateCard {
+            background: #fff; border-radius: 16px;
+            padding: 36px 32px; max-width: 420px; width: 92%;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+            text-align: center;
+            animation: popIn 0.25s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.93); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
+        }
+        .gate-logo { height: 40px; margin-bottom: 20px; }
+        #leadGateCard h2 { font-size: 1.4rem; font-weight: 700; color: #111827; margin: 0 0 6px; }
+        #leadGateCard p  { font-size: 0.875rem; color: #6b7280; margin: 0 0 20px; line-height: 1.5; }
+        .gate-input {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid #e5e7eb; border-radius: 8px;
+            font-size: 0.95rem; margin-bottom: 10px;
+            font-family: inherit; background: #fafafa;
+            transition: border-color 0.2s;
+        }
+        .gate-input:focus { outline: none; border-color: #dc2626; background: #fff; }
+        .gate-submit {
+            width: 100%; padding: 13px;
+            background: #dc2626; color: #fff;
+            border: none; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: background 0.2s; margin-top: 4px;
+        }
+        .gate-submit:hover { background: #b91c1c; }
+        .gate-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+        .gate-trust { margin-top: 12px; font-size: 0.75rem; color: #9ca3af; }
+        .avail-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 5rem; }
+        .avail-hero {
+            background: #111827; border-radius: 16px; padding: 28px;
+            color: #fff; margin-bottom: 24px;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 16px;
+        }
+        .avail-hero h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; }
+        .avail-hero p  { font-size: 0.85rem; opacity: 0.65; margin: 0; }
+        .postcode-bar {
+            display: flex; gap: 8px; align-items: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 6px 8px;
+        }
+        .postcode-bar input {
+            background: transparent; border: none; outline: none;
+            color: #fff; font-size: 0.875rem; font-family: inherit;
+            width: 130px; padding: 4px 6px;
+        }
+        .postcode-bar input::placeholder { color: rgba(255,255,255,0.5); }
+        .postcode-bar button {
+            background: #dc2626; color: #fff; border: none; border-radius: 7px;
+            padding: 7px 14px; font-weight: 700; font-size: 0.8rem;
+            cursor: pointer; font-family: inherit;
+        }
+        .postcode-bar button:hover { background: #b91c1c; }
+        .avail-layout { display: grid; gap: 20px; }
+        @media (min-width: 900px) { .avail-layout { grid-template-columns: 1fr 300px; align-items: start; } }
+        .cal-panel {
+            background: #fff; border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden;
+        }
+        .cal-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 18px; border-bottom: 1px solid #f3f4f6;
+        }
+        .cal-nav span { font-weight: 600; font-size: 0.9rem; color: #111827; }
+        .cal-nav-btn {
+            background: #f3f4f6; border: none; border-radius: 7px;
+            padding: 6px 12px; cursor: pointer; font-size: 0.8rem;
+            font-family: inherit; color: #374151; font-weight: 600;
+        }
+        .cal-nav-btn:hover { background: #e5e7eb; }
+        .cal-legend {
+            display: flex; gap: 14px; padding: 9px 18px;
+            font-size: 0.78rem; color: #6b7280; border-bottom: 1px solid #f3f4f6;
+        }
+        .cal-legend span { display: flex; align-items: center; gap: 5px; }
+        .badge { width: 11px; height: 11px; border-radius: 3px; }
+        .badge-available   { background: #fecaca; border: 1px solid #f87171; }
+        .badge-unavailable { background: #e5e7eb; border: 1px solid #d1d5db; }
+        .badge-selected    { background: #dc2626; }
+        .calendar-grid { display: grid; gap: 1px; background: #f3f4f6; }
+        @media (min-width: 580px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
+        .calendar { background: #fff; padding: 14px 16px; }
+        .calendar h3 { font-size: 0.85rem; font-weight: 700; color: #111827; margin-bottom: 10px; }
+        .weekday-row, .date-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        .weekday { text-align: center; font-size: 0.68rem; color: #9ca3af; padding: 3px 0; font-weight: 600; }
+        .date { text-align: center; padding: 6px 2px; border-radius: 5px; font-size: 0.78rem; line-height: 1; }
+        .date.available { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; cursor: pointer; transition: all 0.1s; }
+        .date.available:hover { background: #fee2e2; border-color: #f87171; }
+        .date.disabled  { color: #d1d5db; background: #f9fafb; }
+        .date.past-date { text-decoration: line-through; opacity: 0.35; }
+        .date.selected  { background: #dc2626 !important; color: #fff !
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Availability • Kitchen Rescue</title>
+    <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/cookie-consent.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; }
+        #leadGateOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+        #leadGateCard {
+            background: #fff; border-radius: 16px;
+            padding: 36px 32px; max-width: 420px; width: 92%;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+            text-align: center;
+            animation: popIn 0.25s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.93); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
+        }
+        .gate-logo { height: 40px; margin-bottom: 20px; }
+        #leadGateCard h2 { font-size: 1.4rem; font-weight: 700; color: #111827; margin: 0 0 6px; }
+        #leadGateCard p  { font-size: 0.875rem; color: #6b7280; margin: 0 0 20px; line-height: 1.5; }
+        .gate-input {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid #e5e7eb; border-radius: 8px;
+            font-size: 0.95rem; margin-bottom: 10px;
+            font-family: inherit; background: #fafafa;
+            transition: border-color 0.2s;
+        }
+        .gate-input:focus { outline: none; border-color: #dc2626; background: #fff; }
+        .gate-submit {
+            width: 100%; padding: 13px;
+            background: #dc2626; color: #fff;
+            border: none; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: background 0.2s; margin-top: 4px;
+        }
+        .gate-submit:hover { background: #b91c1c; }
+        .gate-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+        .gate-trust { margin-top: 12px; font-size: 0.75rem; color: #9ca3af; }
+        .avail-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 5rem; }
+        .avail-hero {
+            background: #111827; border-radius: 16px; padding: 28px;
+            color: #fff; margin-bottom: 24px;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 16px;
+        }
+        .avail-hero h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; }
+        .avail-hero p  { font-size: 0.85rem; opacity: 0.65; margin: 0; }
+        .postcode-bar {
+            display: flex; gap: 8px; align-items: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 6px 8px;
+        }
+        .postcode-bar input {
+            background: transparent; border: none; outline: none;
+            color: #fff; font-size: 0.875rem; font-family: inherit;
+            width: 130px; padding: 4px 6px;
+        }
+        .postcode-bar input::placeholder { color: rgba(255,255,255,0.5); }
+        .postcode-bar button {
+            background: #dc2626; color: #fff; border: none; border-radius: 7px;
+            padding: 7px 14px; font-weight: 700; font-size: 0.8rem;
+            cursor: pointer; font-family: inherit;
+        }
+        .postcode-bar button:hover { background: #b91c1c; }
+        .avail-layout { display: grid; gap: 20px; }
+        @media (min-width: 900px) { .avail-layout { grid-template-columns: 1fr 300px; align-items: start; } }
+        .cal-panel {
+            background: #fff; border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden;
+        }
+        .cal-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 18px; border-bottom: 1px solid #f3f4f6;
+        }
+        .cal-nav span { font-weight: 600; font-size: 0.9rem; color: #111827; }
+        .cal-nav-btn {
+            background: #f3f4f6; border: none; border-radius: 7px;
+            padding: 6px 12px; cursor: pointer; font-size: 0.8rem;
+            font-family: inherit; color: #374151; font-weight: 600;
+        }
+        .cal-nav-btn:hover { background: #e5e7eb; }
+        .cal-legend {
+            display: flex; gap: 14px; padding: 9px 18px;
+            font-size: 0.78rem; color: #6b7280; border-bottom: 1px solid #f3f4f6;
+        }
+        .cal-legend span { display: flex; align-items: center; gap: 5px; }
+        .badge { width: 11px; height: 11px; border-radius: 3px; }
+        .badge-available   { background: #fecaca; border: 1px solid #f87171; }
+        .badge-unavailable { background: #e5e7eb; border: 1px solid #d1d5db; }
+        .badge-selected    { background: #dc2626; }
+        .calendar-grid { display: grid; gap: 1px; background: #f3f4f6; }
+        @media (min-width: 580px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
+        .calendar { background: #fff; padding: 14px 16px; }
+        .calendar h3 { font-size: 0.85rem; font-weight: 700; color: #111827; margin-bottom: 10px; }
+        .weekday-row, .date-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        .weekday { text-align: center; font-size: 0.68rem; color: #9ca3af; padding: 3px 0; font-weight: 600; }
+        .date { text-align: center; padding: 6px 2px; border-radius: 5px; font-size: 0.78rem; line-height: 1; }
+        .date.available { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; cursor: pointer; transition: all 0.1s; }
+        .date.available:hover { background: #fee2e2; border-color: #f87171; }
+        .date.disabled  { color: #d1d5db; background: #f9fafb; }
+        .date.past-date { text-decoration: line-through; opacity: 0.35; }
+        .date.selected  { background: #dc2626 !important; color: #fff !important; border: 1px solid #b91c1c !important; font-weight: 700; }
+        .quote-panel { position: sticky; top: 24px; }
+        .quote-card { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden; }
+        .quote-card-header { background: #111827; padding: 18px 20px; color: #fff; }
+        .quote-card-header h3 { font-size: 0.95rem; font-weight: 700; margin: 0 0 2px; }
+        .quote-card-header p  { font-size: 0.75rem; opacity: 0.6; margin: 0; }
+        .quote-card-body { padding: 18px; }
+        .quote-empty { text-align: center; padding: 28px 16px; color: #9ca3af; }
+        .quote-empty .ei { font-size: 2rem; margin-bottom: 8px; }
+        .quote-empty p { font-size: 0.82rem; line-height: 1.5; margin: 0; }
+        .quote-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f9fafb; font-size: 0.82rem; }
+        .quote-row:last-of-type { border-bottom: none; }
+        .quote-row .ql { color: #6b7280; }
+        .quote-row .qv { font-weight: 600; color: #111827; }
+        .quote-total { background: #fef2f2; border-radius: 8px; padding: 12px 14px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .quote-total .tl { font-size: 0.85rem; color: #991b1b; font-weight: 600; }
+        .quote-total .tp { font-size: 1.25rem; font-weight: 700; color: #dc2626; }
+        .quote-vat { font-size: 0.72rem; color: #9ca3af; text-align: center; margin-bottom: 12px; }
+        .btn-book { width: 100%; padding: 13px; background: #dc2626; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; margin-bottom: 8px; }
+        .btn-book:hover { background: #b91c1c; }
+        .btn-email { width: 100%; padding: 11px; background: #fff; color: #374151; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+        .btn-email:hover { border-color: #dc2626; color: #dc2626; }
+        .quote-trust { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f3f4f6; display: flex; flex-direction: column; gap: 5px; font-size: 0.74rem; color: #9ca3af; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-card { background: #fff; border-radius: 14px; padding: 28px; max-width: 460px; width: 92%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal-card h3 { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 0 0 6px; }
+        .modal-card p  { font-size: 0.85rem; color: #6b7280; margin: 0 0 18px; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; font-weight: 600; font-size: 0.82rem; color: #374151; margin-bottom: 5px; }
+        .modal-field input, .modal-field textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 7px; font-size: 0.875rem; font-family: inherit; }
+        .modal-field input:focus, .modal-field textarea:focus { outline: none; border-color: #dc2626; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+        .btn-modal-cancel { padding: 9px 18px; background: #fff; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-modal-send { padding: 9px 22px; background: #dc2626; color: #fff; border: none; border-radius: 7px; font-size: 0.85rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .btn-modal-send:hover { background: #b91c1c; }
+        .modal-msg { padding: 9px 12px; border-radius: 7px; font-size: 0.82rem; margin-bottom: 12px; display: none; }
+        .modal-msg.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .modal-msg.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .avail-notice { margin-top: 16px; font-size: 0.82rem; color: #6b7280; text-align: center; }
+        .avail-notice a { color: #dc2626; font-weight: 600; }
+        #kr-toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 3000; max-width: 460px; width: 90%; padding: 12px 16px; border-radius: 9px; font-size: 0.85rem; font-weight: 500; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.12); transition: opacity 0.3s; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
-    <a href="#main-content" class="skip-to-content">Skip to main content</a>
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo-section">
-                    <a href="index.html">
-                        <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
-                    </a>
-                    <a href="availability.html" class="mobile-availability">Availability</a>
-                </div>
-                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
-                <nav class="nav">
-                    <a href="index.html" class="nav-link">Home</a>
-                    <a href="index.html#features" class="nav-link">Features</a>
-                    <a href="index.html#spec" class="nav-link">Spec</a>
-                    <a href="index.html#gallery" class="nav-link">Gallery</a>
-                    <a href="index.html#faqs" class="nav-link">FAQs</a>
-                    <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
-                </nav>
+
+<div id="leadGateOverlay">
+    <div id="leadGateCard">
+        <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="gate-logo">
+        <h2>Check live availability</h2>
+        <p>Enter your details to unlock the calendar and get an instant quote. No obligation.</p>
+        <form onsubmit="submitLeadGate(event)">
+            <input class="gate-input" type="text"  id="lg-name"  placeholder="Your full name"  required>
+            <input class="gate-input" type="email" id="lg-email" placeholder="Email address"   required>
+            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number"    required>
+            <button class="gate-submit" type="submit" id="gateBtn">Show me availability →</button>
+        </form>
+        <p class="gate-trust">🔒 We never share your details or spam you</p>
+    </div>
+</div>
+
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <div class="logo-section">
+                <a href="index.html"><img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img"></a>
             </div>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#features" class="nav-link">Features</a>
+                <a href="index.html#spec" class="nav-link">Spec</a>
+                <a href="index.html#gallery" class="nav-link">Gallery</a>
+                <a href="index.html#faqs" class="nav-link">FAQs</a>
+                <a href="index.html#contact" class="nav-link nav-cta">Contact</a>
+            </nav>
         </div>
-    </header>
+    </div>
+</header>
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+<nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-close" id="mobileNavClose">×</button>
+    <div class="mobile-nav-links">
+        <a href="index.html">Home</a>
+        <a href="availability.html">Availability</a>
+        <a href="index.html#features">Features</a>
+        <a href="index.html#spec">Spec</a>
+        <a href="index.html#gallery">Gallery</a>
+        <a href="blog.html">Blog</a>
+        <a href="index.html#faqs">FAQs</a>
+        <a href="index.html#contact">Contact</a>
+    </div>
+</nav>
 
-    <!-- Mobile Navigation Drawer -->
-    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
-    <nav class="mobile-nav" id="mobileNav">
-        <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
-        <div class="mobile-nav-links">
-            <a href="index.html">Home</a>
-            <a href="availability.html">Availability</a>
-            <a href="index.html#features">Features</a>
-            <a href="index.html#spec">Spec</a>
-            <a href="index.html#gallery">Gallery</a>
-            <a href="blog.html">Blog</a>
-            <a href="index.html#faqs">FAQs</a>
-            <a href="index.html#contact">Contact</a>
+<main id="main-content" class="avail-page">
+    <div class="avail-hero">
+        <div>
+            <h1>Check Availability</h1>
+            <p>Tap a date to select a 7-day block — your quote updates instantly.</p>
         </div>
-    </nav>
-
-    <main id="main-content" class="availability-container">
-        <!-- Back to main site button -->
-        <div style="margin-bottom: 1rem;">
-            <a href="index.html" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; background-color: #6b7280; color: #fff; text-decoration: none;">
-                ← Back to Main Site
-            </a>
-        </div>
-        
-        <div class="availability-header">
-            <p class="availability-title">Check availability</p>
-            <p id="postcodePill" class="postcode-pill"></p>
-        </div>
-        <div class="tools">
-            <input id="postcodeInput" class="input" placeholder="Enter postcode (e.g. EN10)">
-            <button id="updatePostcodeBtn" class="btn btn-primary">Update</button>
-        </div>
-        <div class="legend">
-            <span><span class="badge badge-available"></span>Available</span>
-            <span><span class="badge badge-unavailable"></span>Unavailable</span>
-        </div>
-        <div class="calendar-controls" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-            <button id="prevMonthBtn" class="btn" style="border: 1px solid #d1d5db;">← Previous</button>
-            <span id="currentMonthDisplay" style="font-weight: 500;"></span>
-            <button id="nextMonthBtn" class="btn" style="border: 1px solid #d1d5db;">Next →</button>
-        </div>
-        <div id="calendarGrid" class="calendar-grid" aria-live="polite"></div>
-        
-        <div id="pricingCalculator" class="pricing-calculator" style="display: none; margin-top: 1.5rem; padding: 1.5rem; background: #f9fafb; border-radius: 1rem; border: 1px solid #e5e7eb;">
-            <h3 style="margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">Quote Calculator</h3>
-            <div id="selectedDates" style="margin-bottom: 1rem; font-size: 0.875rem; color: #6b7280;"></div>
-            <div id="pricingBreakdown" style="display: grid; gap: 0.75rem;"></div>
-            <div id="totalCost" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; font-size: 1.125rem; font-weight: 600; color: #dc2626;"></div>
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <button id="bookNowBtn" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1.125rem; font-weight: 600; margin-right: 1rem;">
-                    📅 Book Now
-                </button>
-                <button id="emailQuoteBtn" class="btn" style="padding: 0.75rem 2rem; font-size: 1.125rem; font-weight: 600; border: 1px solid #d1d5db; background: #ffffff; color: #374151;">
-                    📧 Email Quote
-                </button>
-            </div>
-        </div>
-        
-        <p class="notice">Find real-time availability and book online. Any questions? Just call <a href="tel:+447342606655" style="color: #dc2626; text-decoration: none; font-weight: 500;">+44 7342 606655</a></p>
-    </main>
-
-    <!-- Email Quote Modal -->
-    <div id="emailQuoteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 1rem; padding: 2rem; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-            <h3 style="margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">📧 Email Quote</h3>
-            <p style="color: #6b7280; margin-bottom: 1.5rem; font-size: 0.875rem;">We'll send your personalized quote to your email address.</p>
-            
-            <form id="emailQuoteForm">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Your Name *</label>
-                    <input type="text" id="quoteName" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">
-                </div>
-                
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Email Address *</label>
-                    <input type="email" id="quoteEmail" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">
-                </div>
-                
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Phone Number</label>
-                    <input type="tel" id="quotePhone" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">
-                </div>
-                
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Additional Notes</label>
-                    <textarea id="quoteNotes" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; resize: vertical;" placeholder="Any specific requirements or questions?"></textarea>
-                </div>
-                
-                <div id="emailQuoteMessage" style="margin-bottom: 1rem; padding: 1rem; border-radius: 0.5rem; display: none;"></div>
-                
-                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                    <button type="button" id="cancelEmailQuote" class="btn" style="border: 1px solid #d1d5db; background: #ffffff; color: #374151; padding: 0.75rem 1.5rem;">
-                        Cancel
-                    </button>
-                    <button type="submit" id="sendEmailQuote" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
-                        📧 Send Quote
-                    </button>
-                </div>
-            </form>
+        <div class="postcode-bar">
+            <input id="postcodeInput" placeholder="Enter postcode" autocomplete="postal-code">
+            <button id="updatePostcodeBtn">Update</button>
         </div>
     </div>
 
-    <script>
-        console.log('Script tag reached');
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded');
-            
-            // Check for URL parameters from email quote
-            const urlParams = new URLSearchParams(window.location.search);
-            const emailDates = urlParams.get('dates');
-            const emailPostcode = urlParams.get('postcode');
-            
-            // If coming from email quote, auto-select dates and postcode
-            if (emailDates && emailPostcode) {
-                console.log('Email quote detected - auto-selecting dates:', emailDates);
-                console.log('Email quote detected - auto-filling postcode:', emailPostcode);
-                
-                // Fill in postcode
-                const postcodeInput = document.getElementById('postcodeInput');
-                if (postcodeInput) {
-                    postcodeInput.value = emailPostcode;
-                    // Update postcode pill
-                    const postcodePill = document.getElementById('postcodePill');
-                    postcodePill.textContent = `Postcode: ${emailPostcode}`;
-                }
-                
-                // Parse and select dates
-                const dateArray = emailDates.split(',');
-                selectedDates = dateArray;
-                console.log('Auto-selected dates:', selectedDates);
-            }
-            
-            // Postcode update handler
-            const updateBtn = document.getElementById('updatePostcodeBtn');
-            if (updateBtn) {
-                updateBtn.addEventListener('click', () => {
-                    const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
-                    const params = new URLSearchParams(window.location.search);
-                    if (pc) params.set('postcode', pc); else params.delete('postcode');
-                    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
-                    
-                    // Update postcode pill
-                    const postcodePill = document.getElementById('postcodePill');
-                    postcodePill.textContent = pc ? `Postcode: ${pc}` : '';
-                    
-                    // Refresh pricing if dates are selected
-                    if (selectedDates.length > 0) {
-                        updatePricingCalculator();
-                    }
-                });
-            }
-            
-            // Book Now button handler
-            const bookNowBtn = document.getElementById('bookNowBtn');
-            if (bookNowBtn) {
-                bookNowBtn.addEventListener('click', () => {
-                    if (selectedDates.length === 0) {
-                        alert('Please select your dates first');
-                        return;
-                    }
-                    
-                    const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
-                    if (!postcode) {
-                        alert('Please enter your postcode first');
-                        return;
-                    }
-                    
-                    // Navigate to booking flow with selected data
-                    const params = new URLSearchParams();
-                    params.set('dates', selectedDates.join(','));
-                    params.set('postcode', postcode);
-                    window.location.href = `booking-checklist.html?${params.toString()}`;
-                });
-            }
-            
-            // Email Quote button handler
-            const emailQuoteBtn = document.getElementById('emailQuoteBtn');
-            if (emailQuoteBtn) {
-                emailQuoteBtn.addEventListener('click', () => {
-                    if (selectedDates.length === 0) {
-                        alert('Please select your dates first');
-                        return;
-                    }
-                    
-                    const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
-                    if (!postcode) {
-                        alert('Please enter your postcode first');
-                        return;
-                    }
-                    
-                    // Show email form modal
-                    showEmailQuoteModal();
-                });
-            }
-            
-            // Load calendar
-            loadCalendar();
-            
-            // If we have auto-selected dates from email, highlight them after calendar loads
-            if (emailDates && emailPostcode) {
-                setTimeout(() => {
-                    // Check if all dates are still available
-                    const unavailableDates = checkDateAvailability(emailDates.split(','));
-                    
-                    if (unavailableDates.length > 0) {
-                        // Some dates are no longer available
-                        showDateUnavailableMessage(unavailableDates);
-                        // Clear the selected dates since some are unavailable
-                        selectedDates = [];
-                    } else {
-                        // All dates are still available
-                        highlightAllSelectedDates();
-                        updatePricingCalculator();
-                    }
-                }, 1000); // Wait for calendar to fully load
-            }
-        });
-        
-        // Initialize to current month
-        const today = new Date();
-        let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        let selectedDates = [];
-        let availabilityData = { unavailable: [] };
-        
-        function loadCalendar() {
-            const calendarGrid = document.getElementById('calendarGrid');
-            const currentMonthDisplay = document.getElementById('currentMonthDisplay');
-            const prevMonthBtn = document.getElementById('prevMonthBtn');
-            const nextMonthBtn = document.getElementById('nextMonthBtn');
-            
-            // Load availability data and filter out past dates
-            fetch('assets/availability.json')
-                .then(r => r.json())
-                .then(data => {
-                    // Filter out past dates from unavailable ranges
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0); // Reset to start of day
-                    const todayStr = today.toISOString().slice(0, 10);
-                    
-                    availabilityData = {
-                        unavailable: (data.unavailable || []).filter(range => {
-                            // Only keep ranges that end on or after today
-                            return range.end >= todayStr;
-                        }).map(range => {
-                            // If range starts before today, adjust start to today
-                            if (range.start < todayStr) {
-                                return {
-                                    start: todayStr,
-                                    end: range.end
-                                };
-                            }
-                            return range;
-                        })
-                    };
-                    renderAll();
-                })
-                .catch(() => {
-                    availabilityData = { unavailable: [] };
-                    renderAll();
-                });
-            
-            // Navigation handlers - don't allow going before today
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
-            const startDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-            
-            prevMonthBtn.addEventListener('click', () => {
-                const prevMonth = new Date(currentMonth);
-                prevMonth.setMonth(prevMonth.getMonth() - 1);
-                
-                // Don't allow going before December 2025
-                if (prevMonth >= startDate) {
-                    currentMonth.setMonth(currentMonth.getMonth() - 1);
-                    renderAll();
-                }
-            });
-            
-            nextMonthBtn.addEventListener('click', () => {
-                currentMonth.setMonth(currentMonth.getMonth() + 1);
-                renderAll();
-            });
-            
-            function renderAll() {
-                console.log('=== RENDERING CALENDAR ===');
-                calendarGrid.innerHTML = '';
-                const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-                console.log('Rendering months:', currentMonth.toLocaleString(), 'and', nextMonth.toLocaleString());
-                
-                calendarGrid.appendChild(renderMonth(currentMonth, availabilityData));
-                calendarGrid.appendChild(renderMonth(nextMonth, availabilityData));
-                currentMonthDisplay.textContent = `${currentMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })} & ${nextMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}`;
-                
-                console.log('Calendar rendered, available dates:', document.querySelectorAll('.date.available').length);
-                
-                // Re-highlight selected dates after rendering
-                highlightAllSelectedDates();
-                console.log('=== END RENDERING ===');
-            }
-        }
-        
-        function renderMonth(monthStart, availability) {
-            const container = document.createElement('div');
-            container.className = 'calendar';
-            
-            const title = document.createElement('h3');
-            title.textContent = monthStart.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-            container.appendChild(title);
-            
-            const weekdayRow = document.createElement('div');
-            weekdayRow.className = 'weekday-row';
-            ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(d => {
-                const el = document.createElement('div');
-                el.className = 'weekday';
-                el.textContent = d;
-                weekdayRow.appendChild(el);
-            });
-            container.appendChild(weekdayRow);
-            
-            const dateGrid = document.createElement('div');
-            dateGrid.className = 'date-grid';
-            
-            const firstDay = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1);
-            const lastDay = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-            
-            // Leading blanks
-            const lead = (firstDay.getDay() + 6) % 7; // Convert to Mon-based week
-            for (let i = 0; i < lead; i++) dateGrid.appendChild(document.createElement('div'));
-            
-            // Unavailable dates
-            const unavailableSet = new Set();
-            (availability.unavailable || []).forEach(r => {
-                const start = new Date(r.start);
-                const end = new Date(r.end);
-                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    unavailableSet.add(d.toISOString().slice(0,10));
-                }
-            });
-            
-            // Use today's date for past date checking
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
-            const todayStr = today.toISOString().slice(0,10);
-            
-            for (let day = 1; day <= lastDay.getDate(); day++) {
-                const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
-                const iso = date.toISOString().slice(0,10);
-                const cell = document.createElement('div');
-                cell.className = 'date';
-                cell.setAttribute('data-date', iso); // Add data attribute for easy finding
-                const isUnavailable = unavailableSet.has(iso);
-                const isPast = iso < todayStr; // Compare against today's date
-                cell.classList.add(isUnavailable ? 'disabled' : 'available');
-                if (isPast) cell.classList.add('past-date');
-                cell.textContent = String(day);
-                
-                // Add click handler for available dates
-                if (!isUnavailable && !isPast) {
-                    cell.style.cursor = 'pointer';
-                    console.log('Adding click handler to date:', iso, 'Day:', day);
-                    
-                    cell.onclick = function(event) {
-                        console.log('=== CLICK EVENT TRIGGERED ===');
-                        console.log('Event:', event);
-                        console.log('Clicked date:', iso);
-                        console.log('Current selectedDates:', selectedDates);
-                        
-                        // Check if this date is part of any selected 7-day block
-                        const isInSelectedBlock = isDateInSelectedBlock(iso);
-                        console.log('Is in selected block:', isInSelectedBlock);
-                        
-                        if (isInSelectedBlock) {
-                            // Deselecting - remove the 7-day block containing this date
-                            console.log('Removing block containing:', iso);
-                            removeSevenDayBlockContaining(iso);
-                        } else {
-                            // Selecting - automatically select 7-day block starting from this date
-                            console.log('Selecting 7-day block starting from:', iso);
-                            selectSevenDayBlock(iso);
-                        }
-                        
-                        // Update display
-                        highlightAllSelectedDates();
-                        updatePricingCalculator();
-                        
-                        console.log('=== END CLICK ===');
-                    };
-                    
-                    // Test if the click handler was attached
-                    console.log('Click handler attached to cell:', cell.onclick !== null);
-                }
-                
-                dateGrid.appendChild(cell);
-            }
-            
-            container.appendChild(dateGrid);
-            return container;
-        }
-        
-        
-        // Date selection and pricing functions
-        function toggleDateSelection(dateStr, cell) {
-            console.log('toggleDateSelection called for:', dateStr);
-            console.log('Current selectedDates:', selectedDates);
-            
-            // Check if this date is part of any selected 7-day block
-            const isInSelectedBlock = isDateInSelectedBlock(dateStr);
-            console.log('Is in selected block:', isInSelectedBlock);
-            
-            if (isInSelectedBlock) {
-                // Deselecting - remove the 7-day block containing this date
-                console.log('Removing block containing:', dateStr);
-                removeSevenDayBlockContaining(dateStr);
-            } else {
-                // Selecting - automatically select 7-day block starting from this date
-                console.log('Selecting 7-day block starting from:', dateStr);
-                selectSevenDayBlock(dateStr);
-            }
-            updatePricingCalculator();
-        }
-        
-        function isDateInSelectedBlock(dateStr) {
-            // Check if this date is in any selected 7-day block
-            for (let i = 0; i < selectedDates.length; i += 7) {
-                const blockStart = new Date(selectedDates[i]);
-                const blockEnd = new Date(blockStart);
-                blockEnd.setDate(blockStart.getDate() + 6);
-                
-                const targetDate = new Date(dateStr);
-                if (targetDate >= blockStart && targetDate <= blockEnd) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        function removeSevenDayBlockContaining(dateStr) {
-            const targetDate = new Date(dateStr);
-            
-            // Find which 7-day block contains this date
-            for (let i = 0; i < selectedDates.length; i += 7) {
-                const blockStart = new Date(selectedDates[i]);
-                const blockEnd = new Date(blockStart);
-                blockEnd.setDate(blockStart.getDate() + 6);
-                
-                if (targetDate >= blockStart && targetDate <= blockEnd) {
-                    // Remove this entire 7-day block
-                    selectedDates.splice(i, 7);
-                    break;
-                }
-            }
-            
-            highlightAllSelectedDates();
-        }
-        
-        function selectSevenDayBlock(startDateStr) {
-            console.log('selectSevenDayBlock called for:', startDateStr);
-            const startDate = new Date(startDateStr);
-            const newBlockDates = [];
-            
-            // Check if all 7 days are available
-            for (let i = 0; i < 7; i++) {
-                const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + i);
-                const dateStr = currentDate.toISOString().slice(0, 10);
-                
-                console.log(`Checking day ${i + 1} of 7-day block:`, dateStr);
-                
-                if (isDateAvailable(dateStr)) {
-                    newBlockDates.push(dateStr);
-                    console.log('✓ Date is available:', dateStr);
-                } else {
-                    console.log('✗ Date is NOT available:', dateStr);
-                    console.log('Cannot select 7-day block - unavailable date:', dateStr);
-                    alert(`Cannot select 7-day block - ${dateStr} is unavailable.`);
-                    return;
-                }
-            }
-            
-            // Check if this block is consecutive with existing selected dates
-            if (selectedDates.length > 0) {
-                // Sort existing dates to find the range
-                const sortedDates = [...selectedDates].sort();
-                const firstSelected = new Date(sortedDates[0]);
-                const lastSelected = new Date(sortedDates[sortedDates.length - 1]);
-                
-                // Calculate the day after the last selected date
-                const dayAfterLast = new Date(lastSelected);
-                dayAfterLast.setDate(lastSelected.getDate() + 1);
-                const dayAfterLastStr = dayAfterLast.toISOString().slice(0, 10);
-                
-                // Calculate the day before the first selected date
-                const dayBeforeFirst = new Date(firstSelected);
-                dayBeforeFirst.setDate(firstSelected.getDate() - 1);
-                const dayBeforeFirstStr = dayBeforeFirst.toISOString().slice(0, 10);
-                
-                const newBlockStart = newBlockDates[0];
-                const newBlockEnd = newBlockDates[6];
-                
-                // Check if new block starts the day after the last selected date
-                const isConsecutiveAfter = newBlockStart === dayAfterLastStr;
-                
-                // Check if new block ends the day before the first selected date
-                const isConsecutiveBefore = newBlockEnd === dayBeforeFirstStr;
-                
-                if (!isConsecutiveAfter && !isConsecutiveBefore) {
-                    const firstDateStr = firstSelected.toISOString().slice(0, 10);
-                    const lastDateStr = lastSelected.toISOString().slice(0, 10);
-                    alert(`Weeks must be booked consecutively with no gaps.\n\nYou have selected: ${firstDateStr} to ${lastDateStr}\n\nPlease select a date that continues from your existing selection (the day after ${lastDateStr} or the day before ${firstDateStr}).`);
-                    return;
-                }
-            }
-            
-            console.log('All 7 days are available and consecutive. Adding new block dates:', newBlockDates);
-            
-            // Add the new block to selected dates
-            selectedDates.push(...newBlockDates);
-            selectedDates.sort();
-            
-            console.log('Updated selectedDates:', selectedDates);
-            
-            // Auto-navigate to show the selected dates
-            console.log('About to call autoNavigateToSelectedDates');
-            autoNavigateToSelectedDates();
-        }
-        
-        function autoNavigateToSelectedDates() {
-            if (selectedDates.length === 0) return;
-            
-            // Find the earliest selected date
-            const earliestDate = new Date(selectedDates[0]);
-            const earliestMonth = earliestDate.getMonth();
-            const earliestYear = earliestDate.getFullYear();
-            
-            console.log('Auto-navigate check:', {
-                earliestDate: earliestDate.toISOString().slice(0, 10),
-                earliestMonth,
-                earliestYear,
-                currentMonth: currentMonth.getMonth(),
-                currentYear: currentMonth.getFullYear()
-            });
-            
-            // Always navigate to show the selected month as the left month
-            console.log('Navigating to show selected month as left calendar');
-            currentMonth.setMonth(earliestMonth);
-            currentMonth.setFullYear(earliestYear);
-            
-            // Re-render the calendar
-            const calendarGrid = document.getElementById('calendarGrid');
-            const currentMonthDisplay = document.getElementById('currentMonthDisplay');
-            
-            calendarGrid.innerHTML = '';
-            const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-            console.log('Rendering months:', currentMonth.toLocaleString(), 'and', nextMonth.toLocaleString());
-            
-            calendarGrid.appendChild(renderMonth(currentMonth, availabilityData));
-            calendarGrid.appendChild(renderMonth(nextMonth, availabilityData));
-            currentMonthDisplay.textContent = `${currentMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })} & ${nextMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}`;
-            
-            console.log('Calendar re-rendered, available dates:', document.querySelectorAll('.date.available').length);
-            
-            // Re-highlight selected dates after rendering
-            highlightAllSelectedDates();
-        }
-        
-        function isDateAvailable(dateStr) {
-            const unavailableSet = new Set();
-            (availabilityData.unavailable || []).forEach(r => {
-                const start = new Date(r.start);
-                const end = new Date(r.end);
-                console.log('Processing unavailable range:', r.start, 'to', r.end);
-                
-                // Create a copy of the start date to avoid modifying the original
-                const currentDate = new Date(start);
-                while (currentDate <= end) {
-                    const dateKey = currentDate.toISOString().slice(0, 10);
-                    unavailableSet.add(dateKey);
-                    console.log('Added unavailable date:', dateKey);
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            });
-            
-            // Also check for booked dates from localStorage (but filter out past dates)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayStr = today.toISOString().slice(0,10);
-            
-            const bookedDates = JSON.parse(localStorage.getItem('bookedDates') || '[]');
-            bookedDates.forEach(date => {
-                // Only add booked dates that are today or in the future
-                if (date >= todayStr) {
-                    unavailableSet.add(date);
-                    console.log('Added booked date as unavailable:', date);
-                } else {
-                    console.log('Skipping past booked date:', date);
-                }
-            });
-            
-            const isUnavailable = unavailableSet.has(dateStr);
-            const isPast = dateStr < todayStr;
-            const isAvailable = !isUnavailable && !isPast;
-            
-            console.log('isDateAvailable check for', dateStr, ':', {
-                isUnavailable,
-                isPast,
-                isAvailable,
-                todayStr,
-                bookedDates: bookedDates,
-                unavailableDates: Array.from(unavailableSet).sort()
-            });
-            
-            return isAvailable;
-        }
-        
-        function highlightAllSelectedDates() {
-            console.log('highlightAllSelectedDates called with:', selectedDates);
-            
-            // Clear all existing selections first
-            const allCells = document.querySelectorAll('.date');
-            allCells.forEach(cell => {
-                cell.classList.remove('selected');
-                cell.style.backgroundColor = '';
-                cell.style.color = '';
-                cell.style.border = '';
-            });
-            
-            // Highlight all selected dates using data attributes
-            selectedDates.forEach(dateStr => {
-                console.log('Looking for cell with data-date:', dateStr);
-                const cell = document.querySelector(`[data-date="${dateStr}"]`);
-                if (cell && !cell.classList.contains('disabled')) {
-                    console.log('Found and highlighting cell for:', dateStr);
-                    cell.classList.add('selected');
-                    cell.style.backgroundColor = '#dc2626';
-                    cell.style.color = '#fff';
-                    cell.style.border = '1px solid #b91c1c';
-                    console.log('Applied styles to cell:', cell);
-                } else {
-                    console.log('Cell not found or disabled for:', dateStr);
-                }
-            });
-            
-            console.log('Highlighting complete');
-        }
-        
-        function clearSelection() {
-            selectedDates = [];
-            // Remove all selected styling
-            const cells = document.querySelectorAll('.date');
-            cells.forEach(cell => {
-                cell.classList.remove('selected');
-                cell.style.backgroundColor = '';
-                cell.style.color = '';
-                cell.style.border = '';
-            });
-        }
-        
-        
-        function updatePricingCalculator() {
-            const calculator = document.getElementById('pricingCalculator');
-            const selectedDatesDiv = document.getElementById('selectedDates');
-            const pricingBreakdown = document.getElementById('pricingBreakdown');
-            const totalCost = document.getElementById('totalCost');
-            
-            if (selectedDates.length === 0) {
-                calculator.style.display = 'none';
-                return;
-            }
-            
-            calculator.style.display = 'block';
-            
-            // Show selected dates
-            const startDate = new Date(selectedDates[0]);
-            const endDate = new Date(selectedDates[selectedDates.length - 1]);
-            const days = selectedDates.length;
-            
-            selectedDatesDiv.textContent = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()} (${days} day${days > 1 ? 's' : ''})`;
-            
-            // Calculate pricing
-            const dailyCost = days * 70; // £70 per day
-            
-            // Get individual delivery and collection costs
-            let deliveryCost, collectionCost;
-            const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
-            
-            if (postcode.startsWith('EN10')) {
-                deliveryCost = 75;
-                collectionCost = 75;
-            } else {
-                // Get the individual costs based on distance
-                const individualCost = getIndividualDeliveryCost();
-                deliveryCost = individualCost;
-                collectionCost = individualCost;
-            }
-            
-            pricingBreakdown.innerHTML = `
-                <div style="display: flex; justify-content: space-between;">
-                    <span>Daily hire (${days} day${days > 1 ? 's' : ''} × £70)</span>
-                    <span>£${dailyCost}</span>
+    <div class="avail-layout">
+        <div>
+            <div class="cal-panel">
+                <div class="cal-nav">
+                    <button class="cal-nav-btn" id="prevMonthBtn">← Prev</button>
+                    <span id="currentMonthDisplay">Loading…</span>
+                    <button class="cal-nav-btn" id="nextMonthBtn">Next →</button>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>Delivery</span>
-                    <span>£${deliveryCost}</span>
+                <div class="cal-legend">
+                    <span><span class="badge badge-available"></span> Available</span>
+                    <span><span class="badge badge-unavailable"></span> Unavailable</span>
+                    <span><span class="badge badge-selected"></span> Selected</span>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>Collection</span>
-                    <span>£${collectionCost}</span>
-                </div>
-            `;
-            
-            const total = dailyCost + deliveryCost + collectionCost;
-            totalCost.textContent = `Total: £${total} + VAT`;
-        }
-        
-        function getIndividualDeliveryCost() {
-            const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
-            if (!postcode) return 0;
-            
-            // Special rate for EN10 7EU area (up to 20 miles)
-            if (postcode.startsWith('EN10')) {
-                return 75; // £75 for delivery, £75 for collection
-            }
-            
-            // More accurate distance estimation from Broxbourne, Hertfordshire
-            const postcodeArea = postcode.substring(0, 2);
-            const distanceMap = {
-                // Hertfordshire & nearby (0-50 miles)
-                'EN': 5, 'AL': 15, 'HP': 20, 'LU': 25, 'MK': 30, 'SG': 35, 'CB': 40, 'CM': 45, 'CO': 50,
-                
-                // London areas (10-30 miles)
-                'E': 15, 'EC': 20, 'N': 10, 'NW': 12, 'SE': 18, 'SW': 20, 'W': 15, 'WC': 18,
-                'IG': 20, 'RM': 25, 'DA': 25, 'BR': 30, 'CR': 35, 'KT': 40, 'SM': 35, 'TW': 45,
-                'UB': 50, 'HA': 40, 'WD': 45,
-                
-                // South East (50-100 miles)
-                'SL': 55, 'RG': 60, 'GU': 65, 'PO': 70, 'SO': 75, 'BH': 80, 'DT': 85, 'SP': 90, 'OX': 95,
-                
-                // Midlands (100-150 miles)
-                'BA': 105, 'SN': 110, 'WR': 115, 'CV': 120, 'B': 125, 'DY': 130, 'WS': 135, 'WV': 140,
-                'ST': 145, 'TF': 150,
-                
-                // North England (150-200 miles)
-                'SY': 155, 'HR': 160, 'LD': 165, 'NP': 170, 'CF': 175, 'SA': 180, 'LL': 185, 'CH': 190,
-                'L': 195, 'M': 200, 'SK': 205, 'OL': 210, 'BL': 215, 'PR': 220, 'FY': 225,
-                
-                // North England & Scotland (200-300+ miles)
-                'BB': 230, 'BD': 235, 'HD': 240, 'HX': 245, 'LS': 250, 'S': 255, 'WF': 260,
-                'DN': 265, 'HU': 270, 'YO': 275, 'NE': 280, 'DH': 285, 'SR': 290, 'TS': 295,
-                'DL': 300, 'HG': 305, 'LA': 310, 'CA': 315, 'TD': 320, 'EH': 325, 'FK': 330,
-                'G': 335, 'KA': 340, 'KY': 345, 'ML': 350, 'PA': 355, 'PH': 360, 'AB': 365,
-                'DD': 370, 'IV': 375, 'KW': 380, 'ZE': 385
-            };
-            
-            const estimatedMiles = distanceMap[postcodeArea] || 100;
-            
-            const deliveryRates = [
-                { maxMiles: 50, price: 75 },   // £75 for delivery, £75 for collection
-                { maxMiles: 100, price: 100 }, // £100 for delivery, £100 for collection
-                { maxMiles: 150, price: 125 }, // £125 for delivery, £125 for collection
-                { maxMiles: 200, price: 150 }, // £150 for delivery, £150 for collection
-                { maxMiles: 300, price: 225 }  // £225 for delivery, £225 for collection
-            ];
-            
-            for (const rate of deliveryRates) {
-                if (estimatedMiles <= rate.maxMiles) {
-                    return rate.price;
-                }
-            }
-            
-            return deliveryRates[deliveryRates.length - 1].price;
-        }
-        
-        function getDeliveryCost() {
-            // This function now returns the total cost (delivery + collection)
-            const individualCost = getIndividualDeliveryCost();
-            return individualCost * 2; // Double for total delivery + collection
-        }
-        
-        // Email Quote Modal Functions
-        function showEmailQuoteModal() {
-            const modal = document.getElementById('emailQuoteModal');
-            modal.style.display = 'block';
-            
-            // Set up modal event listeners (only once)
-            const cancelBtn = document.getElementById('cancelEmailQuote');
-            const form = document.getElementById('emailQuoteForm');
-            
-            // Remove any existing listeners to prevent duplicates
-            cancelBtn.replaceWith(cancelBtn.cloneNode(true));
-            form.replaceWith(form.cloneNode(true));
-            
-            // Add fresh event listeners
-            document.getElementById('cancelEmailQuote').addEventListener('click', hideEmailQuoteModal);
-            document.getElementById('emailQuoteForm').addEventListener('submit', handleEmailQuoteSubmit);
-            
-            // Close modal when clicking outside
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    hideEmailQuoteModal();
-                }
-            });
-        }
-        
-        function hideEmailQuoteModal() {
-            const modal = document.getElementById('emailQuoteModal');
-            modal.style.display = 'none';
-            
-            // Clear form
-            document.getElementById('emailQuoteForm').reset();
-            const messageDiv = document.getElementById('emailQuoteMessage');
-            messageDiv.style.display = 'none';
-            messageDiv.textContent = '';
-        }
-        
-        async function handleEmailQuoteSubmit(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('quoteName').value.trim();
-            const email = document.getElementById('quoteEmail').value.trim();
-            const phone = document.getElementById('quotePhone').value.trim();
-            const notes = document.getElementById('quoteNotes').value.trim();
-            const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
-            
-            if (!name || !email) {
-                showEmailQuoteMessage('Please fill in your name and email address.', 'error');
-                return;
-            }
-            
-            // Calculate quote details
-            const startDate = new Date(selectedDates[0]);
-            const endDate = new Date(selectedDates[selectedDates.length - 1]);
-            const days = selectedDates.length;
-            const dailyCost = days * 70;
-            const deliveryCost = getIndividualDeliveryCost();
-            const collectionCost = deliveryCost;
-            const totalCost = dailyCost + deliveryCost + collectionCost;
-            
-            const quoteData = {
-                name: name,
-                email: email,
-                phone: phone,
-                notes: notes,
-                postcode: postcode,
-                selectedDates: selectedDates,
-                startDate: startDate.toISOString().slice(0, 10),
-                endDate: endDate.toISOString().slice(0, 10),
-                days: days,
-                dailyCost: dailyCost,
-                deliveryCost: deliveryCost,
-                collectionCost: collectionCost,
-                totalCost: totalCost
-            };
-            
-            const sendBtn = document.getElementById('sendEmailQuote');
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
-            
-            try {
-                const response = await fetch('/send-quote-email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(quoteData)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showEmailQuoteMessage('✅ Quote sent successfully! Check your email inbox.', 'success');
-                    setTimeout(() => {
-                        hideEmailQuoteModal();
-                    }, 2000);
-                } else {
-                    showEmailQuoteMessage('❌ Failed to send quote. Please try again or contact us directly.', 'error');
-                }
-            } catch (error) {
-                console.error('Error sending quote email:', error);
-                showEmailQuoteMessage('❌ Failed to send quote. Please try again or contact us directly.', 'error');
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.textContent = '📧 Send Quote';
-            }
-        }
-        
-        function showEmailQuoteMessage(message, type) {
-            const messageDiv = document.getElementById('emailQuoteMessage');
-            messageDiv.textContent = message;
-            messageDiv.style.display = 'block';
-            
-            if (type === 'success') {
-                messageDiv.style.backgroundColor = '#f0fdf4';
-                messageDiv.style.color = '#166534';
-                messageDiv.style.border = '1px solid #bbf7d0';
-            } else {
-                messageDiv.style.backgroundColor = '#fef2f2';
-                messageDiv.style.color = '#dc2626';
-                messageDiv.style.border = '1px solid #fecaca';
-            }
-        }
-        
-        // Check if dates from email are still available
-        function checkDateAvailability(dateArray) {
-            const unavailableDates = [];
-            
-            dateArray.forEach(dateStr => {
-                if (!isDateAvailable(dateStr)) {
-                    unavailableDates.push(dateStr);
-                }
-            });
-            
-            return unavailableDates;
-        }
-        
-        // Show message when dates from email are no longer available
-        function showDateUnavailableMessage(unavailableDates) {
-            // Create or find the message container
-            let messageContainer = document.getElementById('dateUnavailableMessage');
-            if (!messageContainer) {
-                messageContainer = document.createElement('div');
-                messageContainer.id = 'dateUnavailableMessage';
-                messageContainer.style.cssText = `
-                    background: #fef2f2;
-                    border: 1px solid #fecaca;
-                    border-radius: 0.5rem;
-                    padding: 1rem;
-                    margin: 1rem 0;
-                    color: #dc2626;
-                `;
-                
-                // Insert after the pricing calculator
-                const calculator = document.getElementById('pricingCalculator');
-                if (calculator) {
-                    calculator.parentNode.insertBefore(messageContainer, calculator.nextSibling);
-                } else {
-                    // Insert after the calendar grid
-                    const calendarGrid = document.getElementById('calendarGrid');
-                    calendarGrid.parentNode.insertBefore(messageContainer, calendarGrid.nextSibling);
-                }
-            }
-            
-            const unavailableDatesList = unavailableDates.map(date => {
-                const dateObj = new Date(date);
-                return dateObj.toLocaleDateString();
-            }).join(', ');
-            
-            messageContainer.innerHTML = `
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                    <span style="font-size: 1.25rem; margin-right: 0.5rem;">⚠️</span>
-                    <strong>Dates No Longer Available</strong>
-                </div>
-                <p style="margin: 0 0 0.5rem 0;">The following dates from your quote are no longer available: <strong>${unavailableDatesList}</strong></p>
-                <p style="margin: 0; font-size: 0.875rem;">Please select different dates from the calendar above to continue with your booking.</p>
-            `;
-            
-            messageContainer.style.display = 'block';
-        }
-    </script>
-
-    <!-- Cookie Consent Banner -->
-    <div id="cookieBanner" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #111827; color: white; padding: 1.5rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000;">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 300px;">
-                <p style="margin: 0; color: #e5e7eb; font-size: 0.9375rem;">
-                    We use essential cookies to make our site work and analytics cookies to understand how you use our site. 
-                    <a href="privacy-policy.html" style="color: #dc2626; text-decoration: underline;">Learn more</a>
-                </p>
+                <div id="calendarGrid" class="calendar-grid" aria-live="polite"></div>
             </div>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                <button id="acceptCookies" style="background: #dc2626; color: white; border: none; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.875rem;">
-                    Accept All
-                </button>
-                <button id="rejectCookies" style="background: transparent; color: #e5e7eb; border: 1px solid #6b7280; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.875rem;">
-                    Essential Only
-                </button>
+            <p class="avail-notice">Questions? Call <a href="tel:+447342606655">+44 7342 606655</a> — Mon–Fri 9–5</p>
+        </div>
+
+        <div class="quote-panel">
+            <div class="quote-card">
+                <div class="quote-card-header">
+                    <h3>Your Quote</h3>
+                    <p>Updates as you select dates</p>
+                </div>
+                <div class="quote-card-body" id="quoteBody">
+                    <div class="quote-empty">
+                        <div class="ei">📅</div>
+                        <p>Select a date on the calendar to see your instant quote.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+</main>
 
-    <!-- WhatsApp Button -->
-    <a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue,%20I%27d%20like%20to%20enquire%20about%20temporary%20kitchen%20hire" 
-       class="whatsapp-button" 
-       target="_blank" 
-       rel="noopener noreferrer"
-       aria-label="Chat with us on WhatsApp">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-        </svg>
-    </a>
+<div class="modal-overlay" id="emailModal">
+    <div class="modal-card">
+        <h3>📧 Email me this quote</h3>
+        <p>We'll send a full breakdown to your inbox — no obligation to book.</p>
+        <div id="modalMsg" class="modal-msg"></div>
+        <form onsubmit="handleEmailSubmit(event)">
+            <div class="modal-field"><label>Your name *</label><input type="text" id="quoteName" required></div>
+            <div class="modal-field"><label>Email address *</label><input type="email" id="quoteEmail" required></div>
+            <div class="modal-field"><label>Phone number</label><input type="tel" id="quotePhone"></div>
+            <div class="modal-field"><label>Anything else?</label><textarea id="quoteNotes" rows="3" placeholder="e.g. insurance ref, gate access…"></textarea></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="closeEmailModal()">Cancel</button>
+                <button type="submit" class="btn-modal-send" id="sendEmailBtn">Send Quote</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <script>
-        // Mobile Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const mobileNav = document.getElementById('mobileNav');
-            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
-            const mobileNavClose = document.getElementById('mobileNavClose');
-            const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+<div id="kr-toast"></div>
 
-            if (mobileMenuToggle && mobileNav) {
-                function openMobileMenu() {
-                    mobileNav.classList.add('open');
-                    mobileNavOverlay.classList.add('open');
-                    document.body.classList.add('menu-open');
-                }
+<div id="cookieBanner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#111827; color:white; padding:1.25rem; z-index:1000;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <p style="margin:0; color:#e5e7eb; font-size:0.875rem; flex:1; min-width:260px;">We use essential cookies to make our site work. <a href="privacy-policy.html" style="color:#f87171;">Learn more</a></p>
+        <div style="display:flex; gap:0.75rem;">
+            <button id="acceptCookies" style="background:#dc2626; color:white; border:none; padding:0.5rem 1rem; border-radius:7px; font-weight:600; cursor:pointer;">Accept All</button>
+            <button id="rejectCookies" style="background:transparent; color:#e5e7eb; border:1px solid #6b7280; padding:0.5rem 1rem; border-radius:7px; font-weight:600; cursor:pointer;">Essential Only</button>
+        </div>
+    </div>
+</div>
 
-                function closeMobileMenu() {
-                    mobileNav.classList.remove('open');
-                    mobileNavOverlay.classList.remove('open');
-                    document.body.classList.remove('menu-open');
-                }
+<a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue%2C%20I%27d%20like%20to%20enquire%20about%20temporary%20kitchen%20hire" class="whatsapp-button" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>
+</a>
 
-                mobileMenuToggle.addEventListener('click', openMobileMenu);
-                if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
-                if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
+<script>
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-                // Close menu when clicking on a link
-                mobileNavLinks.forEach(link => {
-                    link.addEventListener('click', () => {
-                        setTimeout(closeMobileMenu, 100);
-                    });
-                });
+let currentLead = null;
+const savedLead = sessionStorage.getItem('kr_lead');
+if (savedLead) {
+    currentLead = JSON.parse(savedLead);
+    document.getElementById('leadGateOverlay').style.display = 'none';
+    prefillFromLead();
+}
+
+async function submitLeadGate(e) {
+    e.preventDefault();
+    const btn = document.getElementById('gateBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const lead = {
+        name:  document.getElementById('lg-name').value.trim(),
+        email: document.getElementById('lg-email').value.trim(),
+        phone: document.getElementById('lg-phone').value.trim(),
+        source: 'availability_gate',
+        created_at: new Date().toISOString()
+    };
+    try {
+        await supabase.from('leads').insert([lead]);
+        await fetch('/send-quote-email', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...lead, type: 'new_lead', subject: `New lead: ${lead.name} — ${lead.phone}` })
+        }).catch(() => {});
+    } catch(err) { console.warn('Lead save error:', err); }
+    currentLead = lead;
+    sessionStorage.setItem('kr_lead', JSON.stringify(lead));
+    prefillFromLead();
+    const overlay = document.getElementById('leadGateOverlay');
+    overlay.style.transition = 'opacity 0.3s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 300);
+}
+
+function prefillFromLead() {
+    if (!currentLead) return;
+    const n = document.getElementById('quoteName');
+    const e = document.getElementById('quoteEmail');
+    const p = document.getElementById('quotePhone');
+    if (n && !n.value) n.value = currentLead.name  || '';
+    if (e && !e.value) e.value = currentLead.email || '';
+    if (p && !p.value) p.value = currentLead.phone || '';
+}
+
+const today = new Date(); today.setHours(0,0,0,0);
+const todayStr = today.toISOString().slice(0,10);
+let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+let selectedDates = [];
+let availabilityData = { unavailable: [] };
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPostcode = urlParams.get('postcode');
+    const urlDates = urlParams.get('dates');
+    if (urlPostcode) document.getElementById('postcodeInput').value = urlPostcode;
+
+    document.getElementById('updatePostcodeBtn').addEventListener('click', () => {
+        const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
+        const p = new URLSearchParams(window.location.search);
+        if (pc) p.set('postcode', pc); else p.delete('postcode');
+        window.history.replaceState({}, '', `${window.location.pathname}?${p}`);
+        if (selectedDates.length) updateQuotePanel();
+    });
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('prevMonthBtn').addEventListener('click', () => {
+        const prev = new Date(currentMonth); prev.setMonth(prev.getMonth()-1);
+        if (prev >= startOfMonth) { currentMonth.setMonth(currentMonth.getMonth()-1); renderAll(); }
+    });
+    document.getElementById('nextMonthBtn').addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth()+1); renderAll();
+    });
+
+    fetch('assets/availability.json')
+        .then(r => r.json())
+        .then(data => {
+            availabilityData = {
+                unavailable: (data.unavailable||[]).filter(r => r.end >= todayStr).map(r => ({
+                    start: r.start < todayStr ? todayStr : r.start, end: r.end
+                }))
+            };
+            renderAll();
+            if (urlDates && urlPostcode) {
+                selectedDates = urlDates.split(',');
+                const bad = selectedDates.filter(d => !isAvail(d));
+                if (bad.length) { selectedDates = []; toast('Some dates are no longer available — please reselect.', 'error'); }
+                else { highlightAll(); updateQuotePanel(); }
             }
-        });
-    </script>
+        })
+        .catch(() => { availabilityData = { unavailable: [] }; renderAll(); });
+
+    const toggle = document.getElementById('mobileMenuToggle');
+    const nav = document.getElementById('mobileNav');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const close = document.getElementById('mobileNavClose');
+    if (toggle) {
+        const open  = () => { nav.classList.add('open'); overlay.classList.add('open'); document.body.classList.add('menu-open'); };
+        const shut  = () => { nav.classList.remove('open'); overlay.classList.remove('open'); document.body.classList.remove('menu-open'); };
+        toggle.addEventListener('click', open);
+        close.addEventListener('click', shut);
+        overlay.addEventListener('click', shut);
+    }
+});
+
+function renderAll() {
+    const grid = document.getElementById('calendarGrid');
+    const disp = document.getElementById('currentMonthDisplay');
+    grid.innerHTML = '';
+    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
+    grid.appendChild(renderMonth(currentMonth));
+    grid.appendChild(renderMonth(next));
+    disp.textContent = `${fmtMonth(currentMonth)} & ${fmtMonth(next)}`;
+    highlightAll();
+}
+function fmtMonth(d) { return d.toLocaleString(undefined, { month:'long', year:'numeric' }); }
+
+function renderMonth(ms) {
+    const wrap = document.createElement('div'); wrap.className = 'calendar';
+    const h3 = document.createElement('h3'); h3.textContent = fmtMonth(ms); wrap.appendChild(h3);
+    const wr = document.createElement('div'); wr.className = 'weekday-row';
+    ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(d => { const e = document.createElement('div'); e.className='weekday'; e.textContent=d; wr.appendChild(e); });
+    wrap.appendChild(wr);
+    const grid = document.createElement('div'); grid.className = 'date-grid';
+    const first = new Date(ms.getFullYear(), ms.getMonth(), 1);
+    const last  = new Date(ms.getFullYear(), ms.getMonth()+1, 0);
+    const unavail = buildUnavailSet();
+    const lead = (first.getDay()+6)%7;
+    for (let i=0; i<lead; i++) grid.appendChild(document.createElement('div'));
+    for (let day=1; day<=last.getDate(); day++) {
+        const date = new Date(ms.getFullYear(), ms.getMonth(), day);
+        const iso  = date.toISOString().slice(0,10);
+        const cell = document.createElement('div');
+        cell.className = 'date';
+        cell.setAttribute('data-date', iso);
+        cell.textContent = String(day);
+        const isUnavailable = unavail.has(iso);
+        const isPast = iso < todayStr;
+        if (isUnavailable || isPast) {
+            cell.classList.add('disabled');
+            if (isPast) cell.classList.add('past-date');
+        } else {
+            cell.classList.add('available');
+            cell.onclick = () => handleClick(iso);
+        }
+        grid.appendChild(cell);
+    }
+    wrap.appendChild(grid);
+    return wrap;
+}
+
+function buildUnavailSet() {
+    const s = new Set();
+    (availabilityData.unavailable||[]).forEach(r => {
+        const start = new Date(r.start), end = new Date(r.end);
+        for (let d=new Date(start); d<=end; d.setDate(d.getDate()+1)) s.add(d.toISOString().slice(0,10));
+    });
+    return s;
+}
+
+function handleClick(iso) {
+    if (isInBlock(iso)) removeBlock(iso);
+    else addBlock(iso);
+    highlightAll();
+    updateQuotePanel();
+}
+
+function isInBlock(iso) {
+    for (let i=0; i<selectedDates.length; i+=7) {
+        const s=new Date(selectedDates[i]), e=new Date(s); e.setDate(s.getDate()+6);
+        if (new Date(iso)>=s && new Date(iso)<=e) return true;
+    }
+    return false;
+}
+
+function removeBlock(iso) {
+    const t=new Date(iso);
+    for (let i=0; i<selectedDates.length; i+=7) {
+        const s=new Date(selectedDates[i]), e=new Date(s); e.setDate(s.getDate()+6);
+        if (t>=s && t<=e) { selectedDates.splice(i,7); break; }
+    }
+    highlightAll();
+}
+
+function addBlock(startIso) {
+    const start = new Date(startIso);
+    const newDates = [];
+    for (let i=0; i<7; i++) {
+        const d=new Date(start); d.setDate(start.getDate()+i);
+        const iso=d.toISOString().slice(0,10);
+        if (!isAvail(iso)) { toast(`${iso} is unavailable — try a different start date.`, 'error'); return; }
+        newDates.push(iso);
+    }
+    if (selectedDates.length > 0) {
+        const sorted = [...selectedDates].sort();
+        const first = new Date(sorted[0]);
+        const last  = new Date(sorted[sorted.length-1]);
+        const dayAfter  = new Date(last);  dayAfter.setDate(last.getDate()+1);
+        const dayBefore = new Date(first); dayBefore.setDate(first.getDate()-1);
+        const okAfter  = newDates[0] === dayAfter.toISOString().slice(0,10);
+        const okBefore = newDates[6] === dayBefore.toISOString().slice(0,10);
+        if (!okAfter && !okBefore) {
+            toast('Weeks must be consecutive — select a date continuing from your current selection.', 'error');
+            return;
+        }
+    }
+    selectedDates.push(...newDates);
+    selectedDates.sort();
+    currentMonth = new Date(new Date(newDates[0]).getFullYear(), new Date(newDates[0]).getMonth(), 1);
+    renderAll();
+}
+
+function isAvail(iso) {
+    if (iso < todayStr) return false;
+    return !buildUnavailSet().has(iso);
+}
+
+function highlightAll() {
+    document.querySelectorAll('.date').forEach(c => c.classList.remove('selected'));
+    selectedDates.forEach(iso => {
+        const c = document.querySelector(`[data-date="${iso}"]`);
+        if (c && !c.classList.contains('disabled')) c.classList.add('selected');
+    });
+}
+
+function updateQuotePanel() {
+    const body = document.getElementById('quoteBody');
+    if (!selectedDates.length) {
+        body.innerHTML = `<div class="quote-empty"><div class="ei">📅</div><p>Select a date on the calendar to see your instant quote.</p></div>`;
+        return;
+    }
+    const start = new Date(selectedDates[0]);
+    const end   = new Date(selectedDates[selectedDates.length-1]);
+    const days  = selectedDates.length;
+    const hire  = days * 70;
+    const deliv = delivCost();
+    const total = hire + deliv*2;
+    const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    body.innerHTML = `
+        <div class="quote-row"><span class="ql">Delivery</span><span class="qv">${fd(start)}</span></div>
+        <div class="quote-row"><span class="ql">Collection</span><span class="qv">${fd(end)}</span></div>
+        <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
+        <div class="quote-row"><span class="ql">Hire (${days} × £70/day)</span><span class="qv">£${hire}</span></div>
+        <div class="quote-row"><span class="ql">Delivery</span><span class="qv">£${deliv}</span></div>
+        <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${deliv}</span></div>
+        <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${total}</span></div>
+        <p class="quote-vat">+ VAT • Subject to site check</p>
+        <button class="btn-book" onclick="bookNow()">📅 Book Now</button>
+        <button class="btn-email" onclick="openEmailModal()">📧 Email me this quote</button>
+        <div class="quote-trust">
+            <span>🔒 No card required to enquire</span>
+            <span>📞 We call to confirm details</span>
+            <span>✅ Free cancellation</span>
+        </div>`;
+}
+
+function delivCost() {
+    const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
+    if (!pc) return 100;
+    if (pc.startsWith('EN10')) return 75;
+    const area = pc.substring(0,2);
+    const map = {'EN':5,'AL':15,'HP':20,'LU':25,'MK':30,'SG':35,'CB':40,'CM':45,'CO':50,'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45};
+    const miles = map[area] || 100;
+    if (miles<=50) return 75; if (miles<=100) return 100; if (miles<=150) return 125; if (miles<=200) return 150; return 225;
+}
+
+function bookNow() {
+    if (!selectedDates.length) return;
+    const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
+    if (!pc) { toast('Please enter your postcode first.', 'error'); return; }
+    const p = new URLSearchParams({ dates: selectedDates.join(','), postcode: pc });
+    window.location.href = `booking-checklist.html?${p}`;
+}
+
+function openEmailModal()  { prefillFromLead(); document.getElementById('emailModal').classList.add('open'); }
+function closeEmailModal() {
+    document.getElementById('emailModal').classList.remove('open');
+    const m = document.getElementById('modalMsg'); m.style.display='none'; m.className='modal-msg';
+}
+
+async function handleEmailSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('sendEmailBtn');
+    btn.disabled=true; btn.textContent='Sending…';
+    const days=selectedDates.length, deliv=delivCost();
+    const payload = {
+        name: document.getElementById('quoteName').value.trim(),
+        email: document.getElementById('quoteEmail').value.trim(),
+        phone: document.getElementById('quotePhone').value.trim(),
+        notes: document.getElementById('quoteNotes').value.trim(),
+        postcode: document.getElementById('postcodeInput').value.toUpperCase().trim(),
+        selectedDates, startDate: selectedDates[0], endDate: selectedDates[selectedDates.length-1],
+        days, dailyCost: days*70, deliveryCost: deliv, collectionCost: deliv, totalCost: days*70+deliv*2
+    };
+    try {
+        const res = await fetch('/send-quote-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const r = await res.json();
+        if (r.success) { showModalMsg('✅ Quote sent! Check your inbox.','success'); setTimeout(closeEmailModal,2000); }
+        else showModalMsg('❌ Something went wrong — please try again.','error');
+    } catch { showModalMsg('❌ Failed to send. Please call 07342 606655.','error'); }
+    btn.disabled=false; btn.textContent='Send Quote';
+}
+
+function showModalMsg(msg, type) {
+    const el=document.getElementById('modalMsg');
+    el.textContent=msg; el.style.display='block'; el.className=`modal-msg ${type}`;
+}
+
+function toast(msg, type='info') {
+    const el = document.getElementById('kr-toast');
+    el.textContent = msg;
+    el.style.background = type==='error' ? '#fef2f2' : '#f0fdf4';
+    el.style.color       = type==='error' ? '#dc2626' : '#166534';
+    el.style.border      = `1px solid ${type==='error' ? '#fecaca' : '#bbf7d0'}`;
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.style.opacity='0', 4500);
+}
+</script>
 </body>
 </html>
-
