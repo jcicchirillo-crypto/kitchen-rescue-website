@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insurance Claims Temporary Kitchen Pods | Kitchen Rescue</title>
     <meta name="description" content="Temporary kitchen solutions for insurance claims. Plug-in kitchen pods to help policyholders remain at home during reinstatement works and reduce reliance on alternative accommodation.">
-    <meta name="keywords" content="insurance claims temporary kitchen, loss adjuster kitchen pods, insurance reinstatement kitchen, temporary accommodation alternative, claim support kitchen hire">
     <meta name="robots" content="index, follow">
     <meta property="og:title" content="Insurance Claims Temporary Kitchen Pods | Kitchen Rescue">
     <meta property="og:description" content="Temporary kitchen solutions for insurance claims. Plug-in kitchen pods to help policyholders remain at home during reinstatement works.">
@@ -15,1021 +14,862 @@
     <link rel="canonical" href="https://www.thekitchenrescue.co.uk/insurance-claims.html">
     <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
     <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" href="/insurance-claims-light.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script src="js/business-constants.js"></script>
-    
-    <!-- Cookie Consent - Must load before analytics -->
     <script src="js/cookie-consent.js"></script>
-    
-    <!-- FAQ Schema -->
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "How quickly can a temporary kitchen be delivered?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "We guarantee delivery and installation within 48 hours of claim notification. For urgent cases, we can often deliver same-day or next-day in many locations across the UK."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What areas do you cover?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "We provide coverage across England and Wales. Our regional distribution centers ensure fast delivery times throughout these areas."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How long can a unit be rented for?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Rental periods are completely flexible based on the claim duration. Most rentals are between 4-12 weeks, but we can accommodate shorter or longer periods as needed."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Are units suitable for vulnerable policyholders?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "We work closely with insurance teams to ensure vulnerable customers receive appropriate solutions. While our units are not currently wheelchair accessible, please let us know your requirements and we can find a suitable solution."
-          }
-        }
+        {"@type":"Question","name":"How quickly can a temporary kitchen be delivered?","acceptedAnswer":{"@type":"Answer","text":"We guarantee delivery and installation within 48 hours of claim notification. For urgent cases, we can often deliver same-day or next-day."}},
+        {"@type":"Question","name":"What areas do you cover?","acceptedAnswer":{"@type":"Answer","text":"We provide coverage across England and Wales."}},
+        {"@type":"Question","name":"How long can a unit be rented for?","acceptedAnswer":{"@type":"Answer","text":"Rental periods are completely flexible. Most rentals are between 4-12 weeks, but we can accommodate shorter or longer periods."}}
       ]
     }
     </script>
+
     <style>
-        body.insurance-page {
-            background-color: #ffffff;
-            color: #1a1a1a;
+        * { box-sizing: border-box; }
+
+        /* ── Hero ── */
+        .ins-hero {
+            background: #111827;
+            color: #fff;
+            padding: 80px 20px 70px;
+            text-align: center;
         }
-        .header {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
+        .ins-hero .eyebrow {
+            display: inline-block;
+            background: #dc2626;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 100px;
+            margin-bottom: 20px;
         }
+        .ins-hero h1 {
+            font-size: clamp(1.8rem, 4vw, 2.75rem);
+            font-weight: 700;
+            margin: 0 auto 16px;
+            max-width: 760px;
+            line-height: 1.2;
+        }
+        .ins-hero h1 span { color: #dc2626; }
+        .ins-hero p {
+            font-size: 1rem;
+            opacity: 0.7;
+            max-width: 580px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+        .ins-hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-red {
+            background: #dc2626; color: #fff;
+            padding: 13px 28px; border-radius: 8px;
+            font-weight: 700; font-size: 0.95rem;
+            text-decoration: none; border: none;
+            cursor: pointer; transition: background 0.2s;
+            display: inline-block;
+        }
+        .btn-red:hover { background: #b91c1c; }
+        .btn-outline {
+            background: transparent; color: #fff;
+            padding: 13px 28px; border-radius: 8px;
+            font-weight: 700; font-size: 0.95rem;
+            text-decoration: none;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.2s; display: inline-block;
+        }
+        .btn-outline:hover { border-color: #fff; }
+
+        /* ── Trust bar ── */
+        .trust-bar {
+            background: #dc2626;
+            padding: 14px 20px;
+            display: flex; flex-wrap: wrap;
+            justify-content: center; gap: 24px;
+        }
+        .trust-bar span {
+            color: #fff; font-size: 0.85rem;
+            font-weight: 600; display: flex;
+            align-items: center; gap: 7px;
+        }
+
+        /* ── Section wrapper ── */
+        .ins-section { padding: 64px 20px; }
+        .ins-container { max-width: 1100px; margin: 0 auto; }
+        .ins-section-label {
+            font-size: 0.72rem; font-weight: 700;
+            color: #dc2626; text-transform: uppercase;
+            letter-spacing: 0.1em; margin-bottom: 10px;
+        }
+        .ins-section-title {
+            font-size: clamp(1.4rem, 3vw, 2rem);
+            font-weight: 700; color: #111827;
+            margin: 0 0 14px; line-height: 1.25;
+        }
+        .ins-section-sub {
+            font-size: 0.95rem; color: #6b7280;
+            line-height: 1.6; margin: 0;
+        }
+
+        /* ── Problem section ── */
+        .problem-section { background: #f9fafb; }
+        .problem-intro { max-width: 680px; margin: 0 auto 40px; text-align: center; }
+        .problem-grid {
+            display: grid; gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+        .problem-card {
+            background: #fff; border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 24px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .problem-icon {
+            width: 40px; height: 40px; border-radius: 8px;
+            background: #dc2626;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+        .problem-card h3 { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0; }
+        .problem-card p  { font-size: 0.82rem; color: #6b7280; margin: 0; line-height: 1.5; }
+
+        /* ── Solution section ── */
+        .solution-grid {
+            display: grid; gap: 48px; align-items: center;
+        }
+        @media (min-width: 768px) { .solution-grid { grid-template-columns: 1fr 1fr; } }
+        .solution-img {
+            border-radius: 14px; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        }
+        .solution-img img { width: 100%; display: block; }
+        .feature-list { list-style: none; padding: 0; margin: 20px 0 0; display: flex; flex-direction: column; gap: 8px; }
+        .feature-item {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.875rem; color: #374151; font-weight: 500;
+        }
+        .feature-check {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #dc2626; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; color: #fff; font-weight: 900;
+        }
+
+        /* ── Process section ── */
+        .process-section { background: #111827; }
+        .process-section .ins-section-title { color: #fff; }
+        .process-section .ins-section-sub   { color: rgba(255,255,255,0.6); }
+        .process-section .ins-section-label { color: #f87171; }
+        .process-grid {
+            display: grid; gap: 16px; margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+        .process-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 24px;
+        }
+        .process-num {
+            font-size: 2rem; font-weight: 800;
+            color: #dc2626; line-height: 1; margin-bottom: 12px;
+        }
+        .process-card h3 { font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0 0 8px; }
+        .process-card p  { font-size: 0.8rem; color: rgba(255,255,255,0.55); margin: 0; line-height: 1.5; }
+
+        /* ── Benefits section ── */
+        .benefits-section { background: #fef2f2; }
+        .benefits-grid {
+            display: grid; gap: 16px; margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+        .benefit-card {
+            background: #fff; border-radius: 12px;
+            border: 1px solid #fecaca; padding: 24px;
+        }
+        .benefit-icon {
+            width: 40px; height: 40px; border-radius: 8px;
+            background: #dc2626; margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+        .benefit-card h3 { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 6px; }
+        .benefit-card p  { font-size: 0.82rem; color: #6b7280; margin: 0; line-height: 1.5; }
+
+        /* ── Spec section ── */
+        .spec-grid {
+            display: grid; gap: 16px; margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+        .spec-card {
+            background: #fff; border-radius: 12px;
+            border: 1px solid #e5e7eb; padding: 24px;
+        }
+        .spec-card h3 {
+            font-size: 0.85rem; font-weight: 700;
+            color: #dc2626; text-transform: uppercase;
+            letter-spacing: 0.06em; margin: 0 0 14px;
+            padding-bottom: 10px; border-bottom: 2px solid #fecaca;
+        }
+        .spec-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+        .spec-item { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #374151; }
+        .spec-dot { width: 6px; height: 6px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+
+        /* ── FAQ ── */
+        .faq-section { background: #f9fafb; }
+        .faq-list { max-width: 720px; margin: 32px auto 0; display: flex; flex-direction: column; gap: 8px; }
+        .faq-item {
+            background: #fff; border-radius: 10px;
+            border: 1px solid #e5e7eb; overflow: hidden;
+        }
+        .faq-btn {
+            width: 100%; padding: 16px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: none; border: none; cursor: pointer;
+            font-size: 0.9rem; font-weight: 600; color: #111827;
+            font-family: inherit; text-align: left; gap: 12px;
+        }
+        .faq-btn:hover { color: #dc2626; }
+        .faq-chevron {
+            width: 18px; height: 18px; flex-shrink: 0;
+            color: #6b7280; transition: transform 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem;
+        }
+        .faq-item.open .faq-chevron { transform: rotate(180deg); color: #dc2626; }
+        .faq-item.open .faq-btn { color: #dc2626; }
+        .faq-answer {
+            display: none; padding: 0 20px 16px;
+            font-size: 0.875rem; color: #6b7280; line-height: 1.6;
+        }
+        .faq-item.open .faq-answer { display: block; }
+
+        /* ── Contact ── */
+        .contact-section { background: #111827; }
+        .contact-section .ins-section-title { color: #fff; }
+        .contact-section .ins-section-sub   { color: rgba(255,255,255,0.6); }
+        .contact-section .ins-section-label { color: #f87171; }
+        .contact-grid {
+            display: grid; gap: 32px; margin-top: 48px;
+        }
+        @media (min-width: 768px) { .contact-grid { grid-template-columns: 1fr 1.4fr; } }
+
+        .contact-info-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px; padding: 28px;
+        }
+        .contact-info-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin: 0 0 24px; }
+        .contact-detail {
+            display: flex; gap: 14px; align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .contact-detail-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: #dc2626; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem;
+        }
+        .contact-detail-text .lbl { font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+        .contact-detail-text a  { color: #fff; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: block; }
+        .contact-detail-text a:hover { color: #f87171; }
+        .contact-detail-text p  { color: rgba(255,255,255,0.65); font-size: 0.82rem; margin: 2px 0 0; }
+
+        .emergency-box {
+            background: #dc2626; border-radius: 10px;
+            padding: 18px; margin-top: 20px;
+        }
+        .emergency-box h4 { font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0 0 6px; }
+        .emergency-box p  { font-size: 0.8rem; color: rgba(255,255,255,0.8); margin: 0 0 12px; }
+        .btn-white {
+            background: #fff; color: #dc2626;
+            padding: 9px 18px; border-radius: 7px;
+            font-weight: 700; font-size: 0.82rem;
+            text-decoration: none; display: inline-block;
+            transition: opacity 0.2s;
+        }
+        .btn-white:hover { opacity: 0.9; }
+
+        /* Contact form */
+        .contact-form-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px; padding: 28px;
+        }
+        .contact-form-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin: 0 0 20px; }
+        .form-field { margin-bottom: 14px; }
+        .form-field label { display: block; font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 5px; }
+        .form-field input, .form-field textarea {
+            width: 100%; padding: 10px 12px;
+            background: rgba(255,255,255,0.08);
+            border: 1.5px solid rgba(255,255,255,0.15);
+            border-radius: 8px; color: #fff;
+            font-size: 0.875rem; font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-field input::placeholder, .form-field textarea::placeholder { color: rgba(255,255,255,0.3); }
+        .form-field input:focus, .form-field textarea:focus { outline: none; border-color: #dc2626; }
+        .form-field textarea { min-height: 100px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+        .form-err { font-size: 0.75rem; color: #f87171; margin-top: 3px; display: none; }
+        .form-status { padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 14px; display: none; }
+        .form-status.success { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+        .form-status.error   { background: rgba(220,38,38,0.15); color: #f87171; border: 1px solid rgba(220,38,38,0.3); }
+        .btn-submit {
+            width: 100%; padding: 13px;
+            background: #dc2626; color: #fff;
+            border: none; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: background 0.2s; margin-top: 4px;
+        }
+        .btn-submit:hover { background: #b91c1c; }
+        .btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
+
+        /* ── Footer ── */
+        .ins-footer {
+            background: #000; border-top: 1px solid #222;
+            padding: 40px 20px; text-align: center;
+        }
+        .ins-footer-grid {
+            max-width: 1100px; margin: 0 auto;
+            display: flex; flex-wrap: wrap;
+            justify-content: space-between; align-items: flex-start;
+            gap: 24px;
+        }
+        .ins-footer p { color: #6b7280; font-size: 0.78rem; margin: 0 0 6px; }
+        .ins-footer a { color: #6b7280; text-decoration: none; font-size: 0.78rem; }
+        .ins-footer a:hover { color: #dc2626; }
+        .footer-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
     </style>
 </head>
-<body class="insurance-page">
-    <a href="#main-content" class="skip-to-content">Skip to main content</a>
-    
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo-section">
-                    <a href="index.html">
-                        <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
-                    </a>
-                    <a href="availability.html" class="mobile-availability">Availability</a>
+<body>
+
+<!-- ── HEADER ── -->
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <div class="logo-section">
+                <a href="index.html">
+                    <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img">
+                </a>
+                <a href="availability.html" class="mobile-availability">Availability</a>
+            </div>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="availability.html" class="nav-link">Availability</a>
+                <a href="index.html#features" class="nav-link">Features</a>
+                <a href="index.html#gallery" class="nav-link">Gallery</a>
+                <a href="blog.html" class="nav-link">Blog</a>
+                <a href="insurance-claims.html" class="nav-link active">Insurance</a>
+                <a href="#contact" class="nav-link nav-cta">Contact</a>
+            </nav>
+        </div>
+    </div>
+</header>
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+<nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-close" id="mobileNavClose">×</button>
+    <div class="mobile-nav-links">
+        <a href="index.html">Home</a>
+        <a href="availability.html">Availability</a>
+        <a href="index.html#features">Features</a>
+        <a href="index.html#gallery">Gallery</a>
+        <a href="blog.html">Blog</a>
+        <a href="insurance-claims.html">Insurance</a>
+        <a href="#contact">Contact</a>
+    </div>
+</nav>
+
+<main id="main-content">
+
+    <!-- ── HERO ── -->
+    <section class="ins-hero">
+        <div class="eyebrow">For Loss Adjusters & Insurers</div>
+        <h1>Keep policyholders at home while their kitchen is <span>reinstated</span></h1>
+        <p>A fully-equipped temporary kitchen pod delivered to their driveway within 48 hours — reducing disruption, complaints, and the cost of alternative accommodation.</p>
+        <div class="ins-hero-btns">
+            <a href="#contact" class="btn-red">Request claim support</a>
+            <a href="tel:+447342606655" class="btn-outline">📞 07342 606655</a>
+        </div>
+    </section>
+
+    <!-- ── TRUST BAR ── -->
+    <div class="trust-bar">
+        <span>⚡ Deployed within 48 hours</span>
+        <span>🏠 Policyholder stays at home</span>
+        <span>💷 Reduces claim spend</span>
+        <span>📋 Works with Aviva, AXA, Direct Line & more</span>
+    </div>
+
+    <!-- ── PROBLEM ── -->
+    <section class="ins-section problem-section">
+        <div class="ins-container">
+            <div class="problem-intro">
+                <div class="ins-section-label">The Problem</div>
+                <h2 class="ins-section-title">When a kitchen is removed, daily life stops</h2>
+                <p class="ins-section-sub">During kitchen reinstatement works, policyholders face weeks without basic facilities — creating a ripple effect that costs insurers time, money, and customer satisfaction.</p>
+            </div>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">🏠</div>
+                    <h3>No basic facilities</h3>
+                    <p>Weeks without an oven, sink, washing machine, or dishwasher — affecting the whole family.</p>
                 </div>
-                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">☰</button>
-                <nav class="nav">
-                    <a href="availability.html" class="nav-link">Availability</a>
-                    <a href="index.html#features" class="nav-link">Features</a>
-                    <a href="index.html#spec" class="nav-link">Spec</a>
-                    <a href="index.html#gallery" class="nav-link">Gallery</a>
-                    <a href="blog.html" class="nav-link">Blog</a>
-                    <a href="index.html#faqs" class="nav-link">FAQs</a>
-                    <a href="insurance-claims.html" class="nav-link active">Insurance Claims</a>
-                    <a href="#contact" class="nav-link nav-cta">
-                        <i data-lucide="phone" class="nav-icon"></i>
-                        Contact
-                    </a>
-                </nav>
+                <div class="problem-card">
+                    <div class="problem-icon">😤</div>
+                    <h3>Increased complaints</h3>
+                    <p>Frustration leads to higher complaint rates and customer dissatisfaction scores.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">🐾</div>
+                    <h3>Accommodation issues</h3>
+                    <p>Hotels often won't accept pets, forcing difficult choices for families.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">💸</div>
+                    <h3>Higher claim spend</h3>
+                    <p>Alternative accommodation and extended claims drive up overall costs significantly.</p>
+                </div>
             </div>
         </div>
-    </header>
+    </section>
 
-    <!-- Mobile Navigation Drawer -->
-    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
-    <nav class="mobile-nav" id="mobileNav">
-        <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">×</button>
-        <div class="mobile-nav-links">
-            <a href="index.html">Home</a>
-            <a href="availability.html">Availability</a>
-            <a href="index.html#features">Features</a>
-            <a href="index.html#spec">Spec</a>
-            <a href="index.html#gallery">Gallery</a>
-            <a href="blog.html">Blog</a>
-            <a href="index.html#faqs">FAQs</a>
-            <a href="insurance-claims.html">Insurance Claims</a>
-            <a href="#contact">Contact</a>
-        </div>
-    </nav>
-
-    <main id="main-content">
-        <!-- Hero Section -->
-        <section class="insurance-hero-light">
-            <div class="insurance-container" style="max-width: 1280px; margin: 0 auto;">
-                <h1>Insurance Claims</h1>
-                <p class="hero-description">
-                    Help policyholders remain in their home during kitchen reinstatement works, reducing disruption, complaints, and reliance on alternative accommodation.
-                </p>
-                <div class="hero-cta">
-                    <a href="#contact" class="insurance-btn-red">Find out more today</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Problem Section -->
-        <section class="insurance-problem-section">
-            <div class="insurance-problem-card-wrapper">
-                <h2>When a kitchen is removed, daily life stops</h2>
-                <p>
-                    During insured kitchen reinstatement works, policyholders can face weeks without basic facilities — leading to increased complaints and distress, pressure to provide alternative accommodation, extended claim duration, and poorer outcomes for families and vulnerable households. <strong>A temporary kitchen removes this pressure point.</strong>
-                </p>
-
-                <div class="insurance-problem-grid-light">
-                    <div class="insurance-problem-card-light">
-                        <div class="insurance-problem-icon-light">
-                            <i data-lucide="home" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <h3>No basic facilities</h3>
-                        <p>Policyholders face weeks without essential kitchen facilities and laundry services</p>
-                    </div>
-                    <div class="insurance-problem-card-light">
-                        <div class="insurance-problem-icon-light">
-                            <i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <h3>Increased complaints</h3>
-                        <p>Leading to higher complaint rates and customer dissatisfaction</p>
-                    </div>
-                    <div class="insurance-problem-card-light">
-                        <div class="insurance-problem-icon-light">
-                            <i data-lucide="clock" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <h3>Alternative accommodation issues</h3>
-                        <p>Pets often not allowed in temporary accommodation, forcing difficult choices for families</p>
-                    </div>
-                    <div class="insurance-problem-card-light">
-                        <div class="insurance-problem-icon-light">
-                            <i data-lucide="trending-up" style="width: 24px; height: 24px; color: white;"></i>
-                        </div>
-                        <h3>Higher spend</h3>
-                        <p>Extended claims and poorer outcomes for families and vulnerable households</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Solution Section -->
-        <section class="insurance-solution-section-light">
-            <div class="insurance-solution-grid-light">
+    <!-- ── SOLUTION ── -->
+    <section class="ins-section">
+        <div class="ins-container">
+            <div class="solution-grid">
                 <div>
-                    <div class="insurance-solution-badge-light">Our Solution</div>
-                    <h2>What Kitchen Rescue provides</h2>
-                    <p>
-                        We deliver fully-equipped temporary kitchens directly to the policyholder's property within 48 hours. Our solution allows families to maintain their daily routines and stay in their homes during reinstatement works.
-                    </p>
-
-                    <ul class="insurance-feature-list-light">
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Fully equipped</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Delivered directly</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Reduced disruption</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Reduced spend</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Improved satisfaction</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Reduced claim lifecycle</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Reduced alternative accommodation</span>
-                        </li>
-                        <li class="insurance-feature-item-light">
-                            <div class="insurance-feature-check-light">
-                                <i data-lucide="check" style="width: 16px; height: 16px; color: white;"></i>
-                            </div>
-                            <span>Reduced complaints</span>
-                        </li>
+                    <div class="ins-section-label">Our Solution</div>
+                    <h2 class="ins-section-title">A fully-equipped kitchen on their driveway in hours</h2>
+                    <p class="ins-section-sub">We deliver a premium temporary kitchen pod directly to the policyholder's property. They stay at home, cook real meals, and carry on with family life — while the reinstatement works are completed.</p>
+                    <ul class="feature-list">
+                        <li class="feature-item"><div class="feature-check">✓</div> Fully equipped — oven, hob, fridge freezer, washing machine, dishwasher</li>
+                        <li class="feature-item"><div class="feature-check">✓</div> Delivered and installed within 48 hours</li>
+                        <li class="feature-item"><div class="feature-check">✓</div> Reduces reliance on alternative accommodation</li>
+                        <li class="feature-item"><div class="feature-check">✓</div> Cuts overall claim spend</li>
+                        <li class="feature-item"><div class="feature-check">✓</div> Improves policyholder satisfaction</li>
+                        <li class="feature-item"><div class="feature-check">✓</div> Reduces complaints and claim lifecycle</li>
+                        <li class="feature-item"><div class="feature-check">✓</div> We liaise with your loss adjuster directly</li>
                     </ul>
-
-                    <a href="#features" class="insurance-btn-red" style="margin-top: 2rem; display: inline-block;">
-                        Learn more about Kitchen Rescue
-                    </a>
+                    <a href="#contact" class="btn-red" style="margin-top: 28px; display: inline-block;">Get in touch →</a>
                 </div>
-
-                <div class="insurance-solution-image-light">
-                    <img src="/assets/hero.jpg" alt="Temporary kitchen pod on trailer - fully equipped mobile kitchen" />
+                <div class="solution-img">
+                    <img src="/assets/hero.jpg" alt="Temporary kitchen pod — fully equipped mobile kitchen on driveway">
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Process Section -->
-        <section class="insurance-process-section-light">
-            <div style="text-align: center; max-width: 48rem; margin: 0 auto 3rem;">
-                <p class="insurance-section-subtitle-light">
-                    Our streamlined process ensures minimal disruption and maximum support to policyholders.
-                </p>
+    <!-- ── PROCESS ── -->
+    <section class="ins-section process-section">
+        <div class="ins-container">
+            <div style="text-align:center; max-width:600px; margin:0 auto;">
+                <div class="ins-section-label">How It Works</div>
+                <h2 class="ins-section-title">Simple from notification to collection</h2>
+                <p class="ins-section-sub">Our streamlined process gets a kitchen on site fast — with minimal burden on your team.</p>
             </div>
-
-            <div class="insurance-process-grid-light">
-                <div class="insurance-process-card-light">
-                    <div class="insurance-process-number-light">01</div>
+            <div class="process-grid">
+                <div class="process-card">
+                    <div class="process-num">01</div>
                     <h3>Claim notification</h3>
-                    <p>Your team notifies us of a kitchen claim requiring temporary accommodation support.</p>
+                    <p>Your team notifies us. We begin planning immediately.</p>
                 </div>
-                <div class="insurance-process-card-light">
-                    <div class="insurance-process-number-light">02</div>
-                    <h3>Assessment & planning</h3>
-                    <p>We assess requirements and create a delivery plan within 4 hours of notification.</p>
+                <div class="process-card">
+                    <div class="process-num">02</div>
+                    <h3>Assessment</h3>
+                    <p>We assess requirements and confirm a delivery plan within 4 hours.</p>
                 </div>
-                <div class="insurance-process-card-light">
-                    <div class="insurance-process-number-light">03</div>
-                    <h3>Delivery & installation</h3>
-                    <p>Professional delivery and setup within 48 hours, fully equipped and ready to use.</p>
+                <div class="process-card">
+                    <div class="process-num">03</div>
+                    <h3>Delivery & install</h3>
+                    <p>Pod delivered and fully installed within 48 hours. Ready to use same day.</p>
                 </div>
-                <div class="insurance-process-card-light">
-                    <div class="insurance-process-number-light">04</div>
+                <div class="process-card">
+                    <div class="process-num">04</div>
                     <h3>Ongoing support</h3>
-                    <p>24/7 support throughout the rental period with maintenance if needed.</p>
+                    <p>We support the policyholder throughout the hire period.</p>
                 </div>
-                <div class="insurance-process-card-light">
-                    <div class="insurance-process-number-light">05</div>
+                <div class="process-card">
+                    <div class="process-num">05</div>
                     <h3>Collection</h3>
-                    <p>Once works complete, we collect and clean the unit at a time that suits the policyholder.</p>
+                    <p>Once works are complete, we collect at a time that suits the policyholder.</p>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <div style="text-align: center; margin-top: 2rem;">
-                <a href="#contact" class="insurance-btn-red">View us</a>
+    <!-- ── BENEFITS ── -->
+    <section class="ins-section benefits-section">
+        <div class="ins-container">
+            <div style="text-align:center; max-width:600px; margin:0 auto;">
+                <div class="ins-section-label">Why Insurers Choose Us</div>
+                <h2 class="ins-section-title">Better outcomes for policyholders and your bottom line</h2>
             </div>
-        </section>
-
-        <!-- Benefits Section -->
-        <section class="insurance-benefits-section-light">
-            <div style="text-align: center; max-width: 48rem; margin: 0 auto 3rem;">
-                <p class="insurance-section-subtitle-light">
-                    Reduce spend, improve satisfaction and support customers when they need it most.
-                </p>
-            </div>
-
-            <div class="insurance-benefits-grid-light">
-                <div class="insurance-benefit-card-light">
-                    <div class="insurance-benefit-icon-light">
-                        <i data-lucide="heart" style="width: 24px; height: 24px; color: white;"></i>
-                    </div>
-                    <h3>Improved customer satisfaction</h3>
-                    <p>Policyholders can stay at home with essential facilities, reducing stress and complaints.</p>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">❤️</div>
+                    <h3>Improved satisfaction</h3>
+                    <p>Policyholders stay home with essential facilities, reducing stress and complaints.</p>
                 </div>
-                <div class="insurance-benefit-card-light">
-                    <div class="insurance-benefit-icon-light">
-                        <i data-lucide="trending-down" style="width: 24px; height: 24px; color: white;"></i>
-                    </div>
-<h3>Lower claim spend</h3>
-                        <p>Eliminate expensive alternative accommodation and reduce overall claim duration.</p>
+                <div class="benefit-card">
+                    <div class="benefit-icon">📉</div>
+                    <h3>Lower claim spend</h3>
+                    <p>Eliminate expensive hotel stays and reduce overall claim duration and cost.</p>
                 </div>
-                <div class="insurance-benefit-card-light">
-                    <div class="insurance-benefit-icon-light">
-                        <i data-lucide="shield" style="width: 24px; height: 24px; color: white;"></i>
-                    </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🛡️</div>
                     <h3>Risk mitigation</h3>
-                    <p>Reduce complaints, improve outcomes for vulnerable customers, and meet regulatory expectations.</p>
+                    <p>Reduce complaints, improve outcomes for vulnerable customers, meet regulatory expectations.</p>
                 </div>
-                <div class="insurance-benefit-card-light">
-                    <div class="insurance-benefit-icon-light">
-                        <i data-lucide="zap" style="width: 24px; height: 24px; color: white;"></i>
-                    </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">⚡</div>
                     <h3>Fast deployment</h3>
-                    <p>Units delivered and installed within 48 hours of claim notification.</p>
+                    <p>Delivered and installed within 48 hours of claim notification.</p>
                 </div>
-                <div class="insurance-benefit-card-light">
-                    <div class="insurance-benefit-icon-light">
-                        <i data-lucide="award" style="width: 24px; height: 24px; color: white;"></i>
-                    </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">✅</div>
                     <h3>Fully compliant</h3>
                     <p>All units meet health and safety standards with regular maintenance and inspection.</p>
                 </div>
-                <div class="insurance-benefit-card-light">
-                    <div class="insurance-benefit-icon-light">
-                        <i data-lucide="users" style="width: 24px; height: 24px; color: white;"></i>
-                    </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">👥</div>
                     <h3>Dedicated support</h3>
-                    <p>24/7 customer service for policyholders and insurance teams throughout rental period.</p>
+                    <p>We liaise directly with loss adjusters and support policyholders throughout.</p>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Spec Section -->
-        <section class="insurance-spec-section-light">
-            <div style="text-align: center; max-width: 48rem; margin: 0 auto 3rem;">
-                <h2 class="insurance-section-title-light">Everything you need to know about our temporary kitchen units.</h2>
+    <!-- ── SPEC ── -->
+    <section class="ins-section">
+        <div class="ins-container">
+            <div style="text-align:center; max-width:600px; margin:0 auto;">
+                <div class="ins-section-label">The Pod</div>
+                <h2 class="ins-section-title">Everything a family needs to cook, clean and carry on</h2>
             </div>
-
-            <div class="insurance-spec-grid-light">
-                <div class="insurance-spec-card-light">
+            <div class="spec-grid">
+                <div class="spec-card">
                     <h3>Unit Details</h3>
-                    <ul class="insurance-spec-list-light">
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Compact and self-contained</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Fully insulated</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Hot and cold running water</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Waste water removal</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Power supply</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Heating and cooling</span>
-                        </li>
+                    <ul class="spec-list">
+                        <li class="spec-item"><div class="spec-dot"></div> 3.6m × 1.8m × 2.2m</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Fully insulated</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Hot & cold running water</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Waste water drainage</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Dual power sockets</li>
+                        <li class="spec-item"><div class="spec-dot"></div> LED lighting</li>
                     </ul>
                 </div>
-                <div class="insurance-spec-card-light">
-                    <h3>Appliances Included</h3>
-                    <ul class="insurance-spec-list-light">
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Full-size oven and hob</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Microwave</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Fridge freezer</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Washing machine</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Dishwasher</span>
-                        </li>
+                <div class="spec-card">
+                    <h3>Appliances</h3>
+                    <ul class="spec-list">
+                        <li class="spec-item"><div class="spec-dot"></div> Full-size oven & grill</li>
+                        <li class="spec-item"><div class="spec-dot"></div> 4-ring induction hob</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Microwave</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Fridge freezer</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Washing machine</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Dishwasher</li>
                     </ul>
                 </div>
-                <div class="insurance-spec-card-light">
+                <div class="spec-card">
                     <h3>Facilities</h3>
-                    <ul class="insurance-spec-list-light">
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Sink and drainer</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Worktop space</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Storage cupboards</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Dining area</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Seating</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Lighting</span>
-                        </li>
+                    <ul class="spec-list">
+                        <li class="spec-item"><div class="spec-dot"></div> Deep sink & drainer</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Worktop space</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Storage cupboards</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Dining table & 4 chairs</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Heating</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Slip-resistant flooring</li>
                     </ul>
                 </div>
-                <div class="insurance-spec-card-light">
+                <div class="spec-card">
                     <h3>Service</h3>
-                    <ul class="insurance-spec-list-light">
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Delivery and installation</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>24/7 emergency support</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Maintenance and repairs</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Waste water management</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Power connection</span>
-                        </li>
-                        <li class="insurance-spec-item-light">
-                            <div class="insurance-spec-check-light">
-                                <i data-lucide="check" style="width: 12px; height: 12px; color: white;"></i>
-                            </div>
-                            <span>Collection</span>
-                        </li>
+                    <ul class="spec-list">
+                        <li class="spec-item"><div class="spec-dot"></div> Delivery & installation</li>
+                        <li class="spec-item"><div class="spec-dot"></div> 2–3 hour install time</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Loss adjuster liaison</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Maintenance & repairs</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Flexible hire period</li>
+                        <li class="spec-item"><div class="spec-dot"></div> Collection included</li>
                     </ul>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- FAQ Section -->
-        <section id="faqs" class="insurance-faq-section-light">
-            <div style="text-align: center; margin-bottom: 3rem;">
-                <h2 class="insurance-section-title-light">Frequently Asked Questions</h2>
+    <!-- ── FAQ ── -->
+    <section class="ins-section faq-section">
+        <div class="ins-container">
+            <div style="text-align:center;">
+                <div class="ins-section-label">FAQs</div>
+                <h2 class="ins-section-title">Frequently asked questions</h2>
             </div>
-
-            <div class="insurance-faq-list-light">
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
                         <span>How quickly can you deliver?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>We guarantee delivery and installation within 48 hours of claim notification. For urgent cases, we can often deliver same-day or next-day in many locations across the UK.</p>
-                    </div>
+                    <div class="faq-answer">We guarantee delivery and installation within 48 hours of claim notification. For urgent cases we can often deliver same-day or next-day across most of England and Wales.</div>
                 </div>
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
                         <span>What size are the units?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>Our units are 3m x 2m weatherproof units, fully self-contained and insulated.</p>
-                    </div>
+                    <div class="faq-answer">The pod is 3.6m × 1.8m × 2.2m. It fits on most standard driveways and can be installed on tarmac, concrete, or firm gravel. A clear access route of at least 6.5m is required.</div>
                 </div>
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
-                        <span>How long can I have a unit?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
+                        <span>How long can a unit be hired for?</span>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>Rental periods are completely flexible based on the claim duration. Most rentals are between 4-12 weeks, but we can accommodate shorter or longer periods as needed.</p>
-                    </div>
+                    <div class="faq-answer">Hire periods are completely flexible. Most insurance claims require 4–12 weeks, but we can accommodate shorter or longer periods as the claim progresses.</div>
                 </div>
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
                         <span>What areas do you cover?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>We provide coverage across England and Wales. Our regional distribution centers ensure fast delivery times throughout these areas.</p>
-                    </div>
+                    <div class="faq-answer">We cover England and Wales. Delivery costs vary by location — get in touch and we'll confirm availability and pricing for the claim postcode.</div>
                 </div>
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
-                        <span>How do I get a quote?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
+                        <span>How do I notify you of a claim?</span>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>We'll provide a tailored quote based on your claim details and location. Get in touch via the form or phone to request a quote.</p>
-                    </div>
+                    <div class="faq-answer">Call our team or use the contact form below. We'll discuss requirements, confirm pricing, and deploy within 48 hours. For emergency deployments, call us directly on 07342 606655.</div>
                 </div>
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
-                        <span>Are the units accessible?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
+                        <span>Are units suitable for vulnerable policyholders?</span>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>We work closely with insurance teams to ensure vulnerable customers receive appropriate solutions. While our units are not currently wheelchair accessible, please let us know your requirements and we can find a suitable solution.</p>
-                    </div>
+                    <div class="faq-answer">We work closely with insurance teams to ensure appropriate solutions for vulnerable customers. Please let us know any specific requirements when notifying us of the claim and we'll do our best to accommodate.</div>
                 </div>
-                <div class="insurance-faq-item-light">
-                    <button class="insurance-faq-button-light" onclick="toggleFAQ(this)">
-                        <span>How do I get started?</span>
-                        <i data-lucide="chevron-down" class="insurance-faq-chevron-light"></i>
+                <div class="faq-item">
+                    <button class="faq-btn" onclick="toggleFAQ(this)">
+                        <span>Can you provide paperwork for the loss adjuster?</span>
+                        <div class="faq-chevron">▼</div>
                     </button>
-                    <div class="insurance-faq-answer-light">
-                        <p>Simply contact our team via phone or the contact form. We'll discuss your requirements, set up an account, and provide training for your claims handlers on our notification process.</p>
-                    </div>
+                    <div class="faq-answer">Yes — we can liaise directly with loss adjusters and provide all necessary documentation for claim authorisation, including quotes, invoices, and delivery confirmation.</div>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <div style="text-align: center; margin-top: 2rem;">
-                <a href="#contact" class="insurance-btn-red">See more FAQs</a>
+    <!-- ── CONTACT ── -->
+    <section id="contact" class="ins-section contact-section">
+        <div class="ins-container">
+            <div style="text-align:center; max-width:600px; margin:0 auto;">
+                <div class="ins-section-label">Get In Touch</div>
+                <h2 class="ins-section-title">Ready to support your policyholders?</h2>
+                <p class="ins-section-sub">Contact us to discuss a claim, set up an account, or find out how we work with your team.</p>
             </div>
-        </section>
+            <div class="contact-grid">
 
-        <!-- Contact Section -->
-        <section id="contact" class="insurance-contact-section-light">
-            <div style="text-align: center; max-width: 48rem; margin: 0 auto 3rem;">
-                <h2 class="insurance-section-title-light">Ready to help your clients get back on track? Contact us today for a free quotation.</h2>
-            </div>
-
-            <div class="insurance-contact-grid-light">
-                <!-- Contact Information -->
+                <!-- Info -->
                 <div>
-                    <div class="insurance-contact-info-red">
-                        <h3>Contact Information</h3>
-                        
-                        <div class="insurance-contact-item-light">
-                            <div class="insurance-contact-icon-light">
-                                <i data-lucide="phone" style="width: 24px; height: 24px; color: white;"></i>
-                            </div>
-                            <div class="insurance-contact-details-light">
-                                <span class="label">Phone</span>
+                    <div class="contact-info-card">
+                        <h3>Contact details</h3>
+                        <div class="contact-detail">
+                            <div class="contact-detail-icon">📞</div>
+                            <div class="contact-detail-text">
+                                <div class="lbl">Phone</div>
                                 <a href="tel:+447342606655">+44 7342 606655</a>
-                                <div class="subtext">24/7 Emergency Line</div>
+                                <p>Mon–Fri 9am–5pm</p>
                             </div>
                         </div>
-
-                        <div class="insurance-contact-item-light">
-                            <div class="insurance-contact-icon-light">
-                                <i data-lucide="mail" style="width: 24px; height: 24px; color: white;"></i>
-                            </div>
-                            <div class="insurance-contact-details-light">
-                                <span class="label">Email</span>
+                        <div class="contact-detail">
+                            <div class="contact-detail-icon">✉️</div>
+                            <div class="contact-detail-text">
+                                <div class="lbl">Email</div>
                                 <a href="mailto:hello@thekitchenrescue.co.uk">hello@thekitchenrescue.co.uk</a>
                             </div>
                         </div>
-
-                        <div class="insurance-contact-item-light">
-                            <div class="insurance-contact-icon-light">
-                                <i data-lucide="map-pin" style="width: 24px; height: 24px; color: white;"></i>
-                            </div>
-                            <div class="insurance-contact-details-light">
-                                <span class="label">Address</span>
-                                <div class="subtext">
-                                    Kitchen Rescue<br />
-                                    Based in Hertfordshire, United Kingdom
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="insurance-contact-item-light">
-                            <div class="insurance-contact-icon-light">
-                                <i data-lucide="clock" style="width: 24px; height: 24px; color: white;"></i>
-                            </div>
-                            <div class="insurance-contact-details-light">
-                                <span class="label">Hours</span>
-                                <div class="subtext">
-                                    Office: Mon-Fri 9am-5pm<br />
-                                    Emergency: 24/7/365
-                                </div>
+                        <div class="contact-detail">
+                            <div class="contact-detail-icon">📍</div>
+                            <div class="contact-detail-text">
+                                <div class="lbl">Based in</div>
+                                <p>Hertfordshire — covering England & Wales</p>
                             </div>
                         </div>
                     </div>
-
-                    <div class="insurance-contact-form-dark">
-                        <h4 style="font-weight: 600; color: #ffffff; margin-bottom: 0.75rem;">Emergency Response</h4>
-                        <p style="font-size: 0.875rem; color: #d4d4d4; margin-bottom: 1rem;">
-                            For urgent claims requiring immediate temporary kitchen deployment, call our emergency line and we'll begin the process immediately.
-                        </p>
-                        <a href="tel:+447342606655" class="insurance-btn-red" style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; padding: 0.5rem 1rem;">
-                            <i data-lucide="phone" style="width: 16px; height: 16px;"></i>
-                            Call Emergency Line
-                        </a>
+                    <div class="emergency-box" style="margin-top:16px;">
+                        <h4>🚨 Emergency deployment</h4>
+                        <p>For urgent claims requiring immediate temporary kitchen support, call us directly and we'll begin the process straight away.</p>
+                        <a href="tel:+447342606655" class="btn-white">Call now: 07342 606655</a>
                     </div>
                 </div>
 
-                <!-- Contact Form -->
-                <div class="insurance-contact-form-dark">
+                <!-- Form -->
+                <div class="contact-form-card">
                     <h3>Send us a message</h3>
-                    
+                    <div id="formStatus" class="form-status"></div>
                     <form id="insuranceClaimsForm" novalidate>
-                        <div class="insurance-form-group-light">
-                            <label for="fullName" class="insurance-form-label-light">Full Name *</label>
-                            <input 
-                                type="text" 
-                                id="fullName" 
-                                name="fullName" 
-                                required 
-                                autocomplete="name"
-                                aria-required="true"
-                                aria-invalid="false"
-                                aria-describedby="fullNameError"
-                                class="insurance-form-input-light"
-                                placeholder="John Smith">
-                            <p id="fullNameError" role="alert" aria-live="polite" style="display: none; color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem;"></p>
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label>Full name *</label>
+                                <input type="text" id="fullName" name="fullName" placeholder="Jane Smith" required>
+                                <div class="form-err" id="fullNameErr">Please enter your name.</div>
+                            </div>
+                            <div class="form-field">
+                                <label>Company name *</label>
+                                <input type="text" id="company" name="company" placeholder="Insurer Ltd" required>
+                                <div class="form-err" id="companyErr">Please enter your company.</div>
+                            </div>
                         </div>
-
-                        <div class="insurance-form-group-light">
-                            <label for="company" class="insurance-form-label-light">Company Name *</label>
-                            <input 
-                                type="text" 
-                                id="company" 
-                                name="company" 
-                                required 
-                                autocomplete="organization"
-                                aria-required="true"
-                                aria-invalid="false"
-                                aria-describedby="companyError"
-                                class="insurance-form-input-light"
-                                placeholder="Insurance Company Ltd">
-                            <p id="companyError" role="alert" aria-live="polite" style="display: none; color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem;"></p>
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label>Email address *</label>
+                                <input type="email" id="email" name="email" placeholder="jane@insurer.com" required>
+                                <div class="form-err" id="emailErr">Please enter a valid email.</div>
+                            </div>
+                            <div class="form-field">
+                                <label>Phone number</label>
+                                <input type="tel" id="phone" name="phone" placeholder="07700 900000">
+                            </div>
                         </div>
-
-                        <div class="insurance-form-group-light">
-                            <label for="email" class="insurance-form-label-light">Email Address *</label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email" 
-                                required 
-                                autocomplete="email"
-                                aria-required="true"
-                                aria-invalid="false"
-                                aria-describedby="emailError"
-                                class="insurance-form-input-light"
-                                placeholder="john@company.com">
-                            <p id="emailError" role="alert" aria-live="polite" style="display: none; color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem;"></p>
+                        <div class="form-field">
+                            <label>Message *</label>
+                            <textarea id="message" name="message" placeholder="Tell us about the claim — location, urgency, requirements…" required></textarea>
+                            <div class="form-err" id="messageErr">Please enter a message.</div>
                         </div>
-
-                        <div class="insurance-form-group-light">
-                            <label for="phone" class="insurance-form-label-light">Phone Number</label>
-                            <input 
-                                type="tel" 
-                                id="phone" 
-                                name="phone" 
-                                autocomplete="tel"
-                                class="insurance-form-input-light"
-                                placeholder="+44 7342 606655">
-                        </div>
-
-                        <div class="insurance-form-group-light">
-                            <label for="message" class="insurance-form-label-light">Message *</label>
-                            <textarea 
-                                id="message" 
-                                name="message" 
-                                required 
-                                rows="4"
-                                aria-required="true"
-                                aria-invalid="false"
-                                aria-describedby="messageError"
-                                class="insurance-form-textarea-light"
-                                placeholder="Tell us about your requirements..."></textarea>
-                            <p id="messageError" role="alert" aria-live="polite" style="display: none; color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem;"></p>
-                        </div>
-
-                        <div id="formStatus" role="alert" aria-live="polite" style="display: none; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;"></div>
-
-                        <button type="submit" id="submitBtn" class="insurance-form-submit-light">
-                            Send Message
-                            <i data-lucide="send" style="width: 20px; height: 20px;"></i>
-                        </button>
+                        <button type="submit" id="submitBtn" class="btn-submit">Send message →</button>
                     </form>
                 </div>
             </div>
-        </section>
-    </main>
-
-    <!-- Footer -->
-    <footer id="footer" class="footer" style="background: #000000; border-top: 1px solid #404040;">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <p class="footer-title">Request Insurance Claim Support</p>
-                    <p class="footer-description">Help policyholders remain in their home during reinstatement works.</p>
-                    <div style="margin-top: 1.5rem;">
-                        <a href="#contact" class="btn btn-primary" style="display: inline-flex; align-items: center; background: #dc2626; color: white; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; font-weight: 600; transition: background 0.2s;">
-                            Request Claim Support
-                        </a>
-                    </div>
-                </div>
-                <div class="footer-contact">
-                    <p class="contact-item">
-                        <i data-lucide="mail" class="contact-icon"></i>
-                        hello@thekitchenrescue.co.uk
-                    </p>
-                    <p class="contact-item">
-                        <i data-lucide="phone" class="contact-icon"></i>
-                        <a href="tel:+447342606655" style="color: inherit; text-decoration: none;">+44 7342 606655</a>
-                    </p>
-                    <p class="contact-item">
-                        <i data-lucide="calendar-check-2" class="contact-icon"></i>
-                        Mon–Fri 9:00–17:00
-                    </p>
-                    <p class="contact-item">
-                        <i data-lucide="map-pin" class="contact-icon"></i>
-                        Based in Hertfordshire
-                    </p>
-                </div>
-                
-                <div class="footer-legal">
-                    <p style="font-size: 0.65rem; white-space: nowrap; color: #9ca3af;">© <span id="currentYear"></span> Woodpeckers Hertfordshire Ltd t/a The Kitchen Rescue. All rights reserved. Company No. 14316407 • VAT No. 503 3722 28</p>
-                    <p style="font-size: 0.65rem; margin-top: 0.5rem; color: #9ca3af;">Registered office: Based in Hertfordshire, United Kingdom</p>
-                    <p style="margin-top: 1rem;">
-                        <a href="privacy-policy.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Privacy Policy</a>
-                        <a href="terms-conditions.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Terms & Conditions</a>
-                        <a href="refund-cancellation-policy.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Refund Policy</a>
-                        <a href="accessibility-statement.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Accessibility Statement</a>
-                        <a href="insurance-claims.html" style="color: #9ca3af; text-decoration: none; margin-right: 1rem;">Insurance Claims</a>
-                        <a href="#" id="cookieSettingsLink" style="color: #9ca3af; text-decoration: none;">Cookie Settings</a>
-                    </p>
-                </div>
-            </div>
         </div>
-    </footer>
+    </section>
 
-    <!-- Cookie Consent Banner -->
-    <div id="cookieBanner" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #111827; color: white; padding: 1.5rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000;">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 300px;">
-                <p style="margin: 0; color: #e5e7eb; font-size: 0.9375rem;">
-                    We use essential cookies to make our site work and analytics cookies to understand how you use our site. 
-                    <a href="privacy-policy.html" style="color: #dc2626; text-decoration: underline;">Learn more</a>
-                </p>
+</main>
+
+<!-- ── FOOTER ── -->
+<footer class="ins-footer">
+    <div class="ins-footer-grid">
+        <div>
+            <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:32px; margin-bottom:10px; display:block;">
+            <p>Woodpeckers Hertfordshire Ltd t/a The Kitchen Rescue</p>
+            <p>Company No. 14316407 • VAT No. 503 3722 28</p>
+        </div>
+        <div>
+            <div class="footer-links">
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-conditions.html">Terms & Conditions</a>
+                <a href="refund-cancellation-policy.html">Refund Policy</a>
+                <a href="accessibility-statement.html">Accessibility</a>
+                <a href="index.html">Home</a>
+                <a href="availability.html">Availability</a>
             </div>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                <button id="acceptCookies" style="background: #dc2626; color: white; border: none; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.875rem;">
-                    Accept All
-                </button>
-                <button id="rejectCookies" style="background: transparent; color: #e5e7eb; border: 1px solid #6b7280; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.875rem;">
-                    Essential Only
-                </button>
-            </div>
+            <p style="margin-top:10px;">© <span id="currentYear"></span> The Kitchen Rescue. All rights reserved.</p>
         </div>
     </div>
+</footer>
 
-    <!-- WhatsApp Button -->
-    <a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue,%20I%27d%20like%20to%20enquire%20about%20insurance%20claims%20support" 
-       class="whatsapp-button" 
-       target="_blank" 
-       rel="noopener noreferrer"
-       aria-label="Chat with us on WhatsApp">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-        </svg>
-    </a>
+<!-- Cookie Banner -->
+<div id="cookieBanner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#111827; color:white; padding:1.25rem; z-index:1000;">
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <p style="margin:0; color:#e5e7eb; font-size:0.875rem; flex:1; min-width:260px;">We use essential cookies to make our site work. <a href="privacy-policy.html" style="color:#f87171;">Learn more</a></p>
+        <div style="display:flex; gap:0.75rem;">
+            <button id="acceptCookies" style="background:#dc2626; color:white; border:none; padding:0.5rem 1rem; border-radius:7px; font-weight:600; cursor:pointer;">Accept All</button>
+            <button id="rejectCookies" style="background:transparent; color:#e5e7eb; border:1px solid #6b7280; padding:0.5rem 1rem; border-radius:7px; font-weight:600; cursor:pointer;">Essential Only</button>
+        </div>
+    </div>
+</div>
 
-    <script src="/script.js"></script>
-    <script>
-        // Set current year in footer
-        const currentYearElement = document.getElementById('currentYear');
-        if (currentYearElement) {
-            currentYearElement.textContent = new Date().getFullYear();
+<!-- WhatsApp -->
+<a href="https://wa.me/447342606655?text=Hi%20Kitchen%20Rescue%2C%20I%27d%20like%20to%20enquire%20about%20insurance%20claims%20support" class="whatsapp-button" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>
+</a>
+
+<script>
+document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+function toggleFAQ(btn) {
+    const item = btn.closest('.faq-item');
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+}
+
+// Mobile menu
+document.addEventListener('DOMContentLoaded', function() {
+    const toggle  = document.getElementById('mobileMenuToggle');
+    const nav     = document.getElementById('mobileNav');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const close   = document.getElementById('mobileNavClose');
+    if (toggle) {
+        const open = () => { nav.classList.add('open'); overlay.classList.add('open'); document.body.classList.add('menu-open'); };
+        const shut = () => { nav.classList.remove('open'); overlay.classList.remove('open'); document.body.classList.remove('menu-open'); };
+        toggle.addEventListener('click', open);
+        close.addEventListener('click', shut);
+        overlay.addEventListener('click', shut);
+        document.querySelectorAll('.mobile-nav-links a').forEach(l => l.addEventListener('click', () => setTimeout(shut, 100)));
+    }
+
+    // Form
+    const form = document.getElementById('insuranceClaimsForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const formStatus = document.getElementById('formStatus');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // Clear errors
+        document.querySelectorAll('.form-err').forEach(el => el.style.display = 'none');
+        formStatus.style.display = 'none';
+
+        const name    = document.getElementById('fullName').value.trim();
+        const company = document.getElementById('company').value.trim();
+        const email   = document.getElementById('email').value.trim();
+        const message = document.getElementById('message').value.trim();
+        const phone   = document.getElementById('phone').value.trim();
+
+        let ok = true;
+        if (!name)    { document.getElementById('fullNameErr').style.display='block'; ok=false; }
+        if (!company) { document.getElementById('companyErr').style.display='block'; ok=false; }
+        if (!email || !email.includes('@')) { document.getElementById('emailErr').style.display='block'; ok=false; }
+        if (!message) { document.getElementById('messageErr').style.display='block'; ok=false; }
+        if (!ok) return;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending…';
+
+        try {
+            const res = await fetch('/api/insurance-claims-enquiry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fullName: name, company, email, phone, notes: message, consent: true })
+            });
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                formStatus.className = 'form-status success';
+                formStatus.textContent = '✅ Thank you — we\'ll be in touch within 24 hours.';
+                formStatus.style.display = 'block';
+                form.reset();
+            } else {
+                throw new Error();
+            }
+        } catch {
+            formStatus.className = 'form-status error';
+            formStatus.textContent = '❌ Something went wrong — please call us on 07342 606655.';
+            formStatus.style.display = 'block';
         }
 
-        // FAQ Toggle Function
-        function toggleFAQ(button) {
-            const item = button.closest('.insurance-faq-item');
-            const isActive = item.classList.contains('active');
-            
-            // Close all FAQs
-            document.querySelectorAll('.insurance-faq-item-light').forEach(faq => {
-                faq.classList.remove('active');
-            });
-            
-            // Open clicked FAQ if it wasn't active
-            if (!isActive) {
-                item.classList.add('active');
-            }
-        }
-
-        // Mobile Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const mobileNav = document.getElementById('mobileNav');
-            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
-            const mobileNavClose = document.getElementById('mobileNavClose');
-            const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
-
-            if (mobileMenuToggle && mobileNav) {
-                function openMobileMenu() {
-                    mobileNav.classList.add('open');
-                    mobileNavOverlay.classList.add('open');
-                    document.body.classList.add('menu-open');
-                }
-
-                function closeMobileMenu() {
-                    mobileNav.classList.remove('open');
-                    mobileNavOverlay.classList.remove('open');
-                    document.body.classList.remove('menu-open');
-                }
-
-                mobileMenuToggle.addEventListener('click', openMobileMenu);
-                if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
-                if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
-
-                mobileNavLinks.forEach(link => {
-                    link.addEventListener('click', () => {
-                        setTimeout(closeMobileMenu, 100);
-                    });
-                });
-            }
-
-            // Form Handling
-            const form = document.getElementById('insuranceClaimsForm');
-            const submitBtn = document.getElementById('submitBtn');
-            const formStatus = document.getElementById('formStatus');
-
-            if (form) {
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    
-                    // Clear previous errors
-                    document.querySelectorAll('[id$="Error"]').forEach(el => {
-                        el.style.display = 'none';
-                        el.textContent = '';
-                    });
-                    formStatus.style.display = 'none';
-                    formStatus.textContent = '';
-
-                    // Get form data
-                    const formData = new FormData(form);
-                    const data = {
-                        fullName: formData.get('fullName'),
-                        company: formData.get('company'),
-                        email: formData.get('email'),
-                        phone: formData.get('phone'),
-                        message: formData.get('message')
-                    };
-
-                    // Validate required fields
-                    let isValid = true;
-                    
-                    if (!data.fullName || data.fullName.trim() === '') {
-                        document.getElementById('fullNameError').textContent = 'Please enter your full name.';
-                        document.getElementById('fullNameError').style.display = 'block';
-                        document.getElementById('fullName').setAttribute('aria-invalid', 'true');
-                        isValid = false;
-                    }
-
-                    if (!data.company || data.company.trim() === '') {
-                        document.getElementById('companyError').textContent = 'Please enter your company name.';
-                        document.getElementById('companyError').style.display = 'block';
-                        document.getElementById('company').setAttribute('aria-invalid', 'true');
-                        isValid = false;
-                    }
-
-                    if (!data.email || !data.email.includes('@')) {
-                        document.getElementById('emailError').textContent = 'Please enter a valid email address.';
-                        document.getElementById('emailError').style.display = 'block';
-                        document.getElementById('email').setAttribute('aria-invalid', 'true');
-                        isValid = false;
-                    }
-
-                    if (!data.message || data.message.trim() === '') {
-                        document.getElementById('messageError').textContent = 'Please enter a message.';
-                        document.getElementById('messageError').style.display = 'block';
-                        document.getElementById('message').setAttribute('aria-invalid', 'true');
-                        isValid = false;
-                    }
-
-                    if (!isValid) {
-                        formStatus.style.display = 'block';
-                        formStatus.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
-                        formStatus.style.color = '#dc2626';
-                        formStatus.style.border = '1px solid rgba(220, 38, 38, 0.3)';
-                        formStatus.textContent = 'Please fix the errors above and try again.';
-                        return;
-                    }
-
-                    // Disable submit button
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = 'Sending... <i data-lucide="send" style="width: 20px; height: 20px;"></i>';
-
-                    try {
-                        const response = await fetch('/api/insurance-claims-enquiry', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                fullName: data.fullName,
-                                company: data.company,
-                                email: data.email,
-                                phone: data.phone,
-                                notes: data.message,
-                                consent: true
-                            })
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok && result.success) {
-                            formStatus.style.display = 'block';
-                            formStatus.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
-                            formStatus.style.color = '#22c55e';
-                            formStatus.style.border = '1px solid rgba(34, 197, 94, 0.3)';
-                            formStatus.textContent = 'Thank you for your enquiry. We will contact you within 24 hours.';
-                            form.reset();
-                            
-                            // Track conversion if analytics is loaded
-                            if (typeof gtag !== 'undefined') {
-                                gtag('event', 'insurance_claims_enquiry', {
-                                    'event_category': 'Contact',
-                                    'event_label': 'Insurance Claims Form'
-                                });
-                            }
-                        } else {
-                            throw new Error(result.message || 'An error occurred');
-                        }
-                    } catch (error) {
-                        console.error('Form submission error:', error);
-                        formStatus.style.display = 'block';
-                        formStatus.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
-                        formStatus.style.color = '#dc2626';
-                        formStatus.style.border = '1px solid rgba(220, 38, 38, 0.3)';
-                        formStatus.textContent = 'There was an error submitting your enquiry. Please try again or call us directly on +44 7342 606655.';
-                    } finally {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Send Message <i data-lucide="send" style="width: 20px; height: 20px;"></i>';
-                        if (typeof lucide !== 'undefined') {
-                            lucide.createIcons();
-                        }
-                    }
-                });
-            }
-
-            // Initialize Lucide icons
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-
-            // Set active nav link based on current page
-            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-            document.querySelectorAll('.nav-link').forEach(link => {
-                const linkHref = link.getAttribute('href');
-                if (linkHref && (linkHref === currentPage || linkHref === 'insurance-claims.html')) {
-                    link.classList.add('active');
-                } else {
-                    link.classList.remove('active');
-                }
-            });
-        });
-    </script>
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send message →';
+    });
+});
+</script>
 </body>
 </html>
