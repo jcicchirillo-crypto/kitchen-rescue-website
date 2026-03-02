@@ -686,8 +686,8 @@ function delivMiles() {
     return map[area] || 100;
 }
 function delivCost() {
-    // £1/mile × return trip (there and back = 2× one-way miles)
-    return delivMiles() * 2;
+    // £1/mile × return trip (there and back = 2× one-way miles), minimum £75
+    return Math.max(75, delivMiles() * 2);
 }
 
 function bookNow() {

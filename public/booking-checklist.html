@@ -180,8 +180,8 @@ function delivCost(pc) {
     const area = pc.substring(0,2).toUpperCase();
     const map = {'EN':5,'AL':15,'HP':20,'LU':25,'MK':30,'SG':35,'CB':40,'CM':45,'CO':50,'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45};
     const miles = map[area] || 100;
-    // £1/mile × return trip (there and back = 2× one-way miles)
-    return miles * 2;
+    // £1/mile × return trip (there and back = 2× one-way miles), minimum £75
+    return Math.max(75, miles * 2);
 }
 
 function tick(el) {
