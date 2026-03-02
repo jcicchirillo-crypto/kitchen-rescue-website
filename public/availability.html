@@ -654,16 +654,18 @@ function updateQuotePanel() {
     const end   = new Date(selectedDates[selectedDates.length-1]);
     const days  = selectedDates.length;
     const hire  = days * 70;
-    const deliv = delivCost();
-    const total = hire + deliv*2;
+    const miles = delivMiles();
+    const deliv = miles * 2;   // return trip: there + back at £1/mile
+    const total = hire + deliv * 2;  // delivery trip + collection trip
     const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const pcLabel = document.getElementById('postcodeInput').value.toUpperCase().trim() || 'your postcode';
     body.innerHTML = `
-        <div class="quote-row"><span class="ql">Delivery</span><span class="qv">${fd(start)}</span></div>
-        <div class="quote-row"><span class="ql">Collection</span><span class="qv">${fd(end)}</span></div>
+        <div class="quote-row"><span class="ql">Delivery date</span><span class="qv">${fd(start)}</span></div>
+        <div class="quote-row"><span class="ql">Collection date</span><span class="qv">${fd(end)}</span></div>
         <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
         <div class="quote-row"><span class="ql">Hire (${days} × £70/day)</span><span class="qv">£${hire}</span></div>
-        <div class="quote-row"><span class="ql">Delivery</span><span class="qv">£${deliv}</span></div>
-        <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${deliv}</span></div>
+        <div class="quote-row"><span class="ql">Delivery (${miles}mi × 2 × £1)</span><span class="qv">£${deliv}</span></div>
+        <div class="quote-row"><span class="ql">Collection (${miles}mi × 2 × £1)</span><span class="qv">£${deliv}</span></div>
         <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${total}</span></div>
         <p class="quote-vat">+ VAT • Subject to site check</p>
         <button class="btn-book" onclick="bookNow()">📅 Book Now</button>
@@ -675,14 +677,17 @@ function updateQuotePanel() {
         </div>`;
 }
 
-function delivCost() {
+function delivMiles() {
     const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
     if (!pc) return 100;
-    if (pc.startsWith('EN10')) return 75;
+    if (pc.startsWith('EN10')) return 5;
     const area = pc.substring(0,2);
     const map = {'EN':5,'AL':15,'HP':20,'LU':25,'MK':30,'SG':35,'CB':40,'CM':45,'CO':50,'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45};
-    const miles = map[area] || 100;
-    if (miles<=50) return 75; if (miles<=100) return 100; if (miles<=150) return 125; if (miles<=200) return 150; return 225;
+    return map[area] || 100;
+}
+function delivCost() {
+    // £1/mile × return trip (there and back = 2× one-way miles)
+    return delivMiles() * 2;
 }
 
 function bookNow() {
