@@ -292,7 +292,7 @@
         <form onsubmit="submitLeadGate(event)">
             <input class="gate-input" type="text"  id="lg-name"  placeholder="Your full name"  required>
             <input class="gate-input" type="email" id="lg-email" placeholder="Email address"   required>
-            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number"    required>
+            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number (optional)">
             <button class="gate-submit" type="submit" id="gateBtn">Show me availability →</button>
         </form>
         <p class="gate-trust">🔒 We never share your details or spam you</p>
@@ -433,34 +433,29 @@ if (savedLead) {
     prefillFromLead();
 }
 
-async function submitLeadGate(e) {
+function submitLeadGate(e) {
     e.preventDefault();
-    const btn = document.getElementById('gateBtn');
-    btn.disabled = true; btn.textContent = 'Opening calendar…';
-    const lead = {
-        name:  document.getElementById('lg-name').value.trim(),
-        email: document.getElementById('lg-email').value.trim(),
-        phone: document.getElementById('lg-phone').value.trim(),
-        source: 'availability_gate',
-        created_at: new Date().toISOString()
-    };
-    // Always save locally first — DB/email are best-effort
+    const name  = document.getElementById('lg-name').value.trim();
+    const email = document.getElementById('lg-email').value.trim();
+    const phone = document.getElementById('lg-phone').value.trim();
+    if (!name || !email) return;
+
+    const lead = { name, email, phone, source: 'availability_gate', created_at: new Date().toISOString() };
     currentLead = lead;
     sessionStorage.setItem('kr_lead', JSON.stringify(lead));
-    // Fire-and-forget: save to Supabase and send email (don't block UX on these)
-    if (supabase) {
-        supabase.from('leads').insert([lead]).catch(err => console.warn('Lead save error:', err));
-    }
+
+    // Remove the overlay immediately — don't wait for any network calls
+    const overlay = document.getElementById('leadGateOverlay');
+    if (overlay) overlay.remove();
+
+    prefillFromLead();
+
+    // Best-effort background saves (never block the UI)
+    if (supabase) supabase.from('leads').insert([lead]).catch(() => {});
     fetch('/send-quote-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...lead, type: 'new_lead', subject: `New lead: ${lead.name} — ${lead.phone}` })
+        body: JSON.stringify({ ...lead, type: 'new_lead', subject: 'New lead: ' + name + ' — ' + phone })
     }).catch(() => {});
-    // Always dismiss the gate immediately
-    prefillFromLead();
-    const overlay = document.getElementById('leadGateOverlay');
-    overlay.style.transition = 'opacity 0.3s';
-    overlay.style.opacity = '0';
-    setTimeout(() => overlay.style.display = 'none', 300);
 }
 
 function prefillFromLead() {
