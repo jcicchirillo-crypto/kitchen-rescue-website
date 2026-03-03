@@ -331,7 +331,18 @@ function submitLeadGate(e) {
     prefillFromLead();
 
     // Best-effort background saves (never block the UI)
-    if (window._supabase) window._supabase.from('leads').insert([lead]).catch(() => {});
+    if (window._supabase) {
+        window._supabase.from('leads').insert([{
+            name: lead.name,
+            email: lead.email,
+            phone: lead.phone,
+            source: lead.source,
+            created_at: lead.created_at
+        }]).then(({ error }) => {
+            if (error) console.error('Supabase insert error:', error);
+            else console.log('Lead saved successfully');
+        });
+    }
     fetch('/send-quote-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...lead, type: 'new_lead', subject: 'New lead: ' + name + ' — ' + phone })
@@ -588,7 +599,11 @@ function delivCost() {
 function bookNow() {
     if (!selectedDates.length) return;
     const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
-    if (!pc) { toast('Please enter your postcode first.', 'error'); return; }
+    if (!pc) {
+        toast('Please enter your postcode before booking.', 'error');
+        document.getElementById('postcodeInput').focus();
+        return;
+    }
     const p = new URLSearchParams({ dates: selectedDates.join(','), postcode: pc });
     window.location.href = `booking-checklist.html?${p}`;
 }
