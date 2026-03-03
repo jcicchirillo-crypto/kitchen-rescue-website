@@ -103,7 +103,7 @@
         }
         .cal-legend span { display: flex; align-items: center; gap: 5px; }
         .badge { width: 11px; height: 11px; border-radius: 3px; }
-        .badge-available   { background: #fecaca; border: 1px solid #f87171; }
+        .badge-available   { background: #86efac; border: 1px solid #86efac; }
         .badge-unavailable { background: #e5e7eb; border: 1px solid #d1d5db; }
         .badge-selected    { background: #dc2626; }
         .calendar-grid { display: grid; gap: 1px; background: #f3f4f6; }
@@ -113,129 +113,8 @@
         .weekday-row, .date-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
         .weekday { text-align: center; font-size: 0.68rem; color: #9ca3af; padding: 3px 0; font-weight: 600; }
         .date { text-align: center; padding: 6px 2px; border-radius: 5px; font-size: 0.78rem; line-height: 1; }
-        .date.available { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; cursor: pointer; transition: all 0.1s; }
-        .date.available:hover { background: #fee2e2; border-color: #f87171; }
-        .date.disabled  { color: #d1d5db; background: #f9fafb; }
-        .date.past-date { text-decoration: line-through; opacity: 0.35; }
-        .date.selected  { background: #dc2626 !important; color: #fff !
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check Availability • Kitchen Rescue</title>
-    <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="js/cookie-consent.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * { box-sizing: border-box; }
-        #leadGateOverlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(4px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 9999;
-        }
-        #leadGateCard {
-            background: #fff; border-radius: 16px;
-            padding: 36px 32px; max-width: 420px; width: 92%;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.3);
-            text-align: center;
-            animation: popIn 0.25s ease;
-        }
-        @keyframes popIn {
-            from { transform: scale(0.93); opacity: 0; }
-            to   { transform: scale(1);    opacity: 1; }
-        }
-        .gate-logo { height: 40px; margin-bottom: 20px; }
-        #leadGateCard h2 { font-size: 1.4rem; font-weight: 700; color: #111827; margin: 0 0 6px; }
-        #leadGateCard p  { font-size: 0.875rem; color: #6b7280; margin: 0 0 20px; line-height: 1.5; }
-        .gate-input {
-            width: 100%; padding: 11px 14px;
-            border: 1.5px solid #e5e7eb; border-radius: 8px;
-            font-size: 0.95rem; margin-bottom: 10px;
-            font-family: inherit; background: #fafafa;
-            transition: border-color 0.2s;
-        }
-        .gate-input:focus { outline: none; border-color: #dc2626; background: #fff; }
-        .gate-submit {
-            width: 100%; padding: 13px;
-            background: #dc2626; color: #fff;
-            border: none; border-radius: 8px;
-            font-size: 0.95rem; font-weight: 700;
-            cursor: pointer; font-family: inherit;
-            transition: background 0.2s; margin-top: 4px;
-        }
-        .gate-submit:hover { background: #b91c1c; }
-        .gate-submit:disabled { background: #9ca3af; cursor: not-allowed; }
-        .gate-trust { margin-top: 12px; font-size: 0.75rem; color: #9ca3af; }
-        .avail-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 5rem; }
-        .avail-hero {
-            background: #111827; border-radius: 16px; padding: 28px;
-            color: #fff; margin-bottom: 24px;
-            display: flex; align-items: center;
-            justify-content: space-between; flex-wrap: wrap; gap: 16px;
-        }
-        .avail-hero h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; }
-        .avail-hero p  { font-size: 0.85rem; opacity: 0.65; margin: 0; }
-        .postcode-bar {
-            display: flex; gap: 8px; align-items: center;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px; padding: 6px 8px;
-        }
-        .postcode-bar input {
-            background: transparent; border: none; outline: none;
-            color: #fff; font-size: 0.875rem; font-family: inherit;
-            width: 130px; padding: 4px 6px;
-        }
-        .postcode-bar input::placeholder { color: rgba(255,255,255,0.5); }
-        .postcode-bar button {
-            background: #dc2626; color: #fff; border: none; border-radius: 7px;
-            padding: 7px 14px; font-weight: 700; font-size: 0.8rem;
-            cursor: pointer; font-family: inherit;
-        }
-        .postcode-bar button:hover { background: #b91c1c; }
-        .avail-layout { display: grid; gap: 20px; }
-        @media (min-width: 900px) { .avail-layout { grid-template-columns: 1fr 300px; align-items: start; } }
-        .cal-panel {
-            background: #fff; border-radius: 14px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden;
-        }
-        .cal-nav {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 18px; border-bottom: 1px solid #f3f4f6;
-        }
-        .cal-nav span { font-weight: 600; font-size: 0.9rem; color: #111827; }
-        .cal-nav-btn {
-            background: #f3f4f6; border: none; border-radius: 7px;
-            padding: 6px 12px; cursor: pointer; font-size: 0.8rem;
-            font-family: inherit; color: #374151; font-weight: 600;
-        }
-        .cal-nav-btn:hover { background: #e5e7eb; }
-        .cal-legend {
-            display: flex; gap: 14px; padding: 9px 18px;
-            font-size: 0.78rem; color: #6b7280; border-bottom: 1px solid #f3f4f6;
-        }
-        .cal-legend span { display: flex; align-items: center; gap: 5px; }
-        .badge { width: 11px; height: 11px; border-radius: 3px; }
-        .badge-available   { background: #fecaca; border: 1px solid #f87171; }
-        .badge-unavailable { background: #e5e7eb; border: 1px solid #d1d5db; }
-        .badge-selected    { background: #dc2626; }
-        .calendar-grid { display: grid; gap: 1px; background: #f3f4f6; }
-        @media (min-width: 580px) { .calendar-grid { grid-template-columns: repeat(2, 1fr); } }
-        .calendar { background: #fff; padding: 14px 16px; }
-        .calendar h3 { font-size: 0.85rem; font-weight: 700; color: #111827; margin-bottom: 10px; }
-        .weekday-row, .date-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-        .weekday { text-align: center; font-size: 0.68rem; color: #9ca3af; padding: 3px 0; font-weight: 600; }
-        .date { text-align: center; padding: 6px 2px; border-radius: 5px; font-size: 0.78rem; line-height: 1; }
-        .date.available { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; cursor: pointer; transition: all 0.1s; }
-        .date.available:hover { background: #fee2e2; border-color: #f87171; }
+        .date.available { background: #f0fdf4; color: #166534; border: 1px solid #86efac; cursor: pointer; transition: all 0.1s; }
+        .date.available:hover { background: #dcfce7; border-color: #4ade80; }
         .date.disabled  { color: #d1d5db; background: #f9fafb; }
         .date.past-date { text-decoration: line-through; opacity: 0.35; }
         .date.selected  { background: #dc2626 !important; color: #fff !important; border: 1px solid #b91c1c !important; font-weight: 700; }
@@ -248,14 +127,14 @@
         .quote-empty { text-align: center; padding: 28px 16px; color: #9ca3af; }
         .quote-empty .ei { font-size: 2rem; margin-bottom: 8px; }
         .quote-empty p { font-size: 0.82rem; line-height: 1.5; margin: 0; }
-        .quote-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f9fafb; font-size: 0.82rem; }
+        .quote-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.83rem; gap: 8px; }
         .quote-row:last-of-type { border-bottom: none; }
-        .quote-row .ql { color: #6b7280; }
-        .quote-row .qv { font-weight: 600; color: #111827; }
-        .quote-total { background: #fef2f2; border-radius: 8px; padding: 12px 14px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .quote-row .ql { color: #6b7280; line-height: 1.4; }
+        .quote-row .qv { font-weight: 600; color: #111827; white-space: nowrap; }
+        .quote-total { background: #fef2f2; border-radius: 8px; padding: 12px 14px; margin: 14px 0 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .quote-total .tl { font-size: 0.85rem; color: #991b1b; font-weight: 600; }
-        .quote-total .tp { font-size: 1.25rem; font-weight: 700; color: #dc2626; }
-        .quote-vat { font-size: 0.72rem; color: #9ca3af; text-align: center; margin-bottom: 12px; }
+        .quote-total .tp { font-size: 1.25rem; font-weight: 700; color: #dc2626; white-space: nowrap; }
+        .quote-vat { font-size: 0.72rem; color: #9ca3af; text-align: center; margin-bottom: 14px; }
         .btn-book { width: 100%; padding: 13px; background: #dc2626; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; margin-bottom: 8px; }
         .btn-book:hover { background: #b91c1c; }
         .btn-email { width: 100%; padding: 11px; background: #fff; color: #374151; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
