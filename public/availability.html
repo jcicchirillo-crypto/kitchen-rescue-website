@@ -655,19 +655,29 @@ function updateQuotePanel() {
     const days  = selectedDates.length;
     const hire  = days * 70;
     const miles = delivMiles();
-    const deliv = miles * 2;   // return trip: there + back at £1/mile
-    const total = hire + deliv * 2;  // delivery trip + collection trip
     const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     const pcLabel = document.getElementById('postcodeInput').value.toUpperCase().trim() || 'your postcode';
+
+    const deliveryRows = miles !== null
+        ? `<div class="quote-row"><span class="ql">Delivery (${miles}mi × 2 × £1)</span><span class="qv">£${Math.max(75, miles*2)}</span></div>
+           <div class="quote-row"><span class="ql">Collection (${miles}mi × 2 × £1)</span><span class="qv">£${Math.max(75, miles*2)}</span></div>
+           <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${hire + Math.max(75, miles*2)*2}</span></div>
+           <p class="quote-vat">+ VAT • Subject to site check</p>`
+        : `<div class="quote-row" style="background:#fef9ec;border-radius:8px;padding:10px 12px;margin-top:4px;">
+               <span class="ql" style="color:#92400e;font-size:0.82rem;line-height:1.4;">
+                   📦 <strong>Delivery &amp; collection quote required</strong><br>
+                   We deliver up to 100 miles from Ware, Hertfordshire — and can go further too. Please use <em>Email me this quote</em> below and we'll confirm a delivery price for your area.
+               </span>
+           </div>
+           <div class="quote-total"><span class="tl">Hire total</span><span class="tp">£${hire}</span></div>
+           <p class="quote-vat">+ VAT + delivery (TBC) • Subject to site check</p>`;
+
     body.innerHTML = `
         <div class="quote-row"><span class="ql">Delivery date</span><span class="qv">${fd(start)}</span></div>
         <div class="quote-row"><span class="ql">Collection date</span><span class="qv">${fd(end)}</span></div>
         <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
         <div class="quote-row"><span class="ql">Hire (${days} × £70/day)</span><span class="qv">£${hire}</span></div>
-        <div class="quote-row"><span class="ql">Delivery (${miles}mi × 2 × £1)</span><span class="qv">£${deliv}</span></div>
-        <div class="quote-row"><span class="ql">Collection (${miles}mi × 2 × £1)</span><span class="qv">£${deliv}</span></div>
-        <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${total}</span></div>
-        <p class="quote-vat">+ VAT • Subject to site check</p>
+        ${deliveryRows}
         <button class="btn-book" onclick="bookNow()">📅 Book Now</button>
         <button class="btn-email" onclick="openEmailModal()">📧 Email me this quote</button>
         <div class="quote-trust">
@@ -679,15 +689,16 @@ function updateQuotePanel() {
 
 function delivMiles() {
     const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
-    if (!pc) return 100;
+    if (!pc) return null; // unknown → quote required
     if (pc.startsWith('EN10')) return 5;
     const area = pc.substring(0,2);
     const map = {'EN':5,'AL':15,'HP':20,'LU':25,'MK':30,'SG':35,'CB':40,'CM':45,'CO':50,'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45};
-    return map[area] || 100;
+    return map[area] ?? null; // null = outside 100-mile zone → quote required
 }
 function delivCost() {
-    // £1/mile × return trip (there and back = 2× one-way miles), minimum £75
-    return Math.max(75, delivMiles() * 2);
+    const m = delivMiles();
+    if (m === null) return null; // delivery quote required
+    return Math.max(75, m * 2);
 }
 
 function bookNow() {
@@ -709,6 +720,7 @@ async function handleEmailSubmit(e) {
     const btn = document.getElementById('sendEmailBtn');
     btn.disabled=true; btn.textContent='Sending…';
     const days=selectedDates.length, deliv=delivCost();
+    const delivTBC = deliv === null;
     const payload = {
         name: document.getElementById('quoteName').value.trim(),
         email: document.getElementById('quoteEmail').value.trim(),
@@ -716,7 +728,10 @@ async function handleEmailSubmit(e) {
         notes: document.getElementById('quoteNotes').value.trim(),
         postcode: document.getElementById('postcodeInput').value.toUpperCase().trim(),
         selectedDates, startDate: selectedDates[0], endDate: selectedDates[selectedDates.length-1],
-        days, dailyCost: days*70, deliveryCost: deliv, collectionCost: deliv, totalCost: days*70+deliv*2
+        days, dailyCost: days*70,
+        deliveryCost: delivTBC ? 'TBC' : deliv,
+        collectionCost: delivTBC ? 'TBC' : deliv,
+        totalCost: delivTBC ? `£${days*70} hire + delivery TBC` : days*70+(deliv*2)
     };
     try {
         const res = await fetch('/send-quote-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
