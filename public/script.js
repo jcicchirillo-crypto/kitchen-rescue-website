@@ -139,37 +139,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkAvailability() {
     const postcodeInput = document.getElementById('postcode');
     const postcode = postcodeInput.value.trim();
-    
     if (!postcode) {
-        alert('Please enter a postcode');
+        postcodeInput.focus();
         return;
     }
-    
-    // Basic UK postcode validation
-    const postcodeRegex = /^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i;
-    if (!postcodeRegex.test(postcode)) {
-        alert('Please enter a valid UK postcode (e.g., EN10, SW1A 1AA)');
-        return;
-    }
-    
-    // Simulate API call
-    const btn = document.querySelector('.postcode-btn');
-    const originalText = btn.textContent;
-    
-    btn.textContent = 'Checking...';
-    btn.disabled = true;
-    
-    setTimeout(() => {
-        btn.textContent = originalText;
-        btn.disabled = false;
-        
-        // Removed postcode area restriction - now accepting all UK postcodes
-        // Delivery charges will be calculated based on distance in the booking flow
-
-        // Open availability page with postcode prefilled
-        const encodedPc = encodeURIComponent(postcode.toUpperCase());
-        window.location.href = `availability.html?postcode=${encodedPc}`;
-    }, 1500);
+    // Redirect immediately — no delay, no strict validation
+    // The availability page handles any postcode (outward code or full)
+    window.location.href = 'availability.html?postcode=' + encodeURIComponent(postcode.toUpperCase());
 }
 
 // Handle quote form submission

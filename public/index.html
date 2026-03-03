@@ -906,19 +906,6 @@
             }
         }
 
-        // Hero postcode "Go" button → redirect to availability with postcode pre-filled
-        (function() {
-            const btn = document.querySelector('.postcode-btn');
-            const input = document.getElementById('postcode');
-            if (!btn || !input) return;
-            function goToAvailability() {
-                const pc = input.value.trim();
-                const url = pc ? 'availability.html?postcode=' + encodeURIComponent(pc.toUpperCase()) : 'availability.html';
-                window.location.href = url;
-            }
-            btn.addEventListener('click', goToAvailability);
-            input.addEventListener('keydown', function(e) { if (e.key === 'Enter') goToAvailability(); });
-        })();
     </script>
 </body>
 </html>
