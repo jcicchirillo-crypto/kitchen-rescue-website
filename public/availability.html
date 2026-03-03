@@ -219,7 +219,7 @@
             <p>Tap a date to select a 7-day block — your quote updates instantly.</p>
         </div>
         <div class="postcode-bar">
-            <label for="postcodeInput" style="display:flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Postcode <span style="color:#dc2626;">*</span></label>
+            <label for="postcodeInput" style="display:flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:600;color:#ffffff;margin-bottom:4px;">Postcode <span style="color:#dc2626;">*</span></label>
             <input id="postcodeInput" placeholder="Enter postcode (required)" autocomplete="postal-code">
             <button id="updatePostcodeBtn">Update</button>
         </div>
@@ -333,6 +333,7 @@ function submitLeadGate(e) {
 
     // Best-effort background saves (never block the UI)
     if (window._supabase) {
+        console.log('Supabase insert attempt:', { name: lead.name, email: lead.email, phone: lead.phone, source: lead.source, created_at: lead.created_at });
         window._supabase.from('leads').insert([{
             name: lead.name,
             email: lead.email,
@@ -341,8 +342,10 @@ function submitLeadGate(e) {
             created_at: lead.created_at
         }]).then(({ error }) => {
             if (error) console.error('Supabase insert error:', error);
-            else console.log('Lead saved successfully');
+            else console.log('Lead saved to Supabase successfully');
         });
+    } else {
+        console.warn('window._supabase not initialised — lead not saved to database');
     }
     fetch('/send-quote-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -552,7 +555,9 @@ function updateQuotePanel() {
     const hire  = days * 70;
     const miles = delivMiles();
     const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    const pcLabel = document.getElementById('postcodeInput').value.toUpperCase().trim() || 'your postcode';
+    const pcValue = document.getElementById('postcodeInput').value.toUpperCase().trim();
+    const pcLabel = pcValue || 'your postcode';
+    const hasPostcode = !!pcValue;
 
     const deliveryRows = miles !== null
         ? `<div class="quote-row"><span class="ql">Delivery (${miles}mi × 2 × £1)</span><span class="qv">£${Math.max(75, miles*2)}</span></div>
@@ -574,8 +579,13 @@ function updateQuotePanel() {
         <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
         <div class="quote-row"><span class="ql">Hire (${days} × £70/day)</span><span class="qv">£${hire}</span></div>
         ${deliveryRows}
-        <button class="btn-book" onclick="bookNow()">📅 Book Now (postcode required)</button>
-        <button class="btn-email" onclick="openEmailModal()">📧 Email me this quote</button>
+        ${hasPostcode
+            ? `<button class="btn-book" onclick="bookNow()">📅 Book Now</button>
+               <button class="btn-email" onclick="openEmailModal()">📧 Email me this quote</button>`
+            : `<p style="text-align:center;font-size:0.82rem;color:#dc2626;font-weight:600;margin:12px 0 8px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;">
+                   ⬆ Enter your postcode above to see delivery costs and book
+               </p>`
+        }
         <div class="quote-trust">
             <span>🔒 No card required to enquire</span>
             <span>📞 We call to confirm details</span>
