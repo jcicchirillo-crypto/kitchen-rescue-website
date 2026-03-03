@@ -305,10 +305,16 @@ try {
 
 let currentLead = null;
 const savedLead = sessionStorage.getItem('kr_lead');
+const skipGate = new URLSearchParams(window.location.search).get('skipgate') === 'true';
 if (savedLead) {
     currentLead = JSON.parse(savedLead);
-    document.getElementById('leadGateOverlay').style.display = 'none';
+    const gateEl = document.getElementById('leadGateOverlay');
+    if (gateEl) gateEl.remove();
     prefillFromLead();
+} else if (skipGate) {
+    // User arrived via emailed quote link — bypass the lead gate
+    const gateEl = document.getElementById('leadGateOverlay');
+    if (gateEl) gateEl.remove();
 }
 
 function submitLeadGate(e) {

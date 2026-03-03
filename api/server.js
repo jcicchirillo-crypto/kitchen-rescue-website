@@ -712,9 +712,7 @@ app.post('/send-quote-email', async (req, res) => {
 });
 
 function generateQuoteEmailHTML(data) {
-    const baseUrl = process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}`
-        : 'https://www.thekitchenrescue.co.uk';
+    const baseUrl = 'https://www.thekitchenrescue.co.uk';
     const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
     const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
 
@@ -808,7 +806,7 @@ function generateQuoteEmailHTML(data) {
         <!-- CTA -->
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
           <tr><td align="center" style="padding:8px 0;">
-            <a href="${baseUrl}/availability.html?dates=${(data.selectedDates||[]).join(',')}&postcode=${data.postcode}" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:8px;">Book Now →</a>
+            <a href="${baseUrl}/availability.html?dates=${(data.selectedDates||[]).join(',')}&postcode=${data.postcode}&skipgate=true" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:8px;">Book Now →</a>
           </td></tr>
           <tr><td align="center" style="padding:0;">
             <p style="margin:12px 0 0;color:#9ca3af;font-size:13px;">🔒 No card required &nbsp;·&nbsp; ✅ Free cancellation &nbsp;·&nbsp; 📞 We call to confirm</p>
