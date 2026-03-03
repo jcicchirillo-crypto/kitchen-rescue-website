@@ -26,7 +26,16 @@
             box-shadow: 0 24px 80px rgba(0,0,0,0.3);
             text-align: center;
             animation: popIn 0.25s ease;
+            position: relative;
         }
+        #leadGateClose {
+            position: absolute; top: 12px; right: 14px;
+            background: none; border: none; cursor: pointer;
+            color: #9ca3af; font-size: 1.25rem; line-height: 1;
+            padding: 4px 6px; border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+        #leadGateClose:hover { background: #f3f4f6; color: #374151; }
         @keyframes popIn {
             from { transform: scale(0.93); opacity: 0; }
             to   { transform: scale(1);    opacity: 1; }
@@ -165,6 +174,7 @@
 
 <div id="leadGateOverlay">
     <div id="leadGateCard">
+        <button id="leadGateClose" aria-label="Close" onclick="document.getElementById('leadGateOverlay').remove()">×</button>
         <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="gate-logo">
         <h2>Check live availability</h2>
         <p>Enter your details to unlock the calendar and get an instant quote. No obligation.</p>
