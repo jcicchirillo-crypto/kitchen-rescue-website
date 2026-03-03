@@ -711,228 +711,271 @@ app.post('/send-quote-email', async (req, res) => {
     }
 });
 
-// Generate quote email HTML for customer
 function generateQuoteEmailHTML(data) {
-    // Determine the base URL based on environment
     const baseUrl = process.env.VERCEL_URL 
         ? `https://${process.env.VERCEL_URL}`
-        : process.env.NODE_ENV === 'production' 
-            ? 'https://www.thekitchenrescue.co.uk' 
-            : 'http://localhost:3000';
-    
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Your Kitchen Pod Quote</title>
-        <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-            .quote-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
-            .cost-breakdown { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .cost-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
-            .total-row { font-weight: bold; font-size: 1.2em; color: #dc2626; border-top: 2px solid #dc2626; padding-top: 15px; margin-top: 15px; }
-            .cta-button { background: #dc2626; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; font-weight: bold; }
-            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>🏠 Your Kitchen Pod Quote</h1>
-            <p>Thank you for your interest in Kitchen Rescue!</p>
-        </div>
-        
-        <div class="content">
-            <p>Hi ${data.name},</p>
-            
-            <p>Thank you for requesting a quote for our temporary kitchen pod service. Here are the details for your selected dates:</p>
-            
-            <div class="quote-details">
-                <h3>📅 Booking Details</h3>
-                <p><strong>Dates:</strong> ${data.startDate} to ${data.endDate}</p>
-                <p><strong>Duration:</strong> ${data.days} day${data.days > 1 ? 's' : ''}</p>
-                <p><strong>Postcode:</strong> ${data.postcode}</p>
-                ${data.phone ? `<p><strong>Phone:</strong> ${data.phone}</p>` : ''}
-                ${data.notes ? `<p><strong>Notes:</strong> ${data.notes}</p>` : ''}
-            </div>
-            
-            <div class="cost-breakdown">
-                <h3>💰 Cost Breakdown</h3>
-                <div class="cost-row">
-                    <span>Daily hire (${data.days} day${data.days > 1 ? 's' : ''} × £70)</span>
-                    <span>£${data.dailyCost}</span>
-                </div>
-                <div class="cost-row">
-                    <span>Delivery</span>
-                    <span>£${data.deliveryCost}</span>
-                </div>
-                <div class="cost-row">
-                    <span>Collection</span>
-                    <span>£${data.collectionCost}</span>
-                </div>
-                <div class="cost-row total-row">
-                    <span>Total (excluding VAT)</span>
-                    <span>£${data.totalCost}</span>
-                </div>
-                <p style="margin-top: 10px; font-size: 14px; color: #6b7280;">*VAT will be added at 20%</p>
-            </div>
-            
-            <p>This quote is valid for 7 days. To secure your booking, simply:</p>
-            <ol>
-                <li>Click the "Book Now" button below</li>
-                <li>Complete our quick checklist</li>
-                <li>Pay your £250 security deposit</li>
-            </ol>
-            
-            <div style="text-align: center;">
-                <a href="${baseUrl}/availability.html?dates=${data.selectedDates.join(',')}&postcode=${data.postcode}" class="cta-button">📅 Book Now</a>
-            </div>
-            
-            <p>If you have any questions or would like to discuss your requirements, please don't hesitate to contact us:</p>
-            <ul>
-                <li>📞 Phone: +44 7342 606655</li>
-                <li>📧 Email: hello@thekitchenrescue.co.uk</li>
-                <li>💬 WhatsApp: <a href="https://wa.me/447342606655">Click here to chat</a></li>
-            </ul>
-            
-            <p>We look forward to helping you keep your family fed during your kitchen renovation!</p>
-            
-            <p>Best regards,<br>
-            The Kitchen Rescue Team</p>
-        </div>
-        
-        <div class="footer">
-            <p>Woodpeckers Hertfordshire Ltd t/a The Kitchen Rescue<br>
-            Company No. 14316407</p>
-        </div>
-    </body>
-    </html>
-    `;
+        : 'https://www.thekitchenrescue.co.uk';
+    const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
+    const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Your Kitchen Pod Quote</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+      <!-- Header -->
+      <tr><td style="background:#111827;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
+        <img src="https://www.thekitchenrescue.co.uk/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Your Kitchen Pod Quote</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:14px;">Valid for 7 days · No obligation</p>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="background:#ffffff;padding:36px 40px;">
+        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${data.name}</strong>,</p>
+        <p style="margin:0 0 28px;color:#6b7280;font-size:15px;line-height:1.6;">Thanks for checking availability with Kitchen Rescue. Here's the quote for your selected dates — no card required to hold these dates.</p>
+
+        <!-- Dates box -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Booking Details</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Delivery date</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.startDate)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Collection date</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.endDate)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Duration</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${data.days} day${data.days > 1 ? 's' : ''}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Location</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${data.postcode}</td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <!-- Pricing box -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Cost Breakdown</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £70/day)</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.dailyCost)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;">Delivery</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.deliveryCost)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:6px 0;color:#374151;font-size:14px;">Collection</td>
+                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.collectionCost)}</td>
+              </tr>
+            </table>
+            <!-- Total -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border-radius:8px;margin-top:14px;">
+              <tr><td style="padding:14px 16px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="color:#991b1b;font-size:15px;font-weight:700;">Total (exc. VAT)</td>
+                    <td align="right" style="color:#dc2626;font-size:22px;font-weight:700;">${money(data.totalCost)}</td>
+                  </tr>
+                </table>
+                <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;">VAT at 20% will be added · Subject to site check</p>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <!-- CTA -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+          <tr><td align="center" style="padding:8px 0;">
+            <a href="${baseUrl}/availability.html?dates=${(data.selectedDates||[]).join(',')}&postcode=${data.postcode}" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:8px;">Book Now →</a>
+          </td></tr>
+          <tr><td align="center" style="padding:0;">
+            <p style="margin:12px 0 0;color:#9ca3af;font-size:13px;">🔒 No card required &nbsp;·&nbsp; ✅ Free cancellation &nbsp;·&nbsp; 📞 We call to confirm</p>
+          </td></tr>
+        </table>
+
+        <!-- How to book -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:28px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">How to secure your booking</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;">1. Click Book Now above</td>
+              </tr>
+              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">2. Complete our quick site checklist</td></tr>
+              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">3. Pay your £250 refundable deposit</td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        ${data.notes ? `<p style="margin:0 0 24px;color:#6b7280;font-size:14px;background:#f9fafb;border-left:3px solid #dc2626;padding:12px 16px;border-radius:0 8px 8px 0;"><strong>Your notes:</strong> ${data.notes}</p>` : ''}
+
+        <p style="margin:0 0 6px;color:#374151;font-size:15px;">Any questions? We're here to help:</p>
+        <p style="margin:0 0 4px;color:#6b7280;font-size:14px;">📞 <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">+44 7342 606655</a></p>
+        <p style="margin:0 0 4px;color:#6b7280;font-size:14px;">📧 <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a></p>
+        <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">💬 <a href="https://wa.me/447342606655" style="color:#dc2626;text-decoration:none;">WhatsApp us</a></p>
+
+        <p style="margin:0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:24px 40px;text-align:center;">
+        <p style="margin:0 0 6px;color:rgba(255,255,255,0.5);font-size:12px;">Woodpeckers Hertfordshire Ltd t/a The Kitchen Rescue · Company No. 14316407</p>
+        <p style="margin:0;color:rgba(255,255,255,0.3);font-size:12px;"><a href="https://www.thekitchenrescue.co.uk" style="color:rgba(255,255,255,0.4);text-decoration:none;">www.thekitchenrescue.co.uk</a></p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
 }
 
-// Generate business notification email HTML
 function generateBusinessNotificationHTML(data) {
-    const money = (n) => `£${Number(n).toFixed(2)}`;
-    const totalWithVAT = (data.totalCost * 1.2).toFixed(2);
-    
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>New Quote Request</title>
-        <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; }
-            .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-            .section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
-            .section h3 { margin-top: 0; color: #dc2626; }
-            .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
-            .detail-row:last-child { border-bottom: none; }
-            .detail-label { font-weight: 600; color: #374151; }
-            .detail-value { color: #6b7280; }
-            .total-box { background: #fef2f2; padding: 15px; border-radius: 8px; margin-top: 15px; border: 2px solid #dc2626; }
-            .total-box .amount { font-size: 24px; font-weight: bold; color: #dc2626; }
-            .action-box { background: #eff6ff; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #3b82f6; }
-            .dates-list { font-size: 0.9em; color: #6b7280; margin-top: 5px; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1 style="margin: 0;">📧 New Quote Request</h1>
-            <p style="margin: 10px 0 0 0;">Customer has requested a quote via the website</p>
-        </div>
-        
-        <div class="content">
-            <div class="section">
-                <h3>👤 Customer Details</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Name:</span>
-                    <span class="detail-value">${data.name}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Email:</span>
-                    <span class="detail-value"><a href="mailto:${data.email}">${data.email}</a></span>
-                </div>
-                ${data.phone ? `
-                <div class="detail-row">
-                    <span class="detail-label">Phone:</span>
-                    <span class="detail-value"><a href="tel:${data.phone}">${data.phone}</a></span>
-                </div>
-                ` : ''}
-                <div class="detail-row">
-                    <span class="detail-label">Postcode:</span>
-                    <span class="detail-value">${data.postcode}</span>
-                </div>
-                ${data.notes ? `
-                <div class="detail-row">
-                    <span class="detail-label">Notes:</span>
-                    <span class="detail-value">${data.notes}</span>
-                </div>
-                ` : ''}
-            </div>
-            
-            <div class="section">
-                <h3>📅 Booking Details</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Start Date:</span>
-                    <span class="detail-value">${data.startDate}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">End Date:</span>
-                    <span class="detail-value">${data.endDate}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Duration:</span>
-                    <span class="detail-value">${data.days} day${data.days > 1 ? 's' : ''}</span>
-                </div>
-                <div class="dates-list">
-                    <strong>Selected Dates:</strong><br/>
-                    ${data.selectedDates.slice(0, 10).join(', ')}${data.selectedDates.length > 10 ? ` ... and ${data.selectedDates.length - 10} more` : ''}
-                </div>
-            </div>
-            
-            <div class="section">
-                <h3>💰 Pricing Breakdown</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Daily Hire (${data.days} days × £70):</span>
-                    <span class="detail-value">${money(data.dailyCost)}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Delivery:</span>
-                    <span class="detail-value">${money(data.deliveryCost)}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Collection:</span>
-                    <span class="detail-value">${money(data.collectionCost)}</span>
-                </div>
-                <div class="total-box">
-                    <div class="detail-row" style="border-bottom: none;">
-                        <span class="detail-label" style="font-size: 18px;">Subtotal:</span>
-                        <span class="detail-value" style="font-size: 18px; font-weight: 600;">${money(data.totalCost)}</span>
-                    </div>
-                    <div class="detail-row" style="border-bottom: none; margin-top: 8px;">
-                        <span class="detail-label" style="font-size: 18px;">VAT (20%):</span>
-                        <span class="detail-value" style="font-size: 18px;">${money(data.totalCost * 0.2)}</span>
-                    </div>
-                    <div class="detail-row" style="border-bottom: none; margin-top: 12px; padding-top: 12px; border-top: 2px solid #dc2626;">
-                        <span class="detail-label" style="font-size: 20px;">Total (inc. VAT):</span>
-                        <span class="amount">${money(totalWithVAT)}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="action-box">
-                <p style="margin: 0;"><strong>✅ Action Required:</strong> This quote has been saved to your admin system. Follow up with the customer within 24 hours.</p>
-                <p style="margin: 10px 0 0 0; font-size: 0.9em;">You can view and manage this quote in your admin dashboard.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    `;
+    const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
+    const totalWithVAT = money(Number(data.totalCost) * 1.2);
+    const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>New Quote Request</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+      <!-- Header -->
+      <tr><td style="background:#dc2626;border-radius:12px 12px 0 0;padding:24px 40px;">
+        <p style="margin:0;color:#ffffff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.8;">New enquiry via website</p>
+        <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:700;">Quote Request — ${data.name}</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">${data.postcode} · ${data.days} day${data.days > 1 ? 's' : ''} · ${fd(data.startDate)}</p>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="background:#ffffff;padding:32px 40px;">
+
+        <!-- Action banner -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:24px;">
+          <tr><td style="padding:14px 18px;">
+            <p style="margin:0;color:#991b1b;font-size:14px;font-weight:700;">⚡ Action required — follow up within 24 hours</p>
+          </td></tr>
+        </table>
+
+        <!-- Contact -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+          <tr><td style="padding-bottom:10px;">
+            <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Customer</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+              <tr><td style="padding:16px 20px;">
+                <p style="margin:0 0 6px;color:#111827;font-size:16px;font-weight:700;">${data.name}</p>
+                <p style="margin:0 0 4px;font-size:14px;"><a href="mailto:${data.email}" style="color:#dc2626;text-decoration:none;">📧 ${data.email}</a></p>
+                ${data.phone ? `<p style="margin:0 0 4px;font-size:14px;"><a href="tel:${data.phone}" style="color:#dc2626;text-decoration:none;">📞 ${data.phone}</a></p>` : ''}
+                <p style="margin:0;font-size:14px;color:#6b7280;">📍 ${data.postcode}</p>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <!-- Booking details -->
+        <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Booking</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+          <tr><td style="padding:16px 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;font-weight:600;width:160px;">Delivery</td>
+                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.startDate)}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;font-weight:600;">Collection</td>
+                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.endDate)}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;font-weight:600;">Duration</td>
+                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${data.days} days</td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <!-- Pricing -->
+        <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Pricing</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+          <tr><td style="padding:16px 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £70)</td>
+                <td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.dailyCost)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;">Delivery</td>
+                <td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.deliveryCost)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr>
+                <td style="padding:5px 0;color:#374151;font-size:14px;">Collection</td>
+                <td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.collectionCost)}</td>
+              </tr>
+              <tr><td colspan="2" style="border-top:2px solid #e5e7eb;margin-top:4px;"></td></tr>
+              <tr>
+                <td style="padding:8px 0 2px;color:#374151;font-size:15px;font-weight:700;">Subtotal (exc. VAT)</td>
+                <td align="right" style="padding:8px 0 2px;color:#111827;font-size:15px;font-weight:700;">${money(data.totalCost)}</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 0;color:#6b7280;font-size:13px;">VAT (20%)</td>
+                <td align="right" style="padding:2px 0;color:#6b7280;font-size:13px;">${money(Number(data.totalCost) * 0.2)}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0 0;color:#dc2626;font-size:16px;font-weight:700;">Total (inc. VAT)</td>
+                <td align="right" style="padding:6px 0 0;color:#dc2626;font-size:20px;font-weight:700;">${totalWithVAT}</td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+
+        ${data.notes ? `
+        <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Customer Notes</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;margin-bottom:20px;">
+          <tr><td style="padding:14px 18px;color:#374151;font-size:14px;line-height:1.6;">${data.notes}</td></tr>
+        </table>` : ''}
+
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+        <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;">Kitchen Rescue Admin Notification · <a href="https://www.thekitchenrescue.co.uk/admin" style="color:rgba(255,255,255,0.5);text-decoration:none;">View Admin →</a></p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
 }
 
 // Admin API endpoints
