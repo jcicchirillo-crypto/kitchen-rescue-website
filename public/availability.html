@@ -442,7 +442,10 @@ function submitLeadGate(e) {
     currentLead = lead;
     sessionStorage.setItem('kr_lead', JSON.stringify(lead));
 
-    // Remove the overlay immediately — don't wait for any network calls
+    // Hide the overlay immediately — runs before any network calls so it always fires
+    document.getElementById('leadGateOverlay').style.display = 'none';
+
+    // Remove the overlay from DOM entirely as a belt-and-braces measure
     const overlay = document.getElementById('leadGateOverlay');
     if (overlay) overlay.remove();
 
