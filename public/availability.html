@@ -292,7 +292,7 @@
         <form onsubmit="submitLeadGate(event)">
             <input class="gate-input" type="text"  id="lg-name"  placeholder="Your full name"  required>
             <input class="gate-input" type="email" id="lg-email" placeholder="Email address"   required>
-            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number (optional)">
+            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number" required>
             <button class="gate-submit" type="submit" id="gateBtn">Show me availability →</button>
         </form>
         <p class="gate-trust">🔒 We never share your details or spam you</p>
@@ -438,7 +438,7 @@ function submitLeadGate(e) {
     const name  = document.getElementById('lg-name').value.trim();
     const email = document.getElementById('lg-email').value.trim();
     const phone = document.getElementById('lg-phone').value.trim();
-    if (!name || !email) return;
+    if (!name || !email || !phone) return;
 
     const lead = { name, email, phone, source: 'availability_gate', created_at: new Date().toISOString() };
     currentLead = lead;
