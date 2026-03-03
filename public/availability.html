@@ -418,9 +418,9 @@
 // Supabase — initialise safely so a bad/missing key never crashes the page
 const SUPABASE_URL = 'https://pgjkdehkmkstcfspcvaa.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnamtkZWhrbWtzdGNmc3BjdmFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NzU1NTEsImV4cCI6MjA3NzI1MTU1MX0.YjLAFIyfiTZzAANg_Zp4SL4qjlWvsxFHhjcHFa-0A1w';
-let supabase = null;
+window._supabase = null;
 try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window._supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 } catch(e) { console.warn('Supabase init failed:', e); }
 
 let currentLead = null;
@@ -449,7 +449,7 @@ function submitLeadGate(e) {
     prefillFromLead();
 
     // Best-effort background saves (never block the UI)
-    if (supabase) supabase.from('leads').insert([lead]).catch(() => {});
+    if (window._supabase) window._supabase.from('leads').insert([lead]).catch(() => {});
     fetch('/send-quote-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...lead, type: 'new_lead', subject: 'New lead: ' + name + ' — ' + phone })
