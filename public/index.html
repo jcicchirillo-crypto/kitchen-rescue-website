@@ -906,49 +906,18 @@
             }
         }
 
-        // Homepage quote form (email for quote)
+        // Hero postcode "Go" button → redirect to availability with postcode pre-filled
         (function() {
-            const form = document.getElementById('homepageQuoteForm');
-            const messageEl = document.getElementById('homepageQuoteMessage');
-            const submitBtn = document.getElementById('homepageQuoteSubmit');
-            if (!form || !messageEl || !submitBtn) return;
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const email = (document.getElementById('homepageQuoteEmail').value || '').trim();
-                const name = (document.getElementById('homepageQuoteName').value || '').trim();
-                if (!email) {
-                    messageEl.style.display = 'block';
-                    messageEl.style.color = '#dc2626';
-                    messageEl.textContent = 'Please enter your email address.';
-                    return;
-                }
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Sending...';
-                messageEl.style.display = 'none';
-                try {
-                    const res = await fetch('/request-quote', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: email, name: name })
-                    });
-                    const data = await res.json().catch(function() { return {}; });
-                    messageEl.style.display = 'block';
-                    if (res.ok && data.success) {
-                        messageEl.style.color = '#059669';
-                        messageEl.textContent = data.message || 'Thanks! We\'ll send your quote to this email shortly.';
-                        form.reset();
-                    } else {
-                        messageEl.style.color = '#dc2626';
-                        messageEl.textContent = data.message || 'Something went wrong. Please try again or call us.';
-                    }
-                } catch (err) {
-                    messageEl.style.display = 'block';
-                    messageEl.style.color = '#dc2626';
-                    messageEl.textContent = 'Something went wrong. Please try again or call us.';
-                }
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send me a quote';
-            });
+            const btn = document.querySelector('.postcode-btn');
+            const input = document.getElementById('postcode');
+            if (!btn || !input) return;
+            function goToAvailability() {
+                const pc = input.value.trim();
+                const url = pc ? 'availability.html?postcode=' + encodeURIComponent(pc.toUpperCase()) : 'availability.html';
+                window.location.href = url;
+            }
+            btn.addEventListener('click', goToAvailability);
+            input.addEventListener('keydown', function(e) { if (e.key === 'Enter') goToAvailability(); });
         })();
     </script>
 </body>
