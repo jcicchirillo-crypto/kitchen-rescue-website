@@ -219,7 +219,8 @@
             <p>Tap a date to select a 7-day block — your quote updates instantly.</p>
         </div>
         <div class="postcode-bar">
-            <input id="postcodeInput" placeholder="Enter postcode" autocomplete="postal-code">
+            <label for="postcodeInput" style="display:flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px;">Postcode <span style="color:#dc2626;">*</span></label>
+            <input id="postcodeInput" placeholder="Enter postcode (required)" autocomplete="postal-code">
             <button id="updatePostcodeBtn">Update</button>
         </div>
     </div>
@@ -573,7 +574,7 @@ function updateQuotePanel() {
         <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
         <div class="quote-row"><span class="ql">Hire (${days} × £70/day)</span><span class="qv">£${hire}</span></div>
         ${deliveryRows}
-        <button class="btn-book" onclick="bookNow()">📅 Book Now</button>
+        <button class="btn-book" onclick="bookNow()">📅 Book Now (postcode required)</button>
         <button class="btn-email" onclick="openEmailModal()">📧 Email me this quote</button>
         <div class="quote-trust">
             <span>🔒 No card required to enquire</span>
@@ -598,10 +599,17 @@ function delivCost() {
 
 function bookNow() {
     if (!selectedDates.length) return;
-    const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
+    const pcInput = document.getElementById('postcodeInput');
+    const pc = pcInput.value.toUpperCase().trim();
     if (!pc) {
         toast('Please enter your postcode before booking.', 'error');
-        document.getElementById('postcodeInput').focus();
+        pcInput.style.border = '2px solid #dc2626';
+        pcInput.style.background = '#fef2f2';
+        pcInput.focus();
+        pcInput.addEventListener('input', () => {
+            pcInput.style.border = '';
+            pcInput.style.background = '';
+        }, { once: true });
         return;
     }
     const p = new URLSearchParams({ dates: selectedDates.join(','), postcode: pc });
