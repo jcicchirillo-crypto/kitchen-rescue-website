@@ -542,6 +542,26 @@
                   value=""
                 />
               </div>
+
+              <div class="form-group">
+                <label for="builderName">Your name *</label>
+                <input
+                  type="text"
+                  id="builderName"
+                  placeholder="Your name"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="builderEmail">Your email *</label>
+                <input
+                  type="email"
+                  id="builderEmail"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
             </div>
 
             <div class="checkbox-group">
@@ -569,28 +589,6 @@
             <div id="quoteDetails"></div>
 
             <div class="email-section">
-              <h3>Email Quote to Me</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="builderName">Builder name</label>
-                  <input
-                    type="text"
-                    id="builderName"
-                    placeholder="Your name"
-                    value=""
-                  />
-                </div>
-                <div class="form-group">
-                  <label for="builderEmail">Builder email *</label>
-                  <input
-                    type="email"
-                    id="builderEmail"
-                    placeholder="your@email.com"
-                    required
-                    value=""
-                  />
-                </div>
-              </div>
               <button
                 type="button"
                 class="btn-primary"
@@ -636,6 +634,8 @@
       const weeks = parseInt(document.getElementById('weeks').value);
       const startDate = document.getElementById('startDate').value || null;
       const includeReferral = document.getElementById('includeReferral').checked;
+      const builderName = document.getElementById('builderName').value.trim();
+      const builderEmail = document.getElementById('builderEmail').value.trim();
 
       if (!postcode || postcode.length < 5) {
         showError('Please enter a valid postcode (minimum 5 characters)');
@@ -644,6 +644,18 @@
 
       if (!weeks || weeks < 1) {
         showError('Please enter a valid number of weeks (minimum 1)');
+        return;
+      }
+
+      if (!builderName) {
+        showError('Please enter your name');
+        document.getElementById('builderName').focus();
+        return;
+      }
+
+      if (!builderEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(builderEmail)) {
+        showError('Please enter a valid email address');
+        document.getElementById('builderEmail').focus();
         return;
       }
 
