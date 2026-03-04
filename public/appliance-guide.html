@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appliance Guide · Kitchen Rescue</title>
+    <link rel="icon" href="/assets/favicon.ico">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Georgia, 'Times New Roman', serif;
+            background: #f8f5f0;
+            color: #1a1a1a;
+            min-height: 100vh;
+        }
+
+        /* Nav */
+        nav {
+            background: #111827;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        nav a.logo img { height: 36px; }
+        nav a.back {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        nav a.back:hover { color: #fff; }
+
+        /* Hero */
+        .hero {
+            background: #111827;
+            padding: 48px 40px 56px;
+            text-align: center;
+            border-bottom: 3px solid #dc2626;
+        }
+        .hero-tag {
+            display: inline-block;
+            background: #dc2626;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        .hero h1 {
+            color: #fff;
+            font-size: clamp(28px, 5vw, 44px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+        .hero p {
+            color: rgba(255,255,255,0.55);
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Main */
+        main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* Appliance card */
+        .appliance-card {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            transition: box-shadow 0.2s;
+        }
+        .appliance-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: #fef2f2;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            flex: 1;
+        }
+        .card-title h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #111827;
+            font-family: Arial, sans-serif;
+            margin-bottom: 3px;
+        }
+        .card-title p {
+            font-size: 13px;
+            color: #9ca3af;
+            font-family: Arial, sans-serif;
+        }
+
+        .card-toggle {
+            width: 28px;
+            height: 28px;
+            background: #f3f4f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #6b7280;
+            transition: background 0.2s, transform 0.3s;
+            flex-shrink: 0;
+        }
+        .appliance-card.open .card-toggle {
+            background: #dc2626;
+            color: #fff;
+            transform: rotate(180deg);
+        }
+
+        .card-body {
+            display: none;
+            padding: 0 24px 24px;
+            border-top: 1px solid #f3f4f6;
+        }
+        .appliance-card.open .card-body {
+            display: block;
+        }
+
+        .card-description {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.7;
+            margin: 16px 0 20px;
+        }
+
+        .manual-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .manual-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #111827;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .manual-link:hover {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+        .manual-link .link-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .manual-link .link-label {
+            flex: 1;
+        }
+        .manual-link .link-arrow {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .manual-link:hover .link-arrow {
+            color: #dc2626;
+        }
+
+        .manual-link.primary {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #fff;
+        }
+        .manual-link.primary:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            color: #fff;
+        }
+        .manual-link.primary .link-arrow { color: rgba(255,255,255,0.6); }
+
+        /* Help box */
+        .help-box {
+            background: #111827;
+            border-radius: 12px;
+            padding: 28px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        .help-box h3 {
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .help-box p {
+            color: rgba(255,255,255,0.55);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .help-links {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .help-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .help-link.red { background: #dc2626; color: #fff; }
+        .help-link.red:hover { background: #b91c1c; }
+        .help-link.ghost { background: rgba(255,255,255,0.1); color: #fff; }
+        .help-link.ghost:hover { background: rgba(255,255,255,0.2); }
+
+        @media (max-width: 600px) {
+            nav { padding: 14px 20px; }
+            .hero { padding: 36px 20px 44px; }
+            main { padding: 32px 16px 60px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a class="logo" href="/index.html">
+        <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue">
+    </a>
+    <a class="back" href="/index.html">← Back to home</a>
+</nav>
+
+<div class="hero">
+    <div class="hero-tag">Your Kitchen Pod</div>
+    <h1>Appliance Guide</h1>
+    <p>Everything you need to get the most out of your temporary kitchen. Tap any appliance below to find its manual and tips.</p>
+</div>
+
+<main>
+
+    <!-- Oven -->
+    <div class="appliance-card" id="card-oven">
+        <div class="card-header" onclick="toggleCard('card-oven')">
+            <div class="card-icon">🍳</div>
+            <div class="card-title">
+                <h2>Oven</h2>
+                <p>Hotpoint HO235HXUK Class 2 Multiflow Single Fan Oven</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">Full-size single electric fan oven with multiflow technology for even heat distribution. Great for roasting, baking and grilling. The fan oven function circulates heat so everything cooks evenly on every shelf.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.hotpoint.co.uk/support/manuals" target="_blank" rel="noopener">
+                    <span class="link-icon">🔍</span>
+                    <span class="link-label">Find your manual on Hotpoint Support</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+            <p style="margin-top:12px; font-family:Arial,sans-serif; font-size:13px; color:#9ca3af; line-height:1.6;">
+                On the Hotpoint support page, search for <strong style="color:#6b7280;">HO235HXUK</strong> to find your exact manual.
+            </p>
+        </div>
+    </div>
+
+    <!-- Cooker Hood -->
+    <div class="appliance-card" id="card-hood">
+        <div class="card-header" onclick="toggleCard('card-hood')">
+            <div class="card-icon">💨</div>
+            <div class="card-title">
+                <h2>Cooker Hood</h2>
+                <p>Lamona LAM2410 / LAM2411 / LAM2412 / LAM2413</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">Removes smoke, grease and steam while you cook. Has adjustable fan speeds and LED lighting. Use the extraction or recirculation mode depending on your setup.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.lamona.co.uk/media/wysiwyg/Manuals/LAM2410.pdf" target="_blank" rel="noopener">
+                    <span class="link-icon">📄</span>
+                    <span class="link-label">Download Lamona Hood Manual (PDF)</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+                <a class="manual-link" href="https://www.manua.ls/lamona/lam2410/manual" target="_blank" rel="noopener">
+                    <span class="link-icon">🌐</span>
+                    <span class="link-label">View manual online</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Induction Hob -->
+    <div class="appliance-card" id="card-hob">
+        <div class="card-header" onclick="toggleCard('card-hob')">
+            <div class="card-icon">🔥</div>
+            <div class="card-title">
+                <h2>Induction Hob</h2>
+                <p>Bosch PUG61RAA5B Series 2 Four Zone with Boost Zone</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">59cm four zone induction hob with a boost zone for rapid heating. Touch controls, plug and play. You'll need induction-compatible cookware — test with a magnet on the base of your pans, it should stick.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.bosch-home.co.uk/service/support" target="_blank" rel="noopener">
+                    <span class="link-icon">🔍</span>
+                    <span class="link-label">Find your manual on Bosch Support</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+            <p style="margin-top:12px; font-family:Arial,sans-serif; font-size:13px; color:#9ca3af; line-height:1.6;">
+                On the Bosch support page, search for <strong style="color:#6b7280;">PUG61RAA5B</strong> to find your exact manual.
+            </p>
+        </div>
+    </div>
+
+    <!-- Fridge Freezer -->
+    <div class="appliance-card" id="card-fridge">
+        <div class="card-header" onclick="toggleCard('card-fridge')">
+            <div class="card-icon">🧊</div>
+            <div class="card-title">
+                <h2>Fridge Freezer</h2>
+                <p>Fridgemaster MC55265EB — 269L 70/30</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">269 litre total capacity with a 70/30 fridge-freezer split. Keep the fridge between 3–5°C and the freezer at -18°C for best results. Give it 4 hours to reach temperature before loading with food.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.currys.co.uk/products/fridgemaster-mc55265eb-manual.html" target="_blank" rel="noopener">
+                    <span class="link-icon">📄</span>
+                    <span class="link-label">Download Fridgemaster MC55265EB Manual</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dishwasher -->
+    <div class="appliance-card" id="card-dishwasher">
+        <div class="card-header" onclick="toggleCard('card-dishwasher')">
+            <div class="card-icon">🍽️</div>
+            <div class="card-title">
+                <h2>Dishwasher</h2>
+                <p>Hotpoint H2FHL626XUK — 14 Place Settings</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">14 place setting freestanding dishwasher with intensive programme and quick wash. Flexi-load baskets adapt to different sized items. Make sure the salt and rinse aid are topped up for best results.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.hotpoint.co.uk/support/manuals" target="_blank" rel="noopener">
+                    <span class="link-icon">🔍</span>
+                    <span class="link-label">Find your manual on Hotpoint Support</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+            <p style="margin-top:12px; font-family:Arial,sans-serif; font-size:13px; color:#9ca3af; line-height:1.6;">
+                On the Hotpoint support page, search for <strong style="color:#6b7280;">H2FHL626XUK</strong> to find your exact manual.
+            </p>
+        </div>
+    </div>
+
+    <!-- Washing Machine -->
+    <div class="appliance-card" id="card-washer">
+        <div class="card-header" onclick="toggleCard('card-washer')">
+            <div class="card-icon">🫧</div>
+            <div class="card-title">
+                <h2>Washing Machine</h2>
+                <p>Hotpoint NSWM7469BSUK AntiStain 7kg 1400rpm</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">7kg capacity, 1400rpm washing machine with AntiStain technology. No need for laundrette trips during your renovation — handles a full family wash. Use the quick wash for lightly soiled loads to save time.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.hotpoint.co.uk/support/manuals" target="_blank" rel="noopener">
+                    <span class="link-icon">🔍</span>
+                    <span class="link-label">Find your manual on Hotpoint Support</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+            <p style="margin-top:12px; font-family:Arial,sans-serif; font-size:13px; color:#9ca3af; line-height:1.6;">
+                On the Hotpoint support page, search for <strong style="color:#6b7280;">NSWM7469BSUK</strong> to find your exact manual.
+            </p>
+        </div>
+    </div>
+
+    <!-- Heater -->
+    <div class="appliance-card" id="card-heater">
+        <div class="card-header" onclick="toggleCard('card-heater')">
+            <div class="card-icon">🌡️</div>
+            <div class="card-title">
+                <h2>Infrared Heater</h2>
+                <p>electriQ EGH350BWIR — 350W Designer Glass Panel</p>
+            </div>
+            <div class="card-toggle">▼</div>
+        </div>
+        <div class="card-body">
+            <p class="card-description">350W infrared glass panel heater with smart app control. Heats the space quickly and efficiently — infrared warms people and objects directly rather than just the air. Can be controlled via the electriQ app on your phone.</p>
+            <div class="manual-links">
+                <a class="manual-link primary" href="https://www.electriq.co.uk/support" target="_blank" rel="noopener">
+                    <span class="link-icon">🔍</span>
+                    <span class="link-label">electriQ Support &amp; Manuals</span>
+                    <span class="link-arrow">↗</span>
+                </a>
+            </div>
+            <p style="margin-top:12px; font-family:Arial,sans-serif; font-size:13px; color:#9ca3af; line-height:1.6;">
+                Search for <strong style="color:#6b7280;">EGH350BWIR</strong> on the electriQ support page to find your manual and app setup guide.
+            </p>
+        </div>
+    </div>
+
+    <!-- Help box -->
+    <div class="help-box">
+        <h3>Need a hand?</h3>
+        <p>If you can't find what you need or something isn't working as expected, just get in touch — we're happy to help.</p>
+        <div class="help-links">
+            <a class="help-link red" href="tel:07342606655">📞 Call us</a>
+            <a class="help-link ghost" href="https://wa.me/447342606655" target="_blank" rel="noopener">💬 WhatsApp</a>
+            <a class="help-link ghost" href="mailto:hello@thekitchenrescue.co.uk">📧 Email</a>
+        </div>
+    </div>
+
+</main>
+
+<script>
+function toggleCard(id) {
+    const card = document.getElementById(id);
+    const isOpen = card.classList.contains('open');
+    // Close all cards
+    document.querySelectorAll('.appliance-card').forEach(c => c.classList.remove('open'));
+    // Open clicked card if it wasn't already open
+    if (!isOpen) card.classList.add('open');
+}
+</script>
+
+</body>
+</html>
