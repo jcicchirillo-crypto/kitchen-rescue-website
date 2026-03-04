@@ -1659,42 +1659,35 @@ app.post('/api/quote/calculate', async (req, res) => {
             return res.status(400).json({ error: 'Postcode and weeks (minimum 1) are required' });
         }
         
-        // Calculate distance from postcode (using same logic as availability.html)
-        const postcodeArea = postcode.trim().toUpperCase().substring(0, 2);
-        const distanceMap = {
-            // Hertfordshire & nearby (0-50 miles)
-            'EN': 5, 'AL': 15, 'HP': 20, 'LU': 25, 'MK': 45, 'SG': 35, 'CB': 40, 'CM': 45, 'CO': 50,
-            // London areas (10-30 miles)
-            'E': 15, 'EC': 20, 'N': 10, 'NW': 12, 'SE': 18, 'SW': 20, 'W': 15, 'WC': 18,
-            'IG': 20, 'RM': 25, 'DA': 25, 'BR': 30, 'CR': 35, 'KT': 40, 'SM': 35, 'TW': 45,
-            'UB': 50, 'HA': 40, 'WD': 45,
-            // South East (50-100 miles)
-            'SL': 55, 'ME': 55, 'SS': 50, 'RG': 60, 'RH': 66, 'GU': 65, 'TN': 70, 'PO': 70, 'BN': 75, 'SO': 75, 'BH': 80, 'DT': 85, 'CT': 85, 'SP': 90, 'OX': 95,
-            // Midlands (100-150 miles)
-            'BA': 105, 'SN': 110, 'WR': 115, 'CV': 120, 'B': 125, 'DY': 130, 'WS': 135, 'WV': 140,
-            'ST': 145, 'TF': 150,
-            // North England (150-200 miles)
-            'SY': 155, 'HR': 160, 'LD': 165, 'NP': 170, 'CF': 175, 'SA': 180, 'LL': 185, 'CH': 190,
-            'L': 195, 'M': 200, 'SK': 205, 'OL': 210, 'BL': 215, 'PR': 220, 'FY': 225,
-            // North England & Scotland (200-300+ miles)
-            'BB': 230, 'BD': 235, 'HD': 240, 'HX': 245, 'LS': 250, 'S': 255, 'WF': 260,
-            'DN': 265, 'HU': 270, 'YO': 275, 'NE': 280, 'DH': 285, 'SR': 290, 'TS': 295,
-            'DL': 300, 'HG': 305, 'LA': 310, 'CA': 315, 'TD': 320, 'EH': 325, 'FK': 330,
-            'G': 335, 'KA': 340, 'KY': 345, 'ML': 350, 'PA': 355, 'PH': 360, 'AB': 365,
-            'DD': 370, 'IV': 375, 'KW': 380, 'ZE': 385
-        };
-        
-        const postcodeArea1 = postcode.trim().toUpperCase().substring(0, 1);
-        const estimatedMiles = distanceMap[postcodeArea] || distanceMap[postcodeArea1] || null;
-        if (!estimatedMiles) {
-            return res.status(400).json({ error: 'Sorry, we don\'t recognise that postcode area. Please call us on 07342 606655 for a quote.' });
+        // Look up real coordinates via postcodes.io
+        const postcodeRes = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode.trim())}`);
+        const postcodeData = await postcodeRes.json();
+
+        if (postcodeData.status !== 200) {
+            return res.status(400).json({ error: 'Invalid postcode. Please check and try again.' });
         }
+
+        const lat = postcodeData.result.latitude;
+        const lng = postcodeData.result.longitude;
+
+        // Kitchen Rescue base: Cheshunt, Hertfordshire
+        const baseLat = 51.7024;
+        const baseLng = -0.0353;
+
+        const R = 3958.8;
+        const dLat = (lat - baseLat) * Math.PI / 180;
+        const dLng = (lng - baseLng) * Math.PI / 180;
+        const aVal = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(baseLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                     Math.sin(dLng/2) * Math.sin(dLng/2);
+        const cVal = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1-aVal));
+        const estimatedMiles = R * cVal;
 
         if (estimatedMiles > 100) {
-            return res.status(400).json({ error: 'Sorry, we currently deliver up to 100 miles. Please contact us to discuss.' });
+            return res.status(400).json({ error: 'Sorry, we currently deliver up to 100 miles. Please call us on 07342 606655 for a quote.' });
         }
 
-        const individualDeliveryCost = Math.max(75, estimatedMiles * 2);
+        const individualDeliveryCost = Math.max(75, Math.round(estimatedMiles) * 2);
         const deliveryPrice = individualDeliveryCost * 2; // delivery + collection
         
         // Calculate base hire cost (£70/day or weekly rate)

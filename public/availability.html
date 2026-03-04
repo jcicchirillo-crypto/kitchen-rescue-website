@@ -559,7 +559,7 @@ function highlightAll() {
     });
 }
 
-function updateQuotePanel() {
+async function updateQuotePanel() {
     const body = document.getElementById('quoteBody');
     if (!selectedDates.length) {
         body.innerHTML = `<div class="quote-empty"><div class="ei">📅</div><p>Select a date on the calendar to see your instant quote.</p></div>`;
@@ -569,18 +569,28 @@ function updateQuotePanel() {
     const end   = new Date(selectedDates[selectedDates.length-1]);
     const days  = selectedDates.length;
     const hire  = days * 70;
-    const miles = delivMiles();
     const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     const pcValue = document.getElementById('postcodeInput').value.toUpperCase().trim();
-    const pcLabel = pcValue || 'your postcode';
     const hasPostcode = !!pcValue;
 
-    const deliveryRows = miles !== null
-        ? `<div class="quote-row"><span class="ql">Delivery (${miles}mi × 2 × £1)</span><span class="qv">£${Math.max(75, miles*2)}</span></div>
-           <div class="quote-row"><span class="ql">Collection (${miles}mi × 2 × £1)</span><span class="qv">£${Math.max(75, miles*2)}</span></div>
-           <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${hire + Math.max(75, miles*2)*2}</span></div>
-           <p class="quote-vat">+ VAT • Subject to site check</p>`
-        : `<div class="quote-row" style="background:#fef9ec;border-radius:8px;padding:10px 12px;margin-top:4px;">
+    // Show a loading state while the postcode lookup runs
+    if (hasPostcode) {
+        body.innerHTML = `
+            <div class="quote-row"><span class="ql">Delivery date</span><span class="qv">${fd(start)}</span></div>
+            <div class="quote-row"><span class="ql">Collection date</span><span class="qv">${fd(end)}</span></div>
+            <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
+            <div class="quote-row"><span class="ql">Hire (${days} × £70/day)</span><span class="qv">£${hire}</span></div>
+            <div class="quote-row"><span class="ql" style="color:#9ca3af;font-style:italic;">Calculating delivery…</span><span class="qv" style="color:#9ca3af;">⏳</span></div>`;
+    }
+
+    const delivCostVal = hasPostcode ? await getDeliveryCost() : undefined;
+
+    let deliveryRows;
+    if (!hasPostcode) {
+        deliveryRows = '';
+    } else if (delivCostVal === null) {
+        deliveryRows = `
+            <div class="quote-row" style="background:#fef9ec;border-radius:8px;padding:10px 12px;margin-top:4px;">
                <span class="ql" style="color:#92400e;font-size:0.82rem;line-height:1.4;">
                    📦 <strong>Delivery &amp; collection quote required</strong><br>
                    We deliver up to 100 miles from Ware, Hertfordshire — and can go further too. Please use <em>Email me this quote</em> below and we'll confirm a delivery price for your area.
@@ -588,6 +598,14 @@ function updateQuotePanel() {
            </div>
            <div class="quote-total"><span class="tl">Hire total</span><span class="tp">£${hire}</span></div>
            <p class="quote-vat">+ VAT + delivery (TBC) • Subject to site check</p>`;
+    } else {
+        const delivEach = delivCostVal / 2;
+        deliveryRows = `
+            <div class="quote-row"><span class="ql">Delivery</span><span class="qv">£${delivEach}</span></div>
+            <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${delivEach}</span></div>
+            <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${hire + delivCostVal}</span></div>
+            <p class="quote-vat">+ VAT • Subject to site check</p>`;
+    }
 
     body.innerHTML = `
         <div class="quote-row"><span class="ql">Delivery date</span><span class="qv">${fd(start)}</span></div>
@@ -609,27 +627,40 @@ function updateQuotePanel() {
         </div>`;
 }
 
-function delivMiles() {
-    const pc = document.getElementById('postcodeInput').value.toUpperCase().trim();
-    if (!pc) return null;
-    if (pc.startsWith('EN10')) return 5;
-    const area = pc.substring(0,2);
-    const map = {
-        'EN':5,'AL':15,'HP':20,'LU':25,'MK':45,'SG':35,'CB':40,'CM':45,'CO':50,
-        'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,
-        'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45,
-        'SL':55,'RG':60,'GU':65,'PO':70,'SO':75,'BH':80,'DT':85,'SP':90,'OX':95,
-        'RH':66,'TN':70,'BN':75,'CT':85,'ME':55,'SS':50
-    };
-    const area1 = pc.substring(0,1);
-    const miles = map[area] ?? map[area1] ?? null;
-    if (miles === null || miles > 100) return null;
-    return miles;
-}
-function delivCost() {
-    const m = delivMiles();
-    if (m === null) return null; // delivery quote required
-    return Math.max(75, m * 2);
+async function getDeliveryCost() {
+    const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
+    if (!postcode) return 0;
+
+    try {
+        const response = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+        const data = await response.json();
+
+        if (data.status !== 200) return 0;
+
+        const lat = data.result.latitude;
+        const lng = data.result.longitude;
+
+        // Kitchen Rescue base: Cheshunt, Hertfordshire
+        const baseLat = 51.7024;
+        const baseLng = -0.0353;
+
+        const R = 3958.8;
+        const dLat = (lat - baseLat) * Math.PI / 180;
+        const dLng = (lng - baseLng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(baseLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const miles = R * c;
+
+        if (miles > 100) return null; // outside delivery range
+
+        const oneWayCost = Math.max(75, Math.round(miles) * 2);
+        return oneWayCost * 2; // delivery + collection
+    } catch (e) {
+        console.error('Postcode lookup failed:', e);
+        return 0;
+    }
 }
 
 function bookNow() {
@@ -661,8 +692,8 @@ async function handleEmailSubmit(e) {
     e.preventDefault();
     const btn = document.getElementById('sendEmailBtn');
     btn.disabled=true; btn.textContent='Sending…';
-    const days=selectedDates.length, deliv=delivCost();
-    const delivTBC = deliv === null;
+    const days=selectedDates.length, deliv=await getDeliveryCost();
+    const delivTBC = deliv === null || deliv === 0;
     const payload = {
         name: document.getElementById('quoteName').value.trim(),
         email: document.getElementById('quoteEmail').value.trim(),
