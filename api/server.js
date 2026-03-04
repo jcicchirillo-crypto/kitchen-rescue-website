@@ -1663,13 +1663,13 @@ app.post('/api/quote/calculate', async (req, res) => {
         const postcodeArea = postcode.trim().toUpperCase().substring(0, 2);
         const distanceMap = {
             // Hertfordshire & nearby (0-50 miles)
-            'EN': 5, 'AL': 15, 'HP': 20, 'LU': 25, 'MK': 30, 'SG': 35, 'CB': 40, 'CM': 45, 'CO': 50,
+            'EN': 5, 'AL': 15, 'HP': 20, 'LU': 25, 'MK': 45, 'SG': 35, 'CB': 40, 'CM': 45, 'CO': 50,
             // London areas (10-30 miles)
             'E': 15, 'EC': 20, 'N': 10, 'NW': 12, 'SE': 18, 'SW': 20, 'W': 15, 'WC': 18,
             'IG': 20, 'RM': 25, 'DA': 25, 'BR': 30, 'CR': 35, 'KT': 40, 'SM': 35, 'TW': 45,
             'UB': 50, 'HA': 40, 'WD': 45,
             // South East (50-100 miles)
-            'SL': 55, 'RG': 60, 'GU': 65, 'PO': 70, 'SO': 75, 'BH': 80, 'DT': 85, 'SP': 90, 'OX': 95,
+            'SL': 55, 'ME': 55, 'SS': 50, 'RG': 60, 'RH': 66, 'GU': 65, 'TN': 70, 'PO': 70, 'BN': 75, 'SO': 75, 'BH': 80, 'DT': 85, 'CT': 85, 'SP': 90, 'OX': 95,
             // Midlands (100-150 miles)
             'BA': 105, 'SN': 110, 'WR': 115, 'CV': 120, 'B': 125, 'DY': 130, 'WS': 135, 'WV': 140,
             'ST': 145, 'TF': 150,
@@ -1684,7 +1684,11 @@ app.post('/api/quote/calculate', async (req, res) => {
             'DD': 370, 'IV': 375, 'KW': 380, 'ZE': 385
         };
         
-        const estimatedMiles = distanceMap[postcodeArea] || 100;
+        const postcodeArea1 = postcode.trim().toUpperCase().substring(0, 1);
+        const estimatedMiles = distanceMap[postcodeArea] || distanceMap[postcodeArea1] || null;
+        if (!estimatedMiles) {
+            return res.status(400).json({ error: 'Sorry, we don\'t recognise that postcode area. Please call us on 07342 606655 for a quote.' });
+        }
 
         if (estimatedMiles > 100) {
             return res.status(400).json({ error: 'Sorry, we currently deliver up to 100 miles. Please contact us to discuss.' });
