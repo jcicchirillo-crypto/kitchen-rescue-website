@@ -1685,10 +1685,12 @@ app.post('/api/quote/calculate', async (req, res) => {
         };
         
         const estimatedMiles = distanceMap[postcodeArea] || 100;
-        
-        // Calculate delivery/collection cost: £1/mile round trip, min £75 per trip
-        const deliveryCostOneWay = Math.max(75, estimatedMiles * 2);
-        const individualDeliveryCost = deliveryCostOneWay;
+
+        if (estimatedMiles > 100) {
+            return res.status(400).json({ error: 'Sorry, we currently deliver up to 100 miles. Please contact us to discuss.' });
+        }
+
+        const individualDeliveryCost = Math.max(75, estimatedMiles * 2);
         const deliveryPrice = individualDeliveryCost * 2; // delivery + collection
         
         // Calculate base hire cost (£70/day or weekly rate)
