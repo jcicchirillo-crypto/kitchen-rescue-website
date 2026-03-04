@@ -513,7 +513,7 @@
                 type="button"
                 class="btn-primary"
                 id="sendEmailBtn"
-                style="background: #10b981; margin-top: 16px;"
+                style="background: #dc2626; margin-top: 16px;"
               >
                 Email Quote to Me
               </button>
@@ -661,19 +661,20 @@
 
         const data = await response.json();
         
-        if (data.referralCode) {
-          sendStatus.innerHTML = `
-            <div class="success-message">
-              Quote sent! Referral code: <strong>${data.referralCode}</strong>
+        sendStatus.innerHTML = `
+          <div id="quoteSuccess" style="margin-top:20px; background:#111827; border-radius:12px; padding:28px; text-align:center;">
+            <p style="margin:0 0 8px; color:rgba(255,255,255,0.6); font-size:13px; text-transform:uppercase; letter-spacing:0.08em;">Quote emailed ✓</p>
+            <p style="margin:0 0 20px; color:#ffffff; font-size:15px;">Check your inbox — your quote is on its way.</p>
+            ${data.referralCode ? `
+            <div style="background:#dc2626; border-radius:10px; padding:20px; margin-bottom:20px;">
+              <p style="margin:0 0 6px; color:rgba(255,255,255,0.7); font-size:12px; text-transform:uppercase; letter-spacing:0.1em;">Your Referral Code</p>
+              <p id="referralCodeDisplay" style="margin:0; color:#ffffff; font-size:32px; font-weight:700; letter-spacing:0.05em;">${data.referralCode}</p>
             </div>
-          `;
-        } else {
-          sendStatus.innerHTML = `
-            <div class="success-message">
-              Quote sent successfully!
-            </div>
-          `;
-        }
+            <p style="margin:0 0 6px; color:rgba(255,255,255,0.8); font-size:14px;">Earn <strong style="color:#ffffff;">£50</strong> every time a client books using your code.</p>
+            <p style="margin:0; color:rgba(255,255,255,0.5); font-size:13px;">Just give your client this code or mention it when they book — we handle the rest.</p>
+            ` : ''}
+          </div>
+        `;
 
       } catch (err) {
         sendStatus.innerHTML = `
