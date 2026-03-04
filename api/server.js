@@ -1686,24 +1686,10 @@ app.post('/api/quote/calculate', async (req, res) => {
         
         const estimatedMiles = distanceMap[postcodeArea] || 100;
         
-        // Calculate delivery/collection cost based on distance
-        const deliveryRates = [
-            { maxMiles: 50, price: 75 },
-            { maxMiles: 100, price: 100 },
-            { maxMiles: 150, price: 125 },
-            { maxMiles: 200, price: 150 },
-            { maxMiles: 300, price: 225 }
-        ];
-        
-        let individualDeliveryCost = deliveryRates[deliveryRates.length - 1].price;
-        for (const rate of deliveryRates) {
-            if (estimatedMiles <= rate.maxMiles) {
-                individualDeliveryCost = rate.price;
-                break;
-            }
-        }
-        
-        const deliveryPrice = individualDeliveryCost * 2; // Delivery + collection
+        // Calculate delivery/collection cost: £1/mile round trip, min £75 per trip
+        const deliveryCostOneWay = Math.max(75, estimatedMiles * 2);
+        const individualDeliveryCost = deliveryCostOneWay;
+        const deliveryPrice = individualDeliveryCost * 2; // delivery + collection
         
         // Calculate base hire cost (£70/day or weekly rate)
         const days = weeks * 7;
