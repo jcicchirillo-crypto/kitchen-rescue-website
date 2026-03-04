@@ -381,6 +381,88 @@
       opacity: 0.6;
       pointer-events: none;
     }
+
+    /* ── Mobile nav drawer ── */
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+      z-index: 25;
+    }
+    @media (max-width: 640px) {
+      .mobile-menu-toggle { display: block; }
+    }
+
+    .mobile-nav-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-nav-overlay.open {
+      display: block;
+      opacity: 1;
+    }
+
+    .mobile-nav {
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 280px;
+      max-width: 85vw;
+      height: 100%;
+      background: #111827;
+      z-index: 40;
+      padding: 60px 20px 32px;
+      overflow-y: auto;
+      transition: right 0.3s ease;
+      border-left: 1px solid rgba(255,255,255,0.1);
+    }
+    .mobile-nav.open { right: 0; }
+
+    .mobile-nav-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .mobile-nav-close:hover { opacity: 1; }
+
+    .mobile-nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mobile-nav-links a {
+      display: block;
+      padding: 12px 14px;
+      color: #d1d5db;
+      font-size: 15px;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .mobile-nav-links a:hover {
+      background: rgba(255,255,255,0.06);
+      color: #ffffff;
+    }
+
+    body.menu-open { overflow: hidden; }
   </style>
 </head>
 <body>
