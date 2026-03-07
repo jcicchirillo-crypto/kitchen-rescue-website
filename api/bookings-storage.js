@@ -249,7 +249,6 @@ async function addBooking(newBooking) {
                 total_cost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
                 status: newBooking.status || 'Awaiting deposit',
                 deposit_paid: false,
-                ...(newBooking.source != null && { source: newBooking.source }),
                 // created_at will be set automatically by Supabase
                 // updated_at will be set automatically by Supabase
             };

@@ -760,6 +760,7 @@ app.post('/send-quote-email', async (req, res) => {
 
 // Send "booking received" email when customer completes payment step; save booking to DB; notify admin
 app.post('/api/booking-received', async (req, res) => {
+    console.log('=== /api/booking-received req.body (full) ===', JSON.stringify(req.body, null, 2));
     try {
         const { fullName, email, phone, deliveryDate, hireLength, deliveryAddress, amountDue, bookingReference, totalCost, postcode } = req.body;
         if (!email || !fullName) {
