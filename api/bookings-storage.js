@@ -222,17 +222,23 @@ async function addBooking(newBooking) {
         try {
             // Prepare booking data for Supabase
             // Map to match ACTUAL Supabase schema (customer_name, customer_email, etc.)
+            // Use placeholders for enquiry-only rows so NOT NULL columns don't reject the insert
+            const deliveryDateValue = newBooking.startDate
+                ? new Date(newBooking.startDate).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0]; // placeholder for enquiries
+            const hireLengthValue = newBooking.days != null && newBooking.days !== ''
+                ? Number(newBooking.days)
+                : 0; // placeholder for enquiries so NOT NULL column accepts insert
+
             const bookingData = {
-                // id is UUID in Supabase, but we're using text ID - let Supabase generate UUID or convert
-                // For now, we'll let Supabase generate the UUID and use booking_reference for our ID
                 booking_reference: newBooking.id,
                 customer_name: newBooking.name,
                 customer_email: newBooking.email,
                 customer_phone: newBooking.phone || null,
                 delivery_address: newBooking.deliveryAddress || newBooking.delivery_address || null,
                 postcode: newBooking.postcode || null,
-                delivery_date: newBooking.startDate ? new Date(newBooking.startDate).toISOString().split('T')[0] : null,
-                hire_length: newBooking.days ? Number(newBooking.days) : null,
+                delivery_date: deliveryDateValue,
+                hire_length: hireLengthValue,
                 selected_dates: Array.isArray(newBooking.selectedDates) ? newBooking.selectedDates : [],
                 notes: newBooking.notes || null,
                 daily_cost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
