@@ -290,7 +290,7 @@ async function addBooking(newBooking) {
     }
 }
 
-// Update an existing booking (by id or booking_reference)
+// Update an existing booking (bookingId is booking_reference from admin list)
 async function updateBooking(bookingId, updates) {
     if (useSupabase && supabase) {
         try {
@@ -300,12 +300,8 @@ async function updateBooking(bookingId, updates) {
                 .eq('booking_reference', bookingId)
                 .select();
             if (error) {
-                const byId = await supabase.from('bookings').update(updates).eq('id', bookingId).select();
-                if (byId.error) {
-                    console.error('Error updating Supabase:', byId.error);
-                    return false;
-                }
-                return true;
+                console.error('Error updating Supabase:', error);
+                return false;
             }
             return true;
         } catch (error) {

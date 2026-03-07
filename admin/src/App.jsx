@@ -28,6 +28,20 @@ const STATUS_MAP = {
   Cancelled: { color: "bg-rose-100 text-rose-700" },
 };
 
+async function sendBookingConfirmation(bookingId, token) {
+  const res = await fetch("/api/booking/send-confirmation", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ bookingId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to send");
+  return data;
+}
+
 function MonthCalendar({
   month,
   bookings,
@@ -136,6 +150,8 @@ function KitchenRescueAdmin() {
   const [selectedId, setSelectedId] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [showCustomQuote, setShowCustomQuote] = useState(false);
+  const [sendingConfirmationId, setSendingConfirmationId] = useState(null);
+  const [confirmationMessage, setConfirmationMessage] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -144,6 +160,12 @@ function KitchenRescueAdmin() {
       fetchBookings();
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!confirmationMessage) return;
+    const t = setTimeout(() => setConfirmationMessage(null), 5000);
+    return () => clearTimeout(t);
+  }, [confirmationMessage]);
 
   const fetchBookings = async () => {
     const res = await fetch("/api/bookings", {
@@ -299,7 +321,7 @@ function KitchenRescueAdmin() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5"/> Payments</CardTitle>
-              <CardDescription>Recent deposits</CardDescription>
+              <CardDescription>Recent deposits. Click Confirm after payment received to send confirmation email.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -308,6 +330,7 @@ function KitchenRescueAdmin() {
                     <TableHead>Booking</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Confirm</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -318,6 +341,35 @@ function KitchenRescueAdmin() {
                         <Badge className={STATUS_MAP[b.status]?.color}>{b.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">£{b.totalCost?.toFixed(0) || 0}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        {b.email ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                            disabled={sendingConfirmationId === b.id}
+                            onClick={async () => {
+                              setSendingConfirmationId(b.id);
+                              setConfirmationMessage(null);
+                              try {
+                                const token = localStorage.getItem("adminToken");
+                                await sendBookingConfirmation(b.id, token);
+                                setConfirmationMessage({ type: "success", text: `Confirmation email sent to ${b.email}` });
+                                fetchBookings();
+                              } catch (e) {
+                                setConfirmationMessage({ type: "error", text: e.message || "Failed to send" });
+                              } finally {
+                                setSendingConfirmationId(null);
+                              }
+                            }}
+                          >
+                            {sendingConfirmationId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                            {sendingConfirmationId === b.id ? "Sending…" : "Confirm"}
+                          </Button>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -329,7 +381,12 @@ function KitchenRescueAdmin() {
         <Card className="mt-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Customers</CardTitle>
-            <CardDescription>All bookings and contact details</CardDescription>
+            <CardDescription>All bookings and contact details. Use &quot;Send confirmation&quot; after payment is received to email the customer and mark as Confirmed.</CardDescription>
+            {confirmationMessage && (
+              <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
+                {confirmationMessage.text}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             <Table>
@@ -343,6 +400,7 @@ function KitchenRescueAdmin() {
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -366,6 +424,35 @@ function KitchenRescueAdmin() {
                     </TableCell>
                     <TableCell className="text-xs text-slate-500">
                       {b.createdAt || b.timestamp ? format(new Date(b.createdAt || b.timestamp), "d MMM yyyy") : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {b.email ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                          disabled={sendingConfirmationId === b.id}
+                          onClick={async () => {
+                            setSendingConfirmationId(b.id);
+                            setConfirmationMessage(null);
+                            try {
+                              const token = localStorage.getItem("adminToken");
+                              await sendBookingConfirmation(b.id, token);
+                              setConfirmationMessage({ type: "success", text: `Confirmation email sent to ${b.email}` });
+                              fetchBookings();
+                            } catch (e) {
+                              setConfirmationMessage({ type: "error", text: e.message || "Failed to send" });
+                            } finally {
+                              setSendingConfirmationId(null);
+                            }
+                          }}
+                        >
+                          {sendingConfirmationId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                          {sendingConfirmationId === b.id ? "Sending…" : "Confirm"}
+                        </Button>
+                      ) : (
+                        <span className="text-slate-400 text-xs">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

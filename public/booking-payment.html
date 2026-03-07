@@ -201,7 +201,9 @@
                             hireLength: bookingData.hireLength,
                             deliveryAddress: bookingData.deliveryAddress || '',
                             amountDue: amountDue,
-                            bookingReference: bookingReference
+                            bookingReference: bookingReference,
+                            totalCost: sessionStorage.getItem('quoteTotal') || null,
+                            postcode: bookingData.postcode || sessionStorage.getItem('postcode') || null
                         })
                     });
                 } catch (e) {

@@ -1632,6 +1632,48 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
+// Send "booking confirmed / payment received" email to customer (admin only)
+app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) => {
+    try {
+        const { bookingId } = req.body;
+        if (!bookingId) {
+            return res.status(400).json({ success: false, error: 'Missing bookingId' });
+        }
+        const bookings = await getAllBookings();
+        const booking = bookings.find(b => b.id === bookingId);
+        if (!booking || !booking.email) {
+            return res.status(404).json({ success: false, error: 'Booking not found or no email' });
+        }
+        if (!transporter) {
+            return res.status(503).json({ success: false, error: 'Email not configured' });
+        }
+        const html = generateBookingConfirmedEmailHTML({
+            name: booking.name,
+            fullName: booking.name,
+            email: booking.email,
+            bookingReference: booking.id,
+            id: booking.id,
+            deliveryDate: booking.startDate || booking.delivery_date,
+            startDate: booking.startDate,
+            hireLength: booking.days || booking.hire_length,
+            days: booking.days,
+            deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
+        });
+        await transporter.sendMail({
+            from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+            to: booking.email,
+            subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
+            html
+        });
+        await updateBooking(bookingId, { status: 'Confirmed' });
+        console.log('Booking confirmation email sent to:', booking.email, 'Ref:', bookingId);
+        res.json({ success: true, message: 'Confirmation email sent', email: booking.email });
+    } catch (error) {
+        console.error('Error sending booking confirmation:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Delete booking
 app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
     try {
