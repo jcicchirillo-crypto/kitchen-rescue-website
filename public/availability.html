@@ -389,8 +389,9 @@ function prefillFromLead() {
     if (p && !p.value) p.value = currentLead.phone || '';
 }
 
-const today = new Date(); today.setHours(0,0,0,0);
-const todayStr = today.toISOString().slice(0,10);
+// Build today's ISO string from LOCAL date components to avoid BST off-by-one
+const _t = new Date();
+const todayStr = `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
 let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDates = [];
 let selectionStart = null; // ISO string of first-click while picking end date
@@ -523,8 +524,9 @@ function renderMonth(ms) {
 function buildUnavailSet() {
     const s = new Set();
     (availabilityData.unavailable||[]).forEach(r => {
-        const start = new Date(r.start), end = new Date(r.end);
-        for (let d=new Date(start); d<=end; d.setDate(d.getDate()+1)) s.add(d.toISOString().slice(0,10));
+        // Use string comparison + isoAddDays (UTC-safe) to avoid BST off-by-one
+        let cur = r.start;
+        while (cur <= r.end) { s.add(cur); cur = isoAddDays(cur, 1); }
     });
     return s;
 }

@@ -19,6 +19,7 @@ import { Footer } from "./components/Footer";
 import { AnalyticsGate } from "./components/AnalyticsGate";
 import { CookieBanner } from "./components/CookieBanner";
 import { BUSINESS } from "./config/business";
+import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
 import "./App.css";
 
 const STATUS_MAP = {
@@ -134,6 +135,7 @@ function KitchenRescueAdmin() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [showCustomQuote, setShowCustomQuote] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -230,6 +232,14 @@ function KitchenRescueAdmin() {
             <span className="font-semibold">Kitchen Rescue — Admin</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              className="gap-2 bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => setShowCustomQuote(true)}
+            >
+              <Mail className="h-4 w-4" />
+              Send Custom Quote
+            </Button>
             <Link to="/planner">
               <Button variant="outline" size="sm" className="gap-2">
                 <ListTodo className="h-4 w-4" />
@@ -366,6 +376,11 @@ function KitchenRescueAdmin() {
       </main>
 
       <Footer />
+
+      <SendCustomQuoteModal
+        open={showCustomQuote}
+        onClose={() => setShowCustomQuote(false)}
+      />
     </div>
   );
 }
