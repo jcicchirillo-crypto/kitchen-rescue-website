@@ -548,7 +548,7 @@ app.post('/request-quote', async (req, res) => {
 // Send quote email
 app.post('/send-quote-email', async (req, res) => {
     try {
-        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyCost, deliveryCost, collectionCost, totalCost } = req.body;
+        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost } = req.body;
         
         console.log('Quote email request received for:', email);
         console.log('Transporter exists:', !!transporter);
@@ -610,7 +610,7 @@ app.post('/send-quote-email', async (req, res) => {
         
         // Generate quote email HTML
         const quoteEmailHTML = generateQuoteEmailHTML({
-            name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyCost, deliveryCost, collectionCost, totalCost
+            name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost
         });
         
         // Send email to customer
@@ -635,7 +635,7 @@ app.post('/send-quote-email', async (req, res) => {
             to: adminEmail,
             subject: `📧 New Quote Request - ${name} (${postcode})`,
             html: generateBusinessNotificationHTML({
-                name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyCost, deliveryCost, collectionCost, totalCost
+                name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost
             })
         };
         
@@ -774,7 +774,7 @@ function generateQuoteEmailHTML(data) {
             <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Cost Breakdown</p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £70/day)</td>
+                <td style="padding:6px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £${data.dailyRate || 70}/day)</td>
                 <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.dailyCost)}</td>
               </tr>
               <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
@@ -926,7 +926,7 @@ function generateBusinessNotificationHTML(data) {
           <tr><td style="padding:16px 20px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="padding:5px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £70)</td>
+                <td style="padding:5px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £${data.dailyRate || 70}/day${data.dailyRate && data.dailyRate !== 70 ? ' — CUSTOM RATE' : ''})</td>
                 <td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.dailyCost)}</td>
               </tr>
               <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>

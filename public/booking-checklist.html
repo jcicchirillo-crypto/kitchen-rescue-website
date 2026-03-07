@@ -158,6 +158,11 @@ const TOTAL = 10;
 const urlParams  = new URLSearchParams(window.location.search);
 const datesParam = urlParams.get('dates') || sessionStorage.getItem('selectedDates') || '';
 const postcode   = urlParams.get('postcode') || sessionStorage.getItem('postcode') || '';
+const dailyRate       = parseInt(urlParams.get('rate') || sessionStorage.getItem('dailyRate') || '70') || 70;
+const fixedDelivParam = urlParams.get('delivery');
+const fixedDelivery   = fixedDelivParam !== null ? parseInt(fixedDelivParam) : (sessionStorage.getItem('fixedDelivery') ? parseInt(sessionStorage.getItem('fixedDelivery')) : null);
+if (urlParams.get('rate'))     sessionStorage.setItem('dailyRate', dailyRate);
+if (fixedDelivParam !== null)  sessionStorage.setItem('fixedDelivery', fixedDelivery);
 
 if (datesParam) {
     sessionStorage.setItem('selectedDates', datesParam);
@@ -170,9 +175,10 @@ if (datesParam) {
     document.getElementById('sb-del').textContent = fd(start);
     document.getElementById('sb-col').textContent = fd(end);
     document.getElementById('sb-dur').textContent = `${days} day${days>1?'s':''}`;
-    const dc = delivCost(postcode);
-    document.getElementById('sb-tot').textContent = dc === null ? `£${days*70} hire + delivery TBC +VAT` : `£${days*70+dc*2} +VAT`;
-    document.getElementById('backBtn').href = `availability.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}`;
+    const dc = fixedDelivery !== null ? fixedDelivery / 2 : delivCost(postcode);
+    document.getElementById('sb-tot').textContent = dc === null ? `£${days*dailyRate} hire + delivery TBC +VAT` : `£${days*dailyRate + (fixedDelivery !== null ? fixedDelivery : dc*2)} +VAT`;
+    const extraParams = (dailyRate !== 70 ? '&rate=' + dailyRate : '') + (fixedDelivery !== null ? '&delivery=' + fixedDelivery : '');
+    document.getElementById('backBtn').href = `availability.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}${extraParams}`;
 }
 
 function delivCost(pc) {

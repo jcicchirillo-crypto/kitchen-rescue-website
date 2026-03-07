@@ -172,9 +172,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    const urlParams  = new URLSearchParams(window.location.search);
-    const datesParam = urlParams.get('dates') || sessionStorage.getItem('selectedDates') || '';
-    const postcode   = urlParams.get('postcode') || sessionStorage.getItem('postcode') || '';
+    const urlParams      = new URLSearchParams(window.location.search);
+    const datesParam     = urlParams.get('dates') || sessionStorage.getItem('selectedDates') || '';
+    const postcode       = urlParams.get('postcode') || sessionStorage.getItem('postcode') || '';
+    const dailyRate      = parseInt(urlParams.get('rate') || sessionStorage.getItem('dailyRate') || '70') || 70;
+    const fixedDelivParam = urlParams.get('delivery');
+    const fixedDelivery  = fixedDelivParam !== null ? parseInt(fixedDelivParam) : (sessionStorage.getItem('fixedDelivery') ? parseInt(sessionStorage.getItem('fixedDelivery')) : null);
 
     if (datesParam) {
         const dates = datesParam.split(',').sort();
@@ -185,8 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('sb-del').textContent  = fd(start);
         document.getElementById('sb-col').textContent  = fd(end);
         document.getElementById('sb-dur').textContent  = `${days} day${days>1?'s':''}`;
-        const dc = delivCost(postcode);
-        document.getElementById('sb-tot').textContent  = dc === null ? `£${days*70} hire + delivery TBC +VAT` : `£${days*70+dc*2} +VAT`;
+        const dc = fixedDelivery !== null ? fixedDelivery / 2 : delivCost(postcode);
+        document.getElementById('sb-tot').textContent  = dc === null ? `£${days*dailyRate} hire + delivery TBC +VAT` : `£${days*dailyRate + (fixedDelivery !== null ? fixedDelivery : dc*2)} +VAT`;
         document.getElementById('deliveryDate').value  = fd(start);
         document.getElementById('hireLength').value    = `${days} days`;
         document.getElementById('postcode').value      = postcode;
