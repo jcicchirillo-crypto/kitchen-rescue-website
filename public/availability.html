@@ -389,9 +389,9 @@ function prefillFromLead() {
     if (p && !p.value) p.value = currentLead.phone || '';
 }
 
-// Build today's ISO string from LOCAL date components to avoid BST off-by-one
-const _t = new Date();
-const todayStr = `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
+// Use local date components for todayStr to avoid BST UTC off-by-one (e.g. late March)
+const today = new Date();
+const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDates = [];
 let selectionStart = null; // ISO string of first-click while picking end date
