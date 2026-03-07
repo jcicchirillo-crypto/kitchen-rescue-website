@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://js.stripe.com/v3/"></script>
     <style>
         .booking-container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
         .booking-header { text-align: center; margin-bottom: 2rem; }
@@ -21,7 +20,10 @@
         .booking-summary { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
         .summary-row.total { border-top: 1px solid #e5e7eb; padding-top: 0.5rem; margin-top: 0.5rem; font-weight: 600; }
-        .stripe-container { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .bank-container { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .bank-details { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.25rem; margin: 1rem 0; font-family: ui-monospace, monospace; font-size: 0.95rem; }
+        .bank-details p { margin: 0.25rem 0; }
+        .amount-due { font-size: 1.5rem; font-weight: 700; color: #dc2626; margin: 0.5rem 0; }
         .btn { border-radius: 0.75rem; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
         .btn-primary { background-color: #dc2626; color: #fff; }
         .btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; }
@@ -71,14 +73,11 @@
         
         <div class="booking-header">
             <h1 class="booking-title">💳 Secure Your Booking</h1>
-            <p class="booking-subtitle">Pay your £250 security deposit today to secure your booking.</p>
+            <p id="paymentSubtitle" class="booking-subtitle">Pay by bank transfer to secure your booking.</p>
         </div>
 
-        <div class="payment-info">
-            <h3>Security Deposit Information</h3>
-            <p>This £250 security deposit is in addition to your hire cost.</p>
-            <p>Refunded within 5 working days after pod inspection upon return.</p>
-            <p>Full hire balance is due 5 days before delivery.</p>
+        <div id="paymentInfo" class="payment-info">
+            <!-- Filled by JS: deposit vs full balance message -->
         </div>
 
         <div id="bookingSummary" class="booking-summary">
@@ -86,27 +85,31 @@
             <div id="summaryContent"></div>
         </div>
 
-        <div class="stripe-container">
-            <h3>Secure Payment with Stripe</h3>
-            <p style="color: #6b7280; margin-bottom: 1rem; font-size: 0.875rem;">
-                🔒 Powered by Stripe - Your payment information is encrypted and secure
+        <div class="bank-container">
+            <h3>Pay by bank transfer</h3>
+            <p style="color: #6b7280; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                Please transfer the amount below to secure your booking. Use your name as the reference.
+            </p>
+            <p class="amount-due" id="amountDue">—</p>
+            <div class="bank-details">
+                <p><strong>Account name:</strong> Woodpeckers Hertfordshire Ltd</p>
+                <p><strong>Sort code:</strong> 09-01-29</p>
+                <p><strong>Account number:</strong> 72136964</p>
+            </div>
+            <p style="font-size: 0.875rem; color: #6b7280; margin-top: 1rem;">
+                Once you have made the transfer, click below to complete your booking. We will confirm once payment is received.
             </p>
             <div id="error-message" class="error-message" style="display: none;"></div>
             <div id="success-message" class="success-message" style="display: none;"></div>
-            
             <form id="payment-form">
-                <div id="card-element">
-                    <!-- Stripe Elements will create form elements here -->
-                </div>
-                <div id="card-errors" role="alert"></div>
-                <button id="submit-payment" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                    💳 Pay £250 Deposit Securely
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0; cursor: pointer;">
+                    <input type="checkbox" id="transferredConfirm" required>
+                    <span>I have transferred the amount above (or will do so shortly)</span>
+                </label>
+                <button type="submit" id="submit-payment" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                    Continue to confirmation
                 </button>
             </form>
-            
-            <div style="text-align: center; margin-top: 1rem; color: #6b7280; font-size: 0.875rem;">
-                Powered by Stripe
-            </div>
         </div>
 
         <div style="text-align: center;">
@@ -134,197 +137,89 @@
     </main>
 
     <script>
-        // Initialize Stripe (replace with your actual publishable key)
-        const stripe = Stripe('pk_test_51SD0kaLtPHooaAGOAywMFFkS24PgusFvTN9U2u8kqqFo6O7H286DXfc0YOcViWT2aYrfw5AW8UEJQlLIS5d9OmzZ00AeJJfxsp');
-        const elements = stripe.elements();
-
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if user completed previous steps
             if (!sessionStorage.getItem('checklistCompleted') || !sessionStorage.getItem('bookingData')) {
                 window.location.href = 'booking-checklist.html';
                 return;
             }
 
-            // Load booking data
             const bookingData = JSON.parse(sessionStorage.getItem('bookingData'));
-            displayBookingSummary(bookingData);
 
-            // Create Stripe card element (without postal code)
-            const cardElement = elements.create('card', {
-                style: {
-                    base: {
-                        fontSize: '16px',
-                        color: '#424770',
-                        '::placeholder': {
-                            color: '#aab7c4',
-                        },
-                    },
-                },
-                hidePostalCode: true, // Hide ZIP/postal code field
-            });
+            // Amount to pay: full balance if delivery within 7 days, else £250 deposit
+            let quoteTotal = parseFloat(sessionStorage.getItem('quoteTotal'));
+            const quoteStartDateStr = sessionStorage.getItem('quoteStartDate') || bookingData.deliveryDate;
+            if (isNaN(quoteTotal) || quoteTotal <= 0) {
+                const days = parseInt(bookingData.hireLength, 10) || 0;
+                const rate = bookingData.dailyRate || 70;
+                const delivery = bookingData.fixedDelivery != null ? Number(bookingData.fixedDelivery) * 2 : 0;
+                quoteTotal = days * rate + delivery;
+            }
+            const startDate = quoteStartDateStr ? new Date(quoteStartDateStr + 'T12:00:00') : new Date(bookingData.deliveryDate + 'T12:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            startDate.setHours(0, 0, 0, 0);
+            const daysUntilDelivery = Math.ceil((startDate - today) / (24 * 60 * 60 * 1000));
+            const isFullBalance = daysUntilDelivery <= 7;
+            const amountToPay = isFullBalance ? quoteTotal : 250;
+            const amountFormatted = '£' + amountToPay.toFixed(2);
 
-            cardElement.mount('#card-element');
+            document.getElementById('amountDue').textContent = amountFormatted;
+            document.getElementById('paymentSubtitle').textContent = isFullBalance
+                ? 'Pay the full balance by bank transfer to secure your booking.'
+                : 'Pay your £250 deposit by bank transfer to secure your booking.';
 
-            // Handle real-time validation errors from the card Element
-            cardElement.on('change', function(event) {
-                const displayError = document.getElementById('card-errors');
-                if (event.error) {
-                    displayError.textContent = event.error.message;
-                } else {
-                    displayError.textContent = '';
-                }
-            });
+            const paymentInfo = document.getElementById('paymentInfo');
+            if (isFullBalance) {
+                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above. Once we receive payment we will confirm your booking.</p>';
+            } else {
+                paymentInfo.innerHTML = '<h3>Deposit information</h3><p>Pay £250 now to secure your booking. The deposit is refunded within 5 working days after the pod is returned and inspected. The remaining balance is due 5 days before delivery.</p>';
+            }
 
-            // Handle form submission
-            const form = document.getElementById('payment-form');
-            form.addEventListener('submit', async function(event) {
+            displayBookingSummary(bookingData, amountFormatted, isFullBalance);
+
+            document.getElementById('payment-form').addEventListener('submit', function(event) {
                 event.preventDefault();
-
                 const submitButton = document.getElementById('submit-payment');
                 submitButton.disabled = true;
-                submitButton.textContent = 'Processing...';
-
-                try {
-                    // Create payment intent on your server first
-                    const response = await fetch('/create-payment-intent', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            amount: 25000, // £250 in pence
-                            currency: 'gbp',
-                            booking_data: bookingData,
-                        }),
-                    });
-
-                    const paymentIntentData = await response.json();
-
-                    if (paymentIntentData.error) {
-                        showError(paymentIntentData.error);
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Pay £250 Deposit';
-                        return;
-                    }
-
-                    // Confirm payment with card element
-                    const {error: confirmError} = await stripe.confirmCardPayment(
-                        paymentIntentData.client_secret,
-                        {
-                            payment_method: {
-                                card: cardElement,
-                                billing_details: {
-                                    name: bookingData.fullName,
-                                    email: bookingData.email,
-                                    address: {
-                                        line1: bookingData.deliveryAddress,
-                                        postal_code: bookingData.postcode,
-                                    },
-                                },
-                            }
-                        }
-                    );
-
-                    if (confirmError) {
-                        showError(confirmError.message);
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Pay £250 Deposit';
-                    } else {
-                        // Payment succeeded - notify server to block availability
-                        try {
-                            await fetch('/payment-success', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    payment_intent_id: paymentIntentData.payment_intent_id || 'simulated',
-                                    booking_data: bookingData
-                                })
-                            });
-                        } catch (serverError) {
-                            console.error('Error notifying server of payment:', serverError);
-                            // Continue anyway - don't block user flow
-                        }
-                        
-                        // Payment succeeded
-                        showSuccess('Payment successful! Redirecting to confirmation...');
-                        
-                        // Store payment confirmation
-                        sessionStorage.setItem观测('paymentConfirmed', 'true');
-                        sessionStorage.setItem('bookingReference', paymentIntentData.booking_reference);
-                        
-                        // Redirect to confirmation page
-                        setTimeout(() => {
-                            window.location.href = 'booking-confirmation.html';
-                        }, 2000);
-                    }
-                } catch (error) {
-                    console.error('Payment error:', error);
-                    showError('An error occurred. Please try again.');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Pay £250 Deposit';
-                }
+                submitButton.textContent = 'Redirecting...';
+                sessionStorage.setItem('paymentConfirmed', 'true');
+                sessionStorage.setItem('bookingReference', 'KR' + Date.now().toString().slice(-6));
+                window.location.href = 'booking-confirmation.html';
             });
 
-            function displayBookingSummary(data) {
+            function displayBookingSummary(data, amountLabel, isFullBalance) {
                 const summaryContent = document.getElementById('summaryContent');
-                const startDate = new Date(data.deliveryDate);
-                const endDate = new Date(startDate);
-                endDate.setDate(startDate.getDate() + parseInt(data.hireLength) - 1);
-                
+                const startDate = new Date(data.deliveryDate + 'T12:00:00');
                 summaryContent.innerHTML = `
                     <div class="summary-row">
                         <span>Customer:</span>
-                        <span>${data.fullName}</span>
+                        <span>${(data.fullName || '').replace(/</g, '&lt;')}</span>
                     </div>
                     <div class="summary-row">
                         <span>Email:</span>
-                        <span>${data.email}</span>
+                        <span>${(data.email || '').replace(/</g, '&lt;')}</span>
                     </div>
                     <div class="summary-row">
                         <span>Phone:</span>
-                        <span>${data.phone}</span>
+                        <span>${(data.phone || '').replace(/</g, '&lt;')}</span>
                     </div>
                     <div class="summary-row">
                         <span>Delivery Date:</span>
-                        <span>${startDate.toLocaleDateString()}</span>
+                        <span>${startDate.toLocaleDateString('en-GB')}</span>
                     </div>
                     <div class="summary-row">
                         <span>Hire Length:</span>
-                        <span>${data.hireLength}</span>
+                        <span>${data.hireLength || ''}</span>
                     </div>
                     <div class="summary-row">
                         <span>Delivery Address:</span>
-                        <span>${data.deliveryAddress}</span>
+                        <span>${(data.deliveryAddress || '').replace(/</g, '&lt;')}</span>
                     </div>
                     <div class="summary-row total">
-                        <span>Security Deposit:</span>
-                        <span>£250.00</span>
+                        <span>${isFullBalance ? 'Amount to pay:' : 'Deposit to pay:'}</span>
+                        <span>${amountLabel}</span>
                     </div>
                 `;
-            }
-
-            function showError(message) {
-                const errorElement = document.getElementById('error-message');
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-                
-                const successElement = document.getElementById('success-message');
-                successElement.style.display = 'none';
-            }
-
-            function showSuccess(message) {
-                const successElement = document.getElementById('success-message');
-                successElement.textContent = message;
-                successElement.style.display = 'block';
-                
-                const errorElement = document.getElementById('error-message');
-                errorElement.style.display = 'none';
-            }
-
-            function generateBookingReference() {
-                return 'KR' + Date.now().toString().slice(-6);
             }
         });
     </script>

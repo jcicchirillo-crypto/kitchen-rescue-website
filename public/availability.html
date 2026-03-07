@@ -786,7 +786,7 @@ async function getDeliveryCost() {
     }
 }
 
-function bookNow() {
+async function bookNow() {
     if (!selectedDates.length) return;
     const pcInput = document.getElementById('postcodeInput');
     const pc = pcInput.value.toUpperCase().trim();
@@ -801,6 +801,12 @@ function bookNow() {
         }, { once: true });
         return;
     }
+    const days = selectedDates.length;
+    const hire = days * dailyRate;
+    const deliv = await getDeliveryCost();
+    const total = hire + (deliv === null ? 0 : deliv);
+    sessionStorage.setItem('quoteTotal', String(total));
+    sessionStorage.setItem('quoteStartDate', selectedDates[0]);
     const p = new URLSearchParams({ dates: selectedDates.join(','), postcode: pc });
     if (dailyRate !== 70) p.set('rate', dailyRate);
     if (fixedDeliveryCost !== null) p.set('delivery', fixedDeliveryCost);
