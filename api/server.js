@@ -1260,6 +1260,7 @@ function generateBookingConfirmedEmailHTML(data) {
           </td></tr>
         </table>
         <p style="margin:0 0 14px;color:#374151;font-size:14px;">We will contact you 2–3 days before delivery to confirm your arrival time. Please ensure someone over 18 is present to sign for the delivery.</p>
+        <p style="margin:0 0 14px;color:#374151;font-size:14px;">Please note: the full balance (hire + delivery + VAT) is due 7 days before the start of your hire. If you have only paid the deposit so far, we will be in touch with the remaining amount and payment details.</p>
         <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
         <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
       </td></tr>
@@ -1665,7 +1666,7 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
             subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
             html
         });
-        await updateBooking(bookingId, { status: 'Confirmed' });
+        await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
         console.log('Booking confirmation email sent to:', booking.email, 'Ref:', bookingId);
         res.json({ success: true, message: 'Confirmation email sent', email: booking.email });
     } catch (error) {

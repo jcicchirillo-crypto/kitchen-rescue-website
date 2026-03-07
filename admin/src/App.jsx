@@ -412,7 +412,8 @@ function KitchenRescueAdmin() {
                     <TableCell className="text-xs">{b.postcode}</TableCell>
                     <TableCell className="text-xs">{b.pod || 'N/A'}<div className="text-slate-400">{b.startDate ? format(new Date(b.startDate), "d MMM") : 'N/A'} – {b.endDate ? format(new Date(b.endDate), "d MMM") : 'N/A'}</div></TableCell>
                     <TableCell>
-                      {b.source === 'quote' && <Badge className="bg-blue-100 text-blue-700">Quote Request</Badge>}
+                      {(b.source === 'booking' || (b.source === 'quote' && b.status === 'Confirmed')) && <Badge className="bg-emerald-100 text-emerald-700">Booking</Badge>}
+                      {b.source === 'quote' && b.status !== 'Confirmed' && <Badge className="bg-blue-100 text-blue-700">Quote Request</Badge>}
                       {b.source === 'trade-quote' && <Badge className="bg-purple-100 text-purple-700">Trade Quote</Badge>}
                       {b.source === 'trade-quote-calculated' && <Badge className="bg-orange-100 text-orange-700">Quote Calculated</Badge>}
                       {b.source === 'trade-landing' && <Badge className="bg-green-100 text-green-700">Trade Pack</Badge>}
