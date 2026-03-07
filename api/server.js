@@ -262,6 +262,29 @@ app.get('/api/test-supabase', async (req, res) => {
     res.json(result);
 });
 
+// Helper: get yyyy-MM-dd from booking so live availability matches admin calendar
+function getBookingDateRange(b) {
+    const toYmd = (val) => {
+        if (val == null) return null;
+        const s = typeof val === 'string' ? val.slice(0, 10) : (val.toISOString ? val.toISOString().slice(0, 10) : null);
+        return s && s.length === 10 ? s : null;
+    };
+    let startStr = toYmd(b.startDate) || toYmd(b.delivery_date) || toYmd(b.deliveryDate);
+    let endStr = toYmd(b.endDate);
+    if (!startStr && Array.isArray(b.selectedDates) && b.selectedDates.length > 0) {
+        startStr = toYmd(b.selectedDates[0]);
+        endStr = endStr || toYmd(b.selectedDates[b.selectedDates.length - 1]);
+    }
+    if (!startStr) return null;
+    if (!endStr) {
+        const days = Number(b.days ?? b.hire_length ?? b.hireLength) || 1;
+        const d = new Date(startStr + 'T00:00:00Z');
+        d.setUTCDate(d.getUTCDate() + days - 1);
+        endStr = d.toISOString().slice(0, 10);
+    }
+    return { start: startStr, end: endStr };
+}
+
 // Live availability from confirmed bookings (so calendar and custom quotes stay in sync)
 app.get('/api/availability', async (req, res) => {
     try {
@@ -270,17 +293,11 @@ app.get('/api/availability', async (req, res) => {
         const ranges = [];
         for (const b of bookings) {
             if (b.status !== 'Confirmed') continue;
-            let startStr = (b.startDate || b.delivery_date || b.selectedDates?.[0] || '').toString().slice(0, 10);
-            let endStr = (b.endDate || b.selectedDates?.[b.selectedDates?.length - 1] || '').toString().slice(0, 10);
-            if (!startStr || startStr.length !== 10) continue;
-            if (!endStr || endStr.length !== 10) {
-                const days = Number(b.days || b.hire_length) || 1;
-                const d = new Date(startStr + 'T12:00:00');
-                d.setUTCDate(d.getUTCDate() + days - 1);
-                endStr = d.toISOString().slice(0, 10);
-            }
-            if (endStr >= todayStr) ranges.push({ start: startStr, end: endStr });
+            const range = getBookingDateRange(b);
+            if (!range || range.end < todayStr) continue;
+            ranges.push(range);
         }
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
         res.json({ unavailable: ranges });
     } catch (e) {
         console.error('Error building availability:', e);

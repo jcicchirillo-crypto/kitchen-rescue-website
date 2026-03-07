@@ -109,14 +109,34 @@ async function getAllBookings() {
                 let endDate = null;
                 if (deliveryDate) {
                     try {
-                        startDate = new Date(deliveryDate).toISOString();
-                        if (hireLength) {
-                            const end = new Date(deliveryDate);
-                            end.setDate(end.getDate() + (hireLength - 1));
-                            endDate = end.toISOString();
+                        const d = new Date(deliveryDate);
+                        if (!isNaN(d.getTime())) {
+                            startDate = d.toISOString();
+                            if (hireLength && Number(hireLength) > 0) {
+                                const end = new Date(d);
+                                end.setUTCDate(end.getUTCDate() + (Number(hireLength) - 1));
+                                endDate = end.toISOString();
+                            }
                         }
                     } catch (e) {
                         console.error('Error parsing dates for booking:', bookingId, e);
+                    }
+                }
+                // Fallback: use first/last selected_dates so calendar can show the booking even without delivery_date/hire_length
+                if ((!startDate || !endDate) && selectedDates && selectedDates.length > 0) {
+                    const first = selectedDates[0];
+                    const last = selectedDates[selectedDates.length - 1];
+                    if (first) {
+                        try {
+                            const dFirst = new Date(first + 'T12:00:00');
+                            if (!isNaN(dFirst.getTime())) startDate = startDate || dFirst.toISOString();
+                        } catch (_) {}
+                    }
+                    if (last) {
+                        try {
+                            const dLast = new Date(last + 'T12:00:00');
+                            if (!isNaN(dLast.getTime())) endDate = endDate || dLast.toISOString();
+                        } catch (_) {}
                     }
                 }
                 
@@ -127,6 +147,7 @@ async function getAllBookings() {
                     phone: customerPhone,
                     postcode: booking.postcode || null,
                     deliveryAddress: booking.delivery_address || null,
+                    delivery_date: deliveryDate || (startDate ? startDate.slice(0, 10) : null),
                     selectedDates: selectedDates,
                     startDate: startDate,
                     endDate: endDate,

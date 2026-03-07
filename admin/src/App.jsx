@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
@@ -42,12 +42,58 @@ async function sendBookingConfirmation(bookingId, token) {
   return data;
 }
 
+// Get yyyy-MM-dd from various date formats (ISO string, date-only, or Date)
+function toDateOnly(val) {
+  if (!val) return null;
+  if (typeof val === "string") return val.slice(0, 10);
+  try {
+    const d = val instanceof Date ? val : parseISO(val);
+    return isNaN(d.getTime()) ? null : format(startOfDay(d), "yyyy-MM-dd");
+  } catch (_) {
+    return null;
+  }
+}
+
 function MonthCalendar({
   month,
   bookings,
   onSelectBooking,
 }) {
   const days = useMemo(() => eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) }), [month]);
+
+  // Resolve start/end date strings (yyyy-MM-dd) for a confirmed booking so calendar can show it
+  const getBookingRange = (b) => {
+    let startStr = toDateOnly(b.startDate);
+    let endStr = toDateOnly(b.endDate);
+    if (startStr && endStr) return { startStr, endStr };
+    if (Array.isArray(b.selectedDates) && b.selectedDates.length > 0) {
+      const first = b.selectedDates[0];
+      const last = b.selectedDates[b.selectedDates.length - 1];
+      if (first) startStr = startStr || (typeof first === "string" ? first.slice(0, 10) : toDateOnly(first));
+      if (last) endStr = endStr || (typeof last === "string" ? last.slice(0, 10) : toDateOnly(last));
+    }
+    // Fallback: compute end from start + days (e.g. when backend only has delivery_date + hire_length)
+    if ((!startStr || !endStr) && (b.delivery_date || b.deliveryDate)) {
+      const deliveryStr = toDateOnly(b.delivery_date || b.deliveryDate);
+      if (deliveryStr) startStr = startStr || deliveryStr;
+    }
+    const daysCount = Number(b.days ?? b.hire_length ?? b.hireLength ?? 0);
+    if (startStr && !endStr && daysCount > 0) {
+      const endDate = new Date(startStr + "T12:00:00");
+      endDate.setDate(endDate.getDate() + daysCount - 1);
+      endStr = format(endDate, "yyyy-MM-dd");
+    }
+    return { startStr: startStr || null, endStr: endStr || null };
+  };
+
+  const bookingInRange = (b, day) => {
+    if (b.status !== "Confirmed") return false;
+    const { startStr, endStr } = getBookingRange(b);
+    if (!startStr || !endStr) return false;
+    const dayStr = format(startOfDay(day), "yyyy-MM-dd");
+    return dayStr >= startStr && dayStr <= endStr;
+  };
+
   return (
     <div className="grid grid-cols-7 gap-2">
       {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
@@ -58,7 +104,7 @@ function MonthCalendar({
           <div className="text-xs font-semibold">{format(day, "d")}</div>
           <div className="mt-1 space-y-1">
             {bookings
-              .filter((b) => b.status === "Confirmed" && day >= startOfMonth(month) && day <= endOfMonth(month) && day >= new Date(b.startDate) && day <= new Date(b.endDate))
+              .filter((b) => bookingInRange(b, day))
               .map((b) => (
                 <button
                   key={b.id}
