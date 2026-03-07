@@ -160,25 +160,27 @@
             startDate.setHours(0, 0, 0, 0);
             const daysUntilDelivery = Math.ceil((startDate - today) / (24 * 60 * 60 * 1000));
             const isFullBalance = daysUntilDelivery <= 7;
-            const depositAmount = 250; // Security deposit is not subject to VAT
+            const depositAmount = 250; // Security deposit is not subject to VAT, refundable after collection
+            const hireDeliveryVat = quoteTotalExVat * 1.2; // hire + delivery inc. VAT
             const amountExVat = isFullBalance ? quoteTotalExVat : depositAmount;
-            const vatAmount = isFullBalance ? amountExVat * 0.2 : 0;
-            const amountIncVat = isFullBalance ? amountExVat + vatAmount : depositAmount;
+            const vatAmount = isFullBalance ? quoteTotalExVat * 0.2 : 0;
+            // Full balance = hire + delivery + VAT + £250 refundable deposit (deposit shown in total)
+            const amountIncVat = isFullBalance ? hireDeliveryVat + depositAmount : depositAmount;
             const amountFormatted = '£' + amountIncVat.toFixed(2);
 
             document.getElementById('amountDue').textContent = amountFormatted;
             document.getElementById('paymentSubtitle').textContent = isFullBalance
-                ? 'Pay the full balance (inc. VAT) by bank transfer to secure your booking.'
+                ? 'Pay the full balance (inc. VAT) plus £250 refundable deposit by bank transfer.'
                 : 'Pay your £250 refundable security deposit by bank transfer to secure your booking.';
 
             const paymentInfo = document.getElementById('paymentInfo');
             if (isFullBalance) {
-                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above (inc. VAT). Your payment includes a <strong>£250 refundable security deposit</strong>, returned within 5 working days of collection once the pod is inspected. We will confirm your booking once payment is received.</p>';
+                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above. This includes hire + delivery (inc. VAT) and a <strong>£250 refundable security deposit</strong> — the deposit is returned within 5 working days of collection once the pod is inspected. We will confirm your booking once payment is received.</p>';
             } else {
                 paymentInfo.innerHTML = '<h3>Refundable security deposit</h3><p>Pay <strong>£250</strong> now to secure your booking (no VAT on deposit). This deposit is <strong>refundable</strong> and will be returned within 5 working days after the pod is collected and inspected (provided it is undamaged). The remaining balance (hire + delivery + VAT) is due 5 days before delivery.</p>';
             }
 
-            displayBookingSummary(bookingData, amountFormatted, isFullBalance, amountExVat, vatAmount, amountIncVat);
+            displayBookingSummary(bookingData, amountFormatted, isFullBalance, amountExVat, vatAmount, hireDeliveryVat, depositAmount, amountIncVat);
 
             document.getElementById('payment-form').addEventListener('submit', function(event) {
                 event.preventDefault();
@@ -190,7 +192,7 @@
                 window.location.href = 'booking-confirmation.html';
             });
 
-            function displayBookingSummary(data, amountLabel, isFullBalance, amountExVat, vatAmount, amountIncVat) {
+            function displayBookingSummary(data, amountLabel, isFullBalance, amountExVat, vatAmount, hireDeliveryVat, depositAmount, amountIncVat) {
                 const summaryContent = document.getElementById('summaryContent');
                 const startDate = new Date(data.deliveryDate + 'T12:00:00');
                 summaryContent.innerHTML = `
@@ -227,8 +229,16 @@
                         <span>VAT (20%):</span>
                         <span>£${vatAmount.toFixed(2)}</span>
                     </div>
+                    <div class="summary-row">
+                        <span>Hire + delivery (inc. VAT):</span>
+                        <span>£${(hireDeliveryVat || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Refundable security deposit:</span>
+                        <span>£250.00</span>
+                    </div>
                     <div class="summary-row total">
-                        <span>Amount to pay (inc. VAT):</span>
+                        <span>Amount to pay:</span>
                         <span>${amountLabel}</span>
                     </div>` : `
                     <div class="summary-row total">

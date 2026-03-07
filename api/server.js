@@ -826,13 +826,13 @@ function generateQuoteEmailHTML(data) {
           const daysUntil = Math.ceil((startDate - new Date()) / 86400000);
           const isUrgent  = daysUntil <= 7;
           const totalExVat = data.totalCost === 'TBC' ? null : Number(data.totalCost);
-          const amountExVat = isUrgent ? totalExVat : 250;
-          const amountIncVat = isUrgent && amountExVat != null ? (amountExVat * 1.2).toFixed(2) : null;
+          const hireDeliveryIncVat = totalExVat != null ? totalExVat * 1.2 : null;
+          const fullAmountIncDeposit = hireDeliveryIncVat != null ? hireDeliveryIncVat + 250 : null; // £250 refundable deposit included in total
           const depositAmt = isUrgent
-            ? (totalExVat == null ? 'full hire cost (TBC)' : `£${amountIncVat} (inc. VAT)`)
+            ? (totalExVat == null ? 'full hire cost (TBC)' : `£${fullAmountIncDeposit.toFixed(2)} (hire + delivery + VAT + £250 refundable deposit)`)
             : '£250.00 (no VAT on deposit)';
           const depositNote = isUrgent
-            ? 'As your delivery is within 7 days, full payment (inc. VAT) is required to confirm your booking. Your payment includes a £250 refundable security deposit, returned within 5 working days of collection once the pod is inspected.'
+            ? 'As your delivery is within 7 days, full payment is required: hire + delivery (inc. VAT) plus a £250 refundable security deposit. The £250 is returned within 5 working days of collection once the pod is inspected.'
             : 'This is a refundable security deposit (no VAT) — returned within 5 working days of collection provided the pod is undamaged. The remaining balance (hire + delivery + VAT) is due 5 days before delivery.';
           return `
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:20px;">
