@@ -66,6 +66,20 @@ export function SendCustomQuoteModal({ open, onClose }) {
       setError("Minimum hire period is 7 days — please adjust the end date.");
       return;
     }
+    try {
+      const availRes = await fetch("/api/availability");
+      const availData = availRes.ok ? await availRes.json() : { unavailable: [] };
+      const ranges = availData.unavailable || [];
+      const overlaps = dates.some((d) =>
+        ranges.some((r) => d >= r.start && d <= r.end)
+      );
+      if (overlaps) {
+        setError("These dates are already booked (confirmed). Please choose different dates or check the calendar.");
+        return;
+      }
+    } catch {
+      // If availability check fails, allow send (e.g. API down)
+    }
     setStatus("sending");
     setError("");
     try {

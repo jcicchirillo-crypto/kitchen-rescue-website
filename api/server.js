@@ -262,6 +262,32 @@ app.get('/api/test-supabase', async (req, res) => {
     res.json(result);
 });
 
+// Live availability from confirmed bookings (so calendar and custom quotes stay in sync)
+app.get('/api/availability', async (req, res) => {
+    try {
+        const bookings = await getAllBookings();
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const ranges = [];
+        for (const b of bookings) {
+            if (b.status !== 'Confirmed') continue;
+            let startStr = (b.startDate || b.delivery_date || b.selectedDates?.[0] || '').toString().slice(0, 10);
+            let endStr = (b.endDate || b.selectedDates?.[b.selectedDates?.length - 1] || '').toString().slice(0, 10);
+            if (!startStr || startStr.length !== 10) continue;
+            if (!endStr || endStr.length !== 10) {
+                const days = Number(b.days || b.hire_length) || 1;
+                const d = new Date(startStr + 'T12:00:00');
+                d.setUTCDate(d.getUTCDate() + days - 1);
+                endStr = d.toISOString().slice(0, 10);
+            }
+            if (endStr >= todayStr) ranges.push({ start: startStr, end: endStr });
+        }
+        res.json({ unavailable: ranges });
+    } catch (e) {
+        console.error('Error building availability:', e);
+        res.json({ unavailable: [] });
+    }
+});
+
 // Serve all HTML files
 app.get('/*.html', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', req.path));
@@ -1679,16 +1705,8 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
 app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
     try {
         const bookingId = req.params.id;
-        
-        // Read existing bookings
-        const bookings = await getAllBookings();
-        
-        // Filter out the booking
-        const filteredBookings = bookings.filter(b => b.id !== bookingId);
-        
-        // Write back to file
-        await saveAllBookings(filteredBookings);
-        
+        const ok = await deleteBooking(bookingId);
+        if (!ok) return res.status(500).json({ error: 'Failed to delete booking' });
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete booking' });

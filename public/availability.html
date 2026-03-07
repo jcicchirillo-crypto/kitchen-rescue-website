@@ -441,23 +441,29 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMonth.setMonth(currentMonth.getMonth()+1); renderAll();
     });
 
-    fetch('assets/availability.json')
-        .then(r => r.json())
-        .then(data => {
-            availabilityData = {
-                unavailable: (data.unavailable||[]).filter(r => r.end >= todayStr).map(r => ({
-                    start: r.start < todayStr ? todayStr : r.start, end: r.end
-                }))
-            };
-            renderAll();
-            if (urlDates && urlPostcode) {
-                selectedDates = urlDates.split(',');
-                const bad = selectedDates.filter(d => !isAvail(d));
-                if (bad.length) { selectedDates = []; toast('Some dates are no longer available — please reselect.', 'error'); }
-                else { highlightAll(); updateQuotePanel(); }
-            }
-        })
-        .catch(() => { availabilityData = { unavailable: [] }; renderAll(); });
+    Promise.all([
+        fetch('/api/availability').then(r => r.ok ? r.json() : { unavailable: [] }).catch(() => ({ unavailable: [] })),
+        fetch('assets/availability.json').then(r => r.json()).catch(() => ({ unavailable: [] }))
+    ]).then(([apiData, jsonData]) => {
+        const fromApi = (apiData.unavailable || []).filter(r => r.end >= todayStr).map(r => ({
+            start: r.start < todayStr ? todayStr : r.start, end: r.end
+        }));
+        const fromJson = (jsonData.unavailable || []).filter(r => r.end >= todayStr).map(r => ({
+            start: r.start < todayStr ? todayStr : r.start, end: r.end
+        }));
+        const combined = [...fromApi];
+        fromJson.forEach(r => {
+            if (!combined.some(c => c.start === r.start && c.end === r.end)) combined.push(r);
+        });
+        availabilityData = { unavailable: combined };
+        renderAll();
+        if (urlDates && urlPostcode) {
+            selectedDates = urlDates.split(',');
+            const bad = selectedDates.filter(d => !isAvail(d));
+            if (bad.length) { selectedDates = []; toast('Some dates are no longer available — please reselect.', 'error'); }
+            else { highlightAll(); updateQuotePanel(); }
+        }
+    });
 
     const toggle = document.getElementById('mobileMenuToggle');
     const nav = document.getElementById('mobileNav');
@@ -712,13 +718,17 @@ async function updateQuotePanel() {
         const subtotal = hire + delivCostVal;
         const vat = subtotal * 0.2;
         const totalInc = subtotal + vat;
+        const deposit = 250;
+        const totalWithDeposit = totalInc + deposit;
         deliveryRows = `
             <div class="quote-row"><span class="ql">Delivery</span><span class="qv">£${delivEach.toFixed(2)}</span></div>
             <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${delivEach.toFixed(2)}</span></div>
             <div class="quote-row"><span class="ql">Subtotal (exc. VAT)</span><span class="qv">£${subtotal.toFixed(2)}</span></div>
             <div class="quote-row"><span class="ql">VAT (20%)</span><span class="qv">£${vat.toFixed(2)}</span></div>
-            <div class="quote-total"><span class="tl">Total (inc. VAT)</span><span class="tp">£${totalInc.toFixed(2)}</span></div>
-            <p class="quote-vat">Subject to site check</p>`;
+            <div class="quote-row"><span class="ql">Hire + delivery (inc. VAT)</span><span class="qv">£${totalInc.toFixed(2)}</span></div>
+            <div class="quote-row"><span class="ql">Refundable security deposit</span><span class="qv">£${deposit.toFixed(2)}</span></div>
+            <div class="quote-total"><span class="tl">Total to pay (inc. deposit)</span><span class="tp">£${totalWithDeposit.toFixed(2)}</span></div>
+            <p class="quote-vat">Subject to site check · Deposit refunded after collection</p>`;
     }
 
     body.innerHTML = `

@@ -224,7 +224,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dc = fixedDelivery != null && !isNaN(fixedDelivery) ? fixedDelivery / 2 : delivCost(postcode);
                 const subtotalExVat = dc === null ? (days * dailyRate) : (days * dailyRate + (fixedDelivery != null && !isNaN(fixedDelivery) ? fixedDelivery : (dc * 2)));
                 const totalIncVat = subtotalExVat * 1.2;
-                document.getElementById('sb-tot').textContent  = dc === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalIncVat.toFixed(2)} inc VAT`;
+                const deposit = 250;
+                const totalWithDeposit = totalIncVat + deposit;
+                document.getElementById('sb-tot').textContent  = dc === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalWithDeposit.toFixed(2)} total (inc. VAT + £250 deposit)`;
                 document.getElementById('deliveryDate').value  = fd(start);
                 document.getElementById('hireLength').value    = `${days} days`;
                 document.getElementById('postcode').value      = postcode || '';

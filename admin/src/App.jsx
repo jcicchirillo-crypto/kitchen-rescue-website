@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -152,6 +152,28 @@ function KitchenRescueAdmin() {
   const [showCustomQuote, setShowCustomQuote] = useState(false);
   const [sendingConfirmationId, setSendingConfirmationId] = useState(null);
   const [confirmationMessage, setConfirmationMessage] = useState(null);
+  const [selectedToDelete, setSelectedToDelete] = useState([]);
+  const [deletingIds, setDeletingIds] = useState([]);
+
+  const toggleDelete = (id) => {
+    setSelectedToDelete((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+  const deleteSelected = async () => {
+    if (selectedToDelete.length === 0) return;
+    const token = localStorage.getItem("adminToken");
+    setDeletingIds(selectedToDelete.slice());
+    for (const id of selectedToDelete) {
+      try {
+        await fetch(`/api/bookings/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      } catch (_) {}
+    }
+    setSelectedToDelete([]);
+    setDeletingIds([]);
+    setConfirmationMessage({ type: "success", text: `Deleted ${selectedToDelete.length} item(s)` });
+    fetchBookings();
+  };
+
+  const selectedBooking = useMemo(() => (selectedId ? bookings.find((b) => b.id === selectedId) : null), [selectedId, bookings]);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -387,11 +409,18 @@ function KitchenRescueAdmin() {
                 {confirmationMessage.text}
               </p>
             )}
+            {selectedToDelete.length > 0 && (
+              <Button size="sm" variant="destructive" className="gap-2 mt-2" onClick={deleteSelected} disabled={deletingIds.length > 0}>
+                {deletingIds.length > 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete {selectedToDelete.length} selected
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <Table>
                 <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10"></TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -405,7 +434,10 @@ function KitchenRescueAdmin() {
               </TableHeader>
               <TableBody>
                 {filtered.map((b) => (
-                  <TableRow key={b.id}>
+                  <TableRow key={b.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedId(b.id)}>
+                    <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" className="rounded border-slate-300" checked={selectedToDelete.includes(b.id)} onChange={() => toggleDelete(b.id)} aria-label={`Select ${b.id} to delete`} />
+                    </TableCell>
                     <TableCell className="font-medium">{b.name}</TableCell>
                     <TableCell className="text-xs flex items-center gap-1"><Mail className="h-3 w-3"/>{b.email}</TableCell>
                     <TableCell className="text-xs">{b.phone}</TableCell>
@@ -426,7 +458,7 @@ function KitchenRescueAdmin() {
                     <TableCell className="text-xs text-slate-500">
                       {b.createdAt || b.timestamp ? format(new Date(b.createdAt || b.timestamp), "d MMM yyyy") : 'N/A'}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       {b.email ? (
                         <Button
                           size="sm"
@@ -461,6 +493,41 @@ function KitchenRescueAdmin() {
             </Table>
           </CardContent>
         </Card>
+
+        {selectedBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedId(null)}>
+            <Card className="w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <CardHeader className="flex flex-row items-center justify-between border-b">
+                <CardTitle className="text-lg">Booking details</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedId(null)} aria-label="Close">
+                  <X className="h-5 w-5" />
+                </Button>
+              </CardHeader>
+              <CardContent className="overflow-y-auto pt-4 space-y-3">
+                <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-1 text-sm">
+                  <span className="text-slate-500">Reference</span><span className="font-medium">{selectedBooking.id}</span>
+                  <span className="text-slate-500">Customer</span><span>{selectedBooking.name}</span>
+                  <span className="text-slate-500">Email</span><span><a href={`mailto:${selectedBooking.email}`} className="text-red-600 hover:underline">{selectedBooking.email}</a></span>
+                  <span className="text-slate-500">Phone</span><span>{selectedBooking.phone || '—'}</span>
+                  <span className="text-slate-500">Postcode</span><span>{selectedBooking.postcode || '—'}</span>
+                  <span className="text-slate-500">Address</span><span className="break-words">{selectedBooking.deliveryAddress || '—'}</span>
+                  <span className="text-slate-500">Pod</span><span>{selectedBooking.pod || '—'}</span>
+                  <span className="text-slate-500">Delivery</span><span>{selectedBooking.startDate ? format(new Date(selectedBooking.startDate), "d MMM yyyy") : '—'}</span>
+                  <span className="text-slate-500">Collection</span><span>{selectedBooking.endDate ? format(new Date(selectedBooking.endDate), "d MMM yyyy") : '—'}</span>
+                  <span className="text-slate-500">Hire length</span><span>{selectedBooking.days ?? selectedBooking.hireLength ?? '—'} days</span>
+                  <span className="text-slate-500">Daily cost</span><span>£{selectedBooking.dailyCost != null ? Number(selectedBooking.dailyCost).toFixed(2) : '—'}</span>
+                  <span className="text-slate-500">Delivery cost</span><span>£{selectedBooking.deliveryCost != null ? Number(selectedBooking.deliveryCost).toFixed(2) : '—'}</span>
+                  <span className="text-slate-500">Collection cost</span><span>£{selectedBooking.collectionCost != null ? Number(selectedBooking.collectionCost).toFixed(2) : '—'}</span>
+                  <span className="text-slate-500">Total cost</span><span className="font-semibold">£{selectedBooking.totalCost != null ? Number(selectedBooking.totalCost).toFixed(2) : '—'}</span>
+                  <span className="text-slate-500">Status</span><span><Badge className={STATUS_MAP[selectedBooking.status]?.color}>{selectedBooking.status}</Badge></span>
+                  <span className="text-slate-500">Source</span><span>{(selectedBooking.source === 'booking' || (selectedBooking.source === 'quote' && selectedBooking.status === 'Confirmed')) ? 'Booking' : selectedBooking.source || '—'}</span>
+                  <span className="text-slate-500">Created</span><span>{selectedBooking.createdAt || selectedBooking.timestamp ? format(new Date(selectedBooking.createdAt || selectedBooking.timestamp), "d MMM yyyy HH:mm") : '—'}</span>
+                  {selectedBooking.notes && (<><span className="text-slate-500">Notes</span><span className="break-words">{selectedBooking.notes}</span></>)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
 
       <Footer />

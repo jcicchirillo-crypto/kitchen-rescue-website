@@ -320,14 +320,14 @@ async function updateBooking(bookingId, updates) {
     }
 }
 
-// Delete a booking
+// Delete a booking (bookingId is booking_reference from admin list)
 async function deleteBooking(bookingId) {
     if (useSupabase && supabase) {
         try {
             const { error } = await supabase
                 .from('bookings')
                 .delete()
-                .eq('id', bookingId);
+                .eq('booking_reference', bookingId);
             
             if (error) {
                 console.error('Error deleting from Supabase:', error);
