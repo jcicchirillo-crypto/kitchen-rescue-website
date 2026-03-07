@@ -788,16 +788,22 @@ function generateQuoteEmailHTML(data) {
                 <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.collectionCost)}</td>
               </tr>
             </table>
-            <!-- Total -->
+            <!-- Total with VAT (only when totalCost is numeric) -->
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border-radius:8px;margin-top:14px;">
               <tr><td style="padding:14px 16px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="color:#991b1b;font-size:15px;font-weight:700;">Total (exc. VAT)</td>
-                    <td align="right" style="color:#dc2626;font-size:22px;font-weight:700;">${money(data.totalCost)}</td>
-                  </tr>
+                  ${(function() {
+                    const tot = Number(data.totalCost);
+                    if (tot === tot && !isNaN(tot)) {
+                      return `<tr><td style="color:#374151;font-size:14px;">Subtotal (exc. VAT)</td><td align="right" style="color:#111827;font-size:14px;font-weight:600;">${money(data.totalCost)}</td></tr>
+                  <tr><td style="color:#6b7280;font-size:13px;padding-top:4px;">VAT (20%)</td><td align="right" style="color:#6b7280;font-size:13px;padding-top:4px;">${money(tot * 0.2)}</td></tr>
+                  <tr><td style="color:#991b1b;font-size:15px;font-weight:700;padding-top:8px;">Total (inc. VAT)</td><td align="right" style="color:#dc2626;font-size:22px;font-weight:700;padding-top:8px;">${money(tot * 1.2)}</td></tr>`;
+                    }
+                    const totalLabel = typeof data.totalCost === 'string' ? data.totalCost : money(data.totalCost);
+                    return `<tr><td style="color:#991b1b;font-size:15px;font-weight:700;">Total</td><td align="right" style="color:#dc2626;font-size:16px;font-weight:700;">${totalLabel}</td></tr>`;
+                  })()}
                 </table>
-                <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;">VAT at 20% will be added · Subject to site check</p>
+                <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;">${Number(data.totalCost) === Number(data.totalCost) ? 'Subject to site check' : 'VAT at 20% will be added · Subject to site check'}</p>
               </td></tr>
             </table>
           </td></tr>
@@ -819,12 +825,15 @@ function generateQuoteEmailHTML(data) {
           const startDate = new Date((data.startDate || '') + 'T00:00:00Z');
           const daysUntil = Math.ceil((startDate - new Date()) / 86400000);
           const isUrgent  = daysUntil <= 7;
+          const totalExVat = data.totalCost === 'TBC' ? null : Number(data.totalCost);
+          const amountExVat = isUrgent ? totalExVat : 250;
+          const amountIncVat = isUrgent && amountExVat != null ? (amountExVat * 1.2).toFixed(2) : null;
           const depositAmt = isUrgent
-            ? (data.totalCost === 'TBC' ? 'full hire cost (TBC)' : `£${Number(data.totalCost).toFixed(2)} + VAT`)
-            : '£250.00';
+            ? (totalExVat == null ? 'full hire cost (TBC)' : `£${amountIncVat} (inc. VAT)`)
+            : '£250.00 (no VAT on deposit)';
           const depositNote = isUrgent
-            ? 'As your delivery is within 7 days, full payment is required to confirm your booking.'
-            : 'This is a refundable security deposit, returned within 5 working days of collection provided the pod is undamaged.';
+            ? 'As your delivery is within 7 days, full payment (inc. VAT) is required to confirm your booking. Your payment includes a £250 refundable security deposit, returned within 5 working days of collection once the pod is inspected.'
+            : 'This is a refundable security deposit (no VAT) — returned within 5 working days of collection provided the pod is undamaged. The remaining balance (hire + delivery + VAT) is due 5 days before delivery.';
           return `
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:20px;">
           <tr><td style="padding:20px 24px;">

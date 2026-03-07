@@ -145,14 +145,14 @@
 
             const bookingData = JSON.parse(sessionStorage.getItem('bookingData'));
 
-            // Amount to pay: full balance if delivery within 7 days, else £250 deposit
-            let quoteTotal = parseFloat(sessionStorage.getItem('quoteTotal'));
+            // quoteTotal is ex-VAT; add VAT for amount to pay
+            let quoteTotalExVat = parseFloat(sessionStorage.getItem('quoteTotal'));
             const quoteStartDateStr = sessionStorage.getItem('quoteStartDate') || bookingData.deliveryDate;
-            if (isNaN(quoteTotal) || quoteTotal <= 0) {
+            if (isNaN(quoteTotalExVat) || quoteTotalExVat <= 0) {
                 const days = parseInt(bookingData.hireLength, 10) || 0;
                 const rate = bookingData.dailyRate || 70;
                 const delivery = bookingData.fixedDelivery != null ? Number(bookingData.fixedDelivery) * 2 : 0;
-                quoteTotal = days * rate + delivery;
+                quoteTotalExVat = days * rate + delivery;
             }
             const startDate = quoteStartDateStr ? new Date(quoteStartDateStr + 'T12:00:00') : new Date(bookingData.deliveryDate + 'T12:00:00');
             const today = new Date();
@@ -160,22 +160,25 @@
             startDate.setHours(0, 0, 0, 0);
             const daysUntilDelivery = Math.ceil((startDate - today) / (24 * 60 * 60 * 1000));
             const isFullBalance = daysUntilDelivery <= 7;
-            const amountToPay = isFullBalance ? quoteTotal : 250;
-            const amountFormatted = '£' + amountToPay.toFixed(2);
+            const depositAmount = 250; // Security deposit is not subject to VAT
+            const amountExVat = isFullBalance ? quoteTotalExVat : depositAmount;
+            const vatAmount = isFullBalance ? amountExVat * 0.2 : 0;
+            const amountIncVat = isFullBalance ? amountExVat + vatAmount : depositAmount;
+            const amountFormatted = '£' + amountIncVat.toFixed(2);
 
             document.getElementById('amountDue').textContent = amountFormatted;
             document.getElementById('paymentSubtitle').textContent = isFullBalance
-                ? 'Pay the full balance by bank transfer to secure your booking.'
-                : 'Pay your £250 deposit by bank transfer to secure your booking.';
+                ? 'Pay the full balance (inc. VAT) by bank transfer to secure your booking.'
+                : 'Pay your £250 refundable security deposit by bank transfer to secure your booking.';
 
             const paymentInfo = document.getElementById('paymentInfo');
             if (isFullBalance) {
-                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above. Once we receive payment we will confirm your booking.</p>';
+                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above (inc. VAT). Your payment includes a <strong>£250 refundable security deposit</strong>, returned within 5 working days of collection once the pod is inspected. We will confirm your booking once payment is received.</p>';
             } else {
-                paymentInfo.innerHTML = '<h3>Deposit information</h3><p>Pay £250 now to secure your booking. The deposit is refunded within 5 working days after the pod is returned and inspected. The remaining balance is due 5 days before delivery.</p>';
+                paymentInfo.innerHTML = '<h3>Refundable security deposit</h3><p>Pay <strong>£250</strong> now to secure your booking (no VAT on deposit). This deposit is <strong>refundable</strong> and will be returned within 5 working days after the pod is collected and inspected (provided it is undamaged). The remaining balance (hire + delivery + VAT) is due 5 days before delivery.</p>';
             }
 
-            displayBookingSummary(bookingData, amountFormatted, isFullBalance);
+            displayBookingSummary(bookingData, amountFormatted, isFullBalance, amountExVat, vatAmount, amountIncVat);
 
             document.getElementById('payment-form').addEventListener('submit', function(event) {
                 event.preventDefault();
@@ -187,7 +190,7 @@
                 window.location.href = 'booking-confirmation.html';
             });
 
-            function displayBookingSummary(data, amountLabel, isFullBalance) {
+            function displayBookingSummary(data, amountLabel, isFullBalance, amountExVat, vatAmount, amountIncVat) {
                 const summaryContent = document.getElementById('summaryContent');
                 const startDate = new Date(data.deliveryDate + 'T12:00:00');
                 summaryContent.innerHTML = `
@@ -215,10 +218,23 @@
                         <span>Delivery Address:</span>
                         <span>${(data.deliveryAddress || '').replace(/</g, '&lt;')}</span>
                     </div>
-                    <div class="summary-row total">
-                        <span>${isFullBalance ? 'Amount to pay:' : 'Deposit to pay:'}</span>
-                        <span>${amountLabel}</span>
+                    ${isFullBalance ? `
+                    <div class="summary-row">
+                        <span>Subtotal (exc. VAT):</span>
+                        <span>£${amountExVat.toFixed(2)}</span>
                     </div>
+                    <div class="summary-row">
+                        <span>VAT (20%):</span>
+                        <span>£${vatAmount.toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Amount to pay (inc. VAT):</span>
+                        <span>${amountLabel}</span>
+                    </div>` : `
+                    <div class="summary-row total">
+                        <span>Deposit to pay (no VAT):</span>
+                        <span>${amountLabel}</span>
+                    </div>`}
                 `;
             }
         });

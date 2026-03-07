@@ -175,8 +175,9 @@ if (datesParam) {
     document.getElementById('sb-del').textContent = fd(start);
     document.getElementById('sb-col').textContent = fd(end);
     document.getElementById('sb-dur').textContent = `${days} day${days>1?'s':''}`;
-    const dc = fixedDelivery !== null ? fixedDelivery / 2 : delivCost(postcode);
-    document.getElementById('sb-tot').textContent = dc === null ? `£${days*dailyRate} hire + delivery TBC +VAT` : `£${days*dailyRate + (fixedDelivery !== null ? fixedDelivery : dc*2)} +VAT`;
+    const subtotalExVat = dc === null ? (days * dailyRate) : (days * dailyRate + (fixedDelivery !== null ? fixedDelivery : dc * 2));
+    const totalIncVat = subtotalExVat * 1.2;
+    document.getElementById('sb-tot').textContent = dc === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalIncVat.toFixed(2)} inc VAT`;
     const extraParams = (dailyRate !== 70 ? '&rate=' + dailyRate : '') + (fixedDelivery !== null ? '&delivery=' + fixedDelivery : '');
     document.getElementById('backBtn').href = `availability.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}${extraParams}`;
 }

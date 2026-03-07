@@ -203,7 +203,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('sb-col').textContent  = fd(end);
         document.getElementById('sb-dur').textContent  = `${days} day${days>1?'s':''}`;
         const dc = fixedDelivery !== null ? fixedDelivery / 2 : delivCost(postcode);
-        document.getElementById('sb-tot').textContent  = dc === null ? `£${days*dailyRate} hire + delivery TBC +VAT` : `£${days*dailyRate + (fixedDelivery !== null ? fixedDelivery : dc*2)} +VAT`;
+        const subtotalExVat = dc === null ? (days * dailyRate) : (days * dailyRate + (fixedDelivery !== null ? fixedDelivery : dc * 2));
+        const totalIncVat = subtotalExVat * 1.2;
+        document.getElementById('sb-tot').textContent  = dc === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalIncVat.toFixed(2)} inc VAT`;
         document.getElementById('deliveryDate').value  = fd(start);
         document.getElementById('hireLength').value    = `${days} days`;
         document.getElementById('postcode').value      = postcode;

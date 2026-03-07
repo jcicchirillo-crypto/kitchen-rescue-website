@@ -693,6 +693,9 @@ async function updateQuotePanel() {
     if (!hasPostcode) {
         deliveryRows = '';
     } else if (delivCostVal === null) {
+        const subtotal = hire;
+        const vat = subtotal * 0.2;
+        const totalInc = subtotal + vat;
         deliveryRows = `
             <div class="quote-row" style="background:#fef9ec;border-radius:8px;padding:10px 12px;margin-top:4px;">
                <span class="ql" style="color:#92400e;font-size:0.82rem;line-height:1.4;">
@@ -700,15 +703,22 @@ async function updateQuotePanel() {
                    We deliver up to 100 miles from Ware, Hertfordshire — and can go further too. Please use <em>Email me this quote</em> below and we'll confirm a delivery price for your area.
                </span>
            </div>
-           <div class="quote-total"><span class="tl">Hire total</span><span class="tp">£${hire}</span></div>
-           <p class="quote-vat">+ VAT + delivery (TBC) • Subject to site check</p>`;
+           <div class="quote-row"><span class="ql">Subtotal (exc. VAT)</span><span class="qv">£${subtotal.toFixed(2)}</span></div>
+           <div class="quote-row"><span class="ql">VAT (20%)</span><span class="qv">£${vat.toFixed(2)}</span></div>
+           <div class="quote-total"><span class="tl">Hire total (inc. VAT)</span><span class="tp">£${totalInc.toFixed(2)}</span></div>
+           <p class="quote-vat">+ delivery (TBC) • Subject to site check</p>`;
     } else {
         const delivEach = delivCostVal / 2;
+        const subtotal = hire + delivCostVal;
+        const vat = subtotal * 0.2;
+        const totalInc = subtotal + vat;
         deliveryRows = `
-            <div class="quote-row"><span class="ql">Delivery</span><span class="qv">£${delivEach}</span></div>
-            <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${delivEach}</span></div>
-            <div class="quote-total"><span class="tl">Estimated total</span><span class="tp">£${hire + delivCostVal}</span></div>
-            <p class="quote-vat">+ VAT • Subject to site check</p>`;
+            <div class="quote-row"><span class="ql">Delivery</span><span class="qv">£${delivEach.toFixed(2)}</span></div>
+            <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${delivEach.toFixed(2)}</span></div>
+            <div class="quote-row"><span class="ql">Subtotal (exc. VAT)</span><span class="qv">£${subtotal.toFixed(2)}</span></div>
+            <div class="quote-row"><span class="ql">VAT (20%)</span><span class="qv">£${vat.toFixed(2)}</span></div>
+            <div class="quote-total"><span class="tl">Total (inc. VAT)</span><span class="tp">£${totalInc.toFixed(2)}</span></div>
+            <p class="quote-vat">Subject to site check</p>`;
     }
 
     body.innerHTML = `
