@@ -572,11 +572,14 @@ app.post('/request-quote', async (req, res) => {
         };
 
         const saved = await addBooking(newBooking);
-        if (saved) {
-            console.log('Homepage quote request saved:', trimmedEmail);
-        } else {
-            console.error('Failed to save homepage quote request:', trimmedEmail);
+        if (!saved) {
+            console.error('Failed to save homepage quote request to admin:', trimmedEmail);
+            return res.status(500).json({
+                success: false,
+                message: 'We received your request but could not save it. Please call us on 07342 606655 or email hello@thekitchenrescue.co.uk.'
+            });
         }
+        console.log('Homepage quote request saved to admin:', trimmedEmail);
 
         return res.json({
             success: true,
@@ -2299,7 +2302,14 @@ app.post('/api/trade-pack-request', async (req, res) => {
                 createdAt: new Date().toISOString()
             };
 
-            await addBooking(tradePackBooking);
+            const saved = await addBooking(tradePackBooking);
+            if (!saved) {
+                console.error('❌ Trade pack request NOT saved to admin (addBooking returned false)');
+                return res.status(500).json({
+                    success: false,
+                    error: 'We received your request but could not save it. Please call us on 07342 606655 or email hello@thekitchenrescue.co.uk.'
+                });
+            }
             console.log('✅ Trade pack request SAVED to admin');
             console.log('   📧 Email:', email);
             console.log('   🏢 Company:', company);
@@ -2308,7 +2318,10 @@ app.post('/api/trade-pack-request', async (req, res) => {
         } catch (saveErr) {
             console.error('❌ ERROR saving trade pack request to admin:', saveErr);
             console.error('   Stack:', saveErr.stack);
-            // Don't fail the request if saving fails
+            return res.status(500).json({
+                success: false,
+                error: 'We could not save your request. Please call us on 07342 606655 or email hello@thekitchenrescue.co.uk.'
+            });
         }
 
         // Generate trade pack email HTML
@@ -2937,7 +2950,14 @@ app.post('/api/insurance-claims-enquiry', async (req, res) => {
                 createdAt: new Date().toISOString()
             };
 
-            await addBooking(insuranceBooking);
+            const saved = await addBooking(insuranceBooking);
+            if (!saved) {
+                console.error('❌ Insurance claims enquiry NOT saved to admin (addBooking returned false)');
+                return res.status(500).json({
+                    success: false,
+                    error: 'We received your message but could not save it to our system. Please call us on 07342 606655 or email hello@thekitchenrescue.co.uk.'
+                });
+            }
             console.log('✅ Insurance claims enquiry SAVED to admin');
             console.log('   📧 Email:', email);
             console.log('   🏢 Company:', company);
@@ -2945,7 +2965,10 @@ app.post('/api/insurance-claims-enquiry', async (req, res) => {
         } catch (saveErr) {
             console.error('❌ ERROR saving insurance claims enquiry to admin:', saveErr);
             console.error('   Stack:', saveErr.stack);
-            // Don't fail the request if saving fails
+            return res.status(500).json({
+                success: false,
+                error: 'We could not save your enquiry. Please call us on 07342 606655 or email hello@thekitchenrescue.co.uk.'
+            });
         }
 
         // Send notification email if email is configured
