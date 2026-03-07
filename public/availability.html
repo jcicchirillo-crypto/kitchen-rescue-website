@@ -794,7 +794,7 @@ async function getDeliveryCost() {
             // Full postcode — use precise haversine distance
             const lat = data.result.latitude;
             const lng = data.result.longitude;
-            const baseLat = 51.7024, baseLng = -0.0353;
+            const baseLat = 51.835378, baseLng = -0.083439; // SG12 0HJ base
             const R = 3958.8;
             const dLat = (lat - baseLat) * Math.PI / 180;
             const dLng = (lng - baseLng) * Math.PI / 180;

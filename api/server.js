@@ -2077,6 +2077,44 @@ async function findOrCreateCustomer(booking) {
     }
 }
 
+// Delivery cost from postcode (for custom quote, availability, etc.)
+// Base: SG12 0HJ (Bengeo Rural, Hertfordshire). Pricing: £2/mile one-way, min £75 per trip; delivery + collection = 2 trips.
+app.get('/api/delivery-cost', async (req, res) => {
+    try {
+        const postcode = (req.query.postcode || '').trim().toUpperCase();
+        if (!postcode) {
+            return res.status(400).json({ error: 'Postcode is required' });
+        }
+        const postcodeRes = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+        const postcodeData = await postcodeRes.json();
+        if (postcodeData.status !== 200) {
+            return res.status(400).json({ error: 'Invalid postcode. Please check and try again.' });
+        }
+        const lat = postcodeData.result.latitude;
+        const lng = postcodeData.result.longitude;
+        // Base: SG12 0HJ (Bengeo Rural, Hertfordshire)
+        const baseLat = 51.835378;
+        const baseLng = -0.083439;
+        const R = 3958.8;
+        const dLat = (lat - baseLat) * Math.PI / 180;
+        const dLng = (lng - baseLng) * Math.PI / 180;
+        const aVal = Math.sin(dLat/2) ** 2 +
+            Math.cos(baseLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng/2) ** 2;
+        const cVal = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+        const miles = R * cVal;
+        if (miles > 100) {
+            return res.status(400).json({ error: 'We deliver up to 100 miles. Please call 07342 606655 for a quote.' });
+        }
+        const perTrip = Math.max(75, Math.round(miles) * 2);
+        const deliveryCost = perTrip;
+        const collectionCost = perTrip;
+        res.json({ deliveryCost, collectionCost, total: perTrip * 2, miles: Math.round(miles * 10) / 10 });
+    } catch (err) {
+        console.error('Delivery cost error:', err);
+        res.status(500).json({ error: 'Could not calculate delivery cost' });
+    }
+});
+
 // Trade Quote Calculation Endpoint
 app.post('/api/quote/calculate', async (req, res) => {
     try {
@@ -2097,9 +2135,9 @@ app.post('/api/quote/calculate', async (req, res) => {
         const lat = postcodeData.result.latitude;
         const lng = postcodeData.result.longitude;
 
-        // Kitchen Rescue base: Cheshunt, Hertfordshire
-        const baseLat = 51.7024;
-        const baseLng = -0.0353;
+        // Kitchen Rescue base: SG12 0HJ (Bengeo Rural, Hertfordshire)
+        const baseLat = 51.835378;
+        const baseLng = -0.083439;
 
         const R = 3958.8;
         const dLat = (lat - baseLat) * Math.PI / 180;

@@ -38,6 +38,7 @@ export function SendCustomQuoteModal({ open, onClose }) {
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [error, setError] = useState("");
+  const [deliveryCalculating, setDeliveryCalculating] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -46,6 +47,31 @@ export function SendCustomQuoteModal({ open, onClose }) {
       setError("");
     }
   }, [open]);
+
+  // Auto-calculate delivery cost from postcode when postcode changes
+  useEffect(() => {
+    const pc = (form.postcode || "").trim().toUpperCase();
+    if (pc.length < 4) return;
+    const t = setTimeout(async () => {
+      setDeliveryCalculating(true);
+      try {
+        const res = await fetch(`/api/delivery-cost?postcode=${encodeURIComponent(pc)}`);
+        const data = await res.json();
+        if (res.ok && data.deliveryCost != null && data.collectionCost != null) {
+          setForm((f) => ({
+            ...f,
+            deliveryCost: data.deliveryCost,
+            collectionCost: data.collectionCost,
+          }));
+        }
+      } catch {
+        // Keep existing values on error
+      } finally {
+        setDeliveryCalculating(false);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.postcode]);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -287,6 +313,7 @@ export function SendCustomQuoteModal({ open, onClose }) {
                     onChange={set("deliveryCost")}
                     className="mt-1"
                   />
+                  <p className="text-xs text-slate-400 mt-1">Auto-calculated from postcode (min £75 each)</p>
                 </div>
                 <div>
                   <Label htmlFor="cq-collection">Collection (£)</Label>
@@ -299,6 +326,7 @@ export function SendCustomQuoteModal({ open, onClose }) {
                     onChange={set("collectionCost")}
                     className="mt-1"
                   />
+                  <p className="text-xs text-slate-400 mt-1">Same as delivery (editable)</p>
                 </div>
               </div>
 
