@@ -206,6 +206,8 @@ document.getElementById('continueBtn').addEventListener('click', function() {
     if (this.disabled) return;
     sessionStorage.setItem('checklistCompleted', 'true');
     const p = new URLSearchParams({ dates: datesParam, postcode });
+    if (dailyRate !== 70)         p.set('rate',     dailyRate);
+    if (fixedDelivery !== null)   p.set('delivery', fixedDelivery);
     window.location.href = `booking-form.html?${p}`;
 });
 </script>

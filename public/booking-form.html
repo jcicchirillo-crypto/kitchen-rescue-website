@@ -260,7 +260,9 @@ document.addEventListener('DOMContentLoaded', function() {
             deliveryDate:    document.getElementById('deliveryDate').value,
             hireLength:      document.getElementById('hireLength').value,
             notes:           document.getElementById('notes').value.trim(),
-            selectedDates:   datesParam
+            selectedDates:   datesParam,
+            dailyRate,
+            fixedDelivery
         };
         sessionStorage.setItem('bookingData', JSON.stringify(formData));
         window.location.href = 'booking-payment.html';

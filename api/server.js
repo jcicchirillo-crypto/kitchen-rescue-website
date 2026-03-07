@@ -806,7 +806,7 @@ function generateQuoteEmailHTML(data) {
         <!-- CTA -->
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
           <tr><td align="center" style="padding:8px 0;">
-            <a href="${baseUrl}/availability.html?dates=${(data.selectedDates||[]).join(',')}&postcode=${data.postcode}&skipgate=true" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:8px;">Book Now →</a>
+            <a href="${baseUrl}/availability.html?dates=${(data.selectedDates||[]).join(',')}&postcode=${data.postcode}&skipgate=true${data.dailyRate && Number(data.dailyRate) !== 70 ? '&rate=' + Number(data.dailyRate) : ''}${(data.deliveryCost && data.collectionCost && data.deliveryCost !== 'TBC') ? '&delivery=' + (Number(data.deliveryCost) + Number(data.collectionCost)) : ''}" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:8px;">Book Now →</a>
           </td></tr>
           <tr><td align="center" style="padding:0;">
             <p style="margin:12px 0 0;color:#9ca3af;font-size:13px;">🔒 No card required &nbsp;·&nbsp; ✅ Free cancellation &nbsp;·&nbsp; 📞 We call to confirm</p>
