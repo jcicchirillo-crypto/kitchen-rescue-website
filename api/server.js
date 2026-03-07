@@ -766,14 +766,22 @@ app.post('/api/booking-received', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing email or fullName' });
         }
         const ref = bookingReference || 'KR' + Date.now().toString().slice(-6);
-        const startDate = deliveryDate ? new Date(deliveryDate + 'T12:00:00').toISOString().split('T')[0] : null;
+        // Validate deliveryDate before toISOString() — invalid/empty values throw RangeError
+        let startDate = null;
+        if (deliveryDate && String(deliveryDate).trim()) {
+            const d = new Date(String(deliveryDate).trim() + 'T12:00:00');
+            if (!isNaN(d.getTime())) startDate = d.toISOString().split('T')[0];
+        }
         const days = hireLength ? parseInt(hireLength, 10) : null;
         const selectedDates = [];
         if (startDate && days) {
-            for (let i = 0; i < days; i++) {
-                const d = new Date(startDate + 'T12:00:00');
-                d.setDate(d.getDate() + i);
-                selectedDates.push(d.toISOString().split('T')[0]);
+            const base = new Date(startDate + 'T12:00:00');
+            if (!isNaN(base.getTime())) {
+                for (let i = 0; i < days; i++) {
+                    const d = new Date(startDate + 'T12:00:00');
+                    d.setDate(d.getDate() + i);
+                    selectedDates.push(d.toISOString().split('T')[0]);
+                }
             }
         }
         const newBooking = {
@@ -836,6 +844,14 @@ app.post('/api/booking-received', async (req, res) => {
         res.json({ success: true, sent: !!transporter, saved });
     } catch (error) {
         console.error('Error in booking-received:', error);
+        // Log full error object for debugging (check server/Vercel logs)
+        console.log('=== BOOKING-RECEIVED FAILURE ===');
+        console.log('Error message:', error?.message);
+        console.log('Error name:', error?.name);
+        console.log('Error stack:', error?.stack);
+        if (error?.cause) console.log('Error cause:', error.cause);
+        try { console.log('Error (stringified):', JSON.stringify(error, Object.getOwnPropertyNames(error))); } catch (_) {}
+        console.log('===============================');
         res.status(500).json({ success: false, error: 'Failed to process booking', details: error.message });
     }
 });
