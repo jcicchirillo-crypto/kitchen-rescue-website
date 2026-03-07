@@ -496,8 +496,11 @@ function renderMonth(ms) {
     const lead = (first.getDay()+6)%7;
     for (let i=0; i<lead; i++) grid.appendChild(document.createElement('div'));
     for (let day=1; day<=last.getDate(); day++) {
-        const date = new Date(ms.getFullYear(), ms.getMonth(), day);
-        const iso  = date.toISOString().slice(0,10);
+        // Build ISO string directly to avoid DST timezone shifts (e.g. UK BST from late March)
+        const yyyy = ms.getFullYear();
+        const mm   = String(ms.getMonth() + 1).padStart(2, '0');
+        const dd   = String(day).padStart(2, '0');
+        const iso  = `${yyyy}-${mm}-${dd}`;
         const cell = document.createElement('div');
         cell.className = 'date';
         cell.setAttribute('data-date', iso);
@@ -579,11 +582,12 @@ function handleClick(iso) {
         }
         // Build the range; enforce 7-day minimum
         const span = isoDaysBetween(selectionStart, iso);
-        const endIso = span < 7 ? isoAddDays(selectionStart, 6) : iso;
-        if (span < 7) toast(`Minimum hire is 7 days — extended to ${isoDaysBetween(selectionStart, endIso)} days.`, 'info');
-        buildRange(selectionStart, endIso);
-        selectionStart = null;
+        const startForRange = selectionStart;
+        const endIso = span < 7 ? isoAddDays(startForRange, 6) : iso;
+        if (span < 7) toast(`Minimum hire is 7 days — extended to ${isoDaysBetween(startForRange, endIso)} days.`, 'info');
+        selectionStart = null; // clear BEFORE buildRange so highlightAll shows start date as red not amber
         updateSelectionUI();
+        buildRange(startForRange, endIso);
         return;
     }
 
