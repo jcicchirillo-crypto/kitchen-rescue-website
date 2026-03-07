@@ -20,6 +20,7 @@ import { AnalyticsGate } from "./components/AnalyticsGate";
 import { CookieBanner } from "./components/CookieBanner";
 import { BUSINESS } from "./config/business";
 import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
+import { CreateBookingModal } from "./components/CreateBookingModal";
 import "./App.css";
 
 const STATUS_MAP = {
@@ -196,6 +197,7 @@ function KitchenRescueAdmin() {
   const [selectedId, setSelectedId] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [showCustomQuote, setShowCustomQuote] = useState(false);
+  const [showCreateBooking, setShowCreateBooking] = useState(false);
   const [sendingConfirmationId, setSendingConfirmationId] = useState(null);
   const [confirmationMessage, setConfirmationMessage] = useState(null);
   const [selectedToDelete, setSelectedToDelete] = useState([]);
@@ -322,6 +324,14 @@ function KitchenRescueAdmin() {
             <span className="font-semibold">Kitchen Rescue — Admin</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => setShowCreateBooking(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Create Booking
+            </Button>
             <Button
               size="sm"
               className="gap-2 bg-red-600 hover:bg-red-700 text-white"
@@ -549,6 +559,14 @@ function KitchenRescueAdmin() {
           </CardContent>
         </Card>
 
+        <CreateBookingModal
+          open={showCreateBooking}
+          onClose={() => setShowCreateBooking(false)}
+          onCreated={() => {
+            fetchBookings();
+            setConfirmationMessage({ type: "success", text: "Booking created successfully" });
+          }}
+        />
         {selectedBooking && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedId(null)}>
             <Card className="w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -590,6 +608,14 @@ function KitchenRescueAdmin() {
       <SendCustomQuoteModal
         open={showCustomQuote}
         onClose={() => setShowCustomQuote(false)}
+      />
+      <CreateBookingModal
+        open={showCreateBooking}
+        onClose={() => setShowCreateBooking(false)}
+        onSuccess={() => {
+          setShowCreateBooking(false);
+          fetchBookings();
+        }}
       />
     </div>
   );

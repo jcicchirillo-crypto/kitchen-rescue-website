@@ -91,14 +91,22 @@ async function getAllBookings() {
                 // Try multiple possible phone fields
                 const customerPhone = booking.customer_phone || booking.phone || booking.customerPhone || null;
                 
-                // Handle selected dates - could be array or string
+                // Handle selected dates - Supabase may store as JSON string "[\"2025-12-01\", ...]" or array
                 let selectedDates = [];
                 if (Array.isArray(booking.selected_dates)) {
                     selectedDates = booking.selected_dates;
+                } else if (typeof booking.selected_dates === 'string') {
+                    try {
+                        const parsed = JSON.parse(booking.selected_dates);
+                        selectedDates = Array.isArray(parsed) ? parsed : (parsed ? [String(parsed)] : []);
+                    } catch (_) {
+                        selectedDates = [];
+                    }
                 } else if (booking.selected_dates) {
                     selectedDates = [booking.selected_dates];
                 } else if (booking.selectedDates) {
-                    selectedDates = Array.isArray(booking.selectedDates) ? booking.selectedDates : [booking.selectedDates];
+                    const sd = booking.selectedDates;
+                    selectedDates = Array.isArray(sd) ? sd : (typeof sd === 'string' ? (() => { try { const p = JSON.parse(sd); return Array.isArray(p) ? p : []; } catch(_) { return []; } })() : []);
                 }
                 
                 // Handle dates - try multiple field names
