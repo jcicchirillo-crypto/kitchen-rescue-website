@@ -434,12 +434,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById('prevMonthBtn').addEventListener('click', () => {
-        const prev = new Date(currentMonth); prev.setMonth(prev.getMonth()-1);
-        if (prev >= startOfMonth) { currentMonth.setMonth(currentMonth.getMonth()-1); renderAll(); }
+        const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+        if (prev >= startOfMonth) {
+            currentMonth = new Date(prev.getFullYear(), prev.getMonth(), 1);
+            renderAll();
+        }
     });
     document.getElementById('nextMonthBtn').addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth()+1); renderAll();
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+        renderAll();
     });
+
+    // Draw calendar immediately so dates and month nav are visible
+    renderAll();
 
     Promise.all([
         fetch('/api/availability').then(r => r.ok ? r.json() : { unavailable: [] }).catch(() => ({ unavailable: [] })),
