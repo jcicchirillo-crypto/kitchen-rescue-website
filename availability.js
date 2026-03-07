@@ -39,9 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextMonthBtn = document.getElementById('nextMonthBtn');
     const today = new Date();
     
-    // Start availability from December 1st, 2025
-    const startDate = new Date(2025, 11, 1); // Month is 0-indexed, so 11 = December
-    let currentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    // Start from current month (no fixed year)
+    const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     let state = { unavailable: [] };
     let selectedDates = [];
     
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const prevMonth = new Date(currentMonth);
             prevMonth.setMonth(prevMonth.getMonth() - 1);
             
-            // Don't allow going before December 2025
+            // Don't allow going before current month
             if (prevMonth >= startDate) {
                 currentMonth.setMonth(currentMonth.getMonth() - 1);
                 renderAll();
