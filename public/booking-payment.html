@@ -182,13 +182,34 @@
 
             displayBookingSummary(bookingData, amountFormatted, isFullBalance, amountExVat, vatAmount, hireDeliveryVat, depositAmount, amountIncVat);
 
-            document.getElementById('payment-form').addEventListener('submit', function(event) {
+            document.getElementById('payment-form').addEventListener('submit', async function(event) {
                 event.preventDefault();
                 const submitButton = document.getElementById('submit-payment');
                 submitButton.disabled = true;
+                submitButton.textContent = 'Sending confirmation...';
+                const bookingReference = 'KR' + Date.now().toString().slice(-6);
+                const amountDue = document.getElementById('amountDue').textContent || amountFormatted;
+                try {
+                    await fetch('/api/booking-received', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fullName: bookingData.fullName,
+                            email: bookingData.email,
+                            phone: bookingData.phone || '',
+                            deliveryDate: bookingData.deliveryDate,
+                            hireLength: bookingData.hireLength,
+                            deliveryAddress: bookingData.deliveryAddress || '',
+                            amountDue: amountDue,
+                            bookingReference: bookingReference
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Booking-received email request failed:', e);
+                }
                 submitButton.textContent = 'Redirecting...';
                 sessionStorage.setItem('paymentConfirmed', 'true');
-                sessionStorage.setItem('bookingReference', 'KR' + Date.now().toString().slice(-6));
+                sessionStorage.setItem('bookingReference', bookingReference);
                 window.location.href = 'booking-confirmation.html';
             });
 

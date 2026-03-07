@@ -126,6 +126,7 @@ async function getAllBookings() {
                     email: customerEmail || '', // Convert null to empty string for consistency
                     phone: customerPhone,
                     postcode: booking.postcode || null,
+                    deliveryAddress: booking.delivery_address || null,
                     selectedDates: selectedDates,
                     startDate: startDate,
                     endDate: endDate,
@@ -207,7 +208,7 @@ async function addBooking(newBooking) {
                 customer_name: newBooking.name,
                 customer_email: newBooking.email,
                 customer_phone: newBooking.phone || null,
-                delivery_address: null, // Not provided in quote form
+                delivery_address: newBooking.deliveryAddress || newBooking.delivery_address || null,
                 postcode: newBooking.postcode || null,
                 delivery_date: newBooking.startDate ? new Date(newBooking.startDate).toISOString().split('T')[0] : null,
                 hire_length: newBooking.days ? Number(newBooking.days) : null,
@@ -289,21 +290,23 @@ async function addBooking(newBooking) {
     }
 }
 
-// Update an existing booking
+// Update an existing booking (by id or booking_reference)
 async function updateBooking(bookingId, updates) {
     if (useSupabase && supabase) {
         try {
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('bookings')
                 .update(updates)
-                .eq('id', bookingId)
+                .eq('booking_reference', bookingId)
                 .select();
-            
             if (error) {
-                console.error('Error updating Supabase:', error);
-                return false;
+                const byId = await supabase.from('bookings').update(updates).eq('id', bookingId).select();
+                if (byId.error) {
+                    console.error('Error updating Supabase:', byId.error);
+                    return false;
+                }
+                return true;
             }
-            
             return true;
         } catch (error) {
             console.error('Error updating to Supabase:', error);

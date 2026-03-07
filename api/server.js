@@ -711,6 +711,88 @@ app.post('/send-quote-email', async (req, res) => {
     }
 });
 
+// Send "booking received" email when customer completes payment step; save booking to DB; notify admin
+app.post('/api/booking-received', async (req, res) => {
+    try {
+        const { fullName, email, phone, deliveryDate, hireLength, deliveryAddress, amountDue, bookingReference, totalCost, postcode } = req.body;
+        if (!email || !fullName) {
+            return res.status(400).json({ success: false, error: 'Missing email or fullName' });
+        }
+        const ref = bookingReference || 'KR' + Date.now().toString().slice(-6);
+        const startDate = deliveryDate ? new Date(deliveryDate + 'T12:00:00').toISOString().split('T')[0] : null;
+        const days = hireLength ? parseInt(hireLength, 10) : null;
+        const selectedDates = [];
+        if (startDate && days) {
+            for (let i = 0; i < days; i++) {
+                const d = new Date(startDate + 'T12:00:00');
+                d.setDate(d.getDate() + i);
+                selectedDates.push(d.toISOString().split('T')[0]);
+            }
+        }
+        const newBooking = {
+            id: ref,
+            name: fullName || req.body.name,
+            email,
+            phone: phone || '',
+            startDate: startDate || new Date().toISOString().split('T')[0],
+            days: days || 0,
+            deliveryAddress: deliveryAddress || '',
+            postcode: postcode || null,
+            selectedDates,
+            totalCost: totalCost != null && totalCost !== '' ? Number(totalCost) : null,
+            status: 'Awaiting deposit',
+            source: 'booking'
+        };
+        const saved = await addBooking(newBooking);
+        console.log('Booking saved to admin:', saved ? ref : 'failed');
+
+        if (transporter) {
+            const html = generateBookingReceivedEmailHTML({
+                fullName: fullName || req.body.name,
+                email,
+                phone: phone || '',
+                deliveryDate,
+                hireLength,
+                deliveryAddress: deliveryAddress || '',
+                amountDue: amountDue || '—',
+                bookingReference: ref
+            });
+            await transporter.sendMail({
+                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: `Booking received – confirm with payment (Ref: ${ref})`,
+                html
+            });
+            console.log('Booking received email sent to:', email);
+
+            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const adminHtml = generateAdminBookingNotificationHTML({
+                name: fullName || req.body.name,
+                email,
+                phone: phone || '',
+                bookingReference: ref,
+                deliveryDate: startDate,
+                hireLength: days,
+                deliveryAddress: deliveryAddress || '',
+                amountDue: amountDue || '—'
+            });
+            await transporter.sendMail({
+                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                to: adminEmail,
+                subject: `📦 New booking submitted – ${fullName || 'Customer'} (Ref: ${ref}) – Awaiting payment`,
+                html: adminHtml
+            });
+            console.log('Admin notification email sent to:', adminEmail);
+        } else {
+            console.log('Email not configured - booking received and admin emails skipped');
+        }
+        res.json({ success: true, sent: !!transporter, saved });
+    } catch (error) {
+        console.error('Error in booking-received:', error);
+        res.status(500).json({ success: false, error: 'Failed to process booking', details: error.message });
+    }
+});
+
 function generateQuoteEmailHTML(data) {
     const baseUrl = 'https://www.thekitchenrescue.co.uk';
     const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
@@ -1017,6 +1099,173 @@ function generateBusinessNotificationHTML(data) {
         <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;">Kitchen Rescue Admin Notification · <a href="https://www.thekitchenrescue.co.uk/admin" style="color:rgba(255,255,255,0.5);text-decoration:none;">View Admin →</a></p>
       </td></tr>
 
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// Email sent when customer submits "I have made the transfer" — booking not confirmed until payment received
+function generateBookingReceivedEmailHTML(data) {
+    const baseUrl = 'https://www.thekitchenrescue.co.uk';
+    const fd = (d) => { if (!d) return '—'; const dt = new Date(d + 'T12:00:00'); return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+    const ref = (data.bookingReference || 'KR-' + Date.now()).replace(/</g, '');
+    const name = (data.fullName || data.name || '').replace(/</g, '&lt;');
+    const amountDue = (data.amountDue || '—').replace(/</g, '&lt;');
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Booking received</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <tr><td style="background:#111827;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
+        <img src="${baseUrl}/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">We've received your booking</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:14px;">Reference: ${ref}</p>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:36px 40px;">
+        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
+        <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6;">Thank you for submitting your booking. <strong>This booking is not confirmed until we have received your payment.</strong></p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:18px 24px;">
+            <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:0.05em;">Important</p>
+            <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">Once we have received your payment we will send you a second email to confirm your booking is confirmed.</p>
+          </td></tr>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Your booking details</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${fd(data.deliveryDate)}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${data.hireLength || '—'}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery address</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${(data.deliveryAddress || '—').replace(/</g, '&lt;')}</td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">Pay by bank transfer</p>
+            <p style="margin:0 0 10px;color:#374151;font-size:14px;">Please transfer the amount below to secure your booking:</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #d1fae5;border-radius:8px;margin-bottom:12px;">
+              <tr><td style="padding:14px 18px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;width:140px;">Account name</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">Woodpeckers Hertfordshire Ltd</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Sort code</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">09-01-29</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Account number</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">72136964</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Amount to pay</td><td style="padding:4px 0;color:#dc2626;font-size:15px;font-weight:700;">${amountDue}</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Reference</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">${ref}</td></tr>
+                </table>
+              </td></tr>
+            </table>
+            <p style="margin:0 0 14px;color:#374151;font-size:13px;line-height:1.5;">We will send you a confirmation email once your payment has been received in our account.</p>
+          </td></tr>
+        </table>
+        <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call us on <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
+        <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
+      </td></tr>
+      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;"><a href="${baseUrl}/terms-conditions.html" style="color:rgba(255,255,255,0.7);text-decoration:none;">Terms &amp; Conditions</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function generateAdminBookingNotificationHTML(data) {
+    const baseUrl = 'https://www.thekitchenrescue.co.uk';
+    const fd = (d) => { if (!d) return '—'; const dt = new Date(d + 'T12:00:00'); return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>New booking</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+      <tr><td style="background:#dc2626;border-radius:12px 12px 0 0;padding:24px 32px;">
+        <p style="margin:0;color:rgba(255,255,255,0.9);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">New booking via website</p>
+        <h1 style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:700;">Booking submitted – ${(data.name || 'Customer').replace(/</g, '&lt;')}</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Ref: ${(data.bookingReference || '').replace(/</g, '')} · Awaiting payment</p>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:24px 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:20px;">
+          <tr><td style="padding:14px 18px;">
+            <p style="margin:0;color:#991b1b;font-size:14px;font-weight:700;">Confirm payment received, then use Admin to send the official confirmation email.</p>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;">Customer</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;">
+          <tr><td style="padding:14px 18px;">
+            <p style="margin:0 0 4px;color:#111827;font-size:15px;font-weight:700;">${(data.name || '—').replace(/</g, '&lt;')}</p>
+            <p style="margin:0 0 4px;font-size:14px;"><a href="mailto:${(data.email || '').replace(/"/g, '&quot;')}" style="color:#dc2626;text-decoration:none;">${(data.email || '—').replace(/</g, '&lt;')}</a></p>
+            ${(data.phone || '') ? `<p style="margin:0 0 4px;font-size:14px;"><a href="tel:${String(data.phone).replace(/</g, '&lt;')}" style="color:#dc2626;text-decoration:none;">${String(data.phone).replace(/</g, '&lt;')}</a></p>` : ''}
+          </td></tr>
+        </table>
+        <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;">Booking</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+          <tr><td style="padding:14px 18px;">
+            <p style="margin:0 0 6px;font-size:14px;color:#374151;">Reference: <strong>${(data.bookingReference || '—').replace(/</g, '')}</strong></p>
+            <p style="margin:0 0 6px;font-size:14px;color:#374151;">Delivery: ${fd(data.deliveryDate)} · ${data.hireLength || '—'} days</p>
+            <p style="margin:0 0 6px;font-size:14px;color:#374151;">Address: ${(data.deliveryAddress || '—').replace(/</g, '&lt;')}</p>
+            <p style="margin:0;font-size:14px;color:#374151;">Amount due: <strong>${(data.amountDue || '—').replace(/</g, '&lt;')}</strong></p>
+          </td></tr>
+        </table>
+        <p style="margin:0;font-size:14px;"><a href="${baseUrl}/admin" style="color:#dc2626;font-weight:600;text-decoration:none;">Open Admin →</a></p>
+      </td></tr>
+      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center;">
+        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;">Kitchen Rescue Admin</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function generateBookingConfirmedEmailHTML(data) {
+    const baseUrl = 'https://www.thekitchenrescue.co.uk';
+    const fd = (d) => { if (!d) return '—'; const dt = new Date((d + '').replace(/Z$/, '').replace(/T.*/, '') + 'T12:00:00'); return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+    const name = (data.name || data.fullName || '').replace(/</g, '&lt;');
+    const ref = (data.bookingReference || data.id || '').replace(/</g, '');
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Booking confirmed</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <tr><td style="background:#166534;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
+        <img src="${baseUrl}/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Booking confirmed</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.9);font-size:14px;">Payment received · Ref: ${ref}</p>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:36px 40px;">
+        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
+        <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6;">We have received your payment. Your Kitchen Pod hire is now <strong>confirmed</strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;">Your booking</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Reference</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${ref}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${fd(data.deliveryDate || data.startDate)}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${data.hireLength || data.days || '—'}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery address</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${(data.deliveryAddress || data.delivery_address || '—').replace(/</g, '&lt;')}</td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 14px;color:#374151;font-size:14px;">We will contact you 2–3 days before delivery to confirm your arrival time. Please ensure someone over 18 is present to sign for the delivery.</p>
+        <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
+        <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
+      </td></tr>
+      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;"><a href="${baseUrl}/terms-conditions.html" style="color:rgba(255,255,255,0.7);text-decoration:none;">Terms &amp; Conditions</a></p>
+      </td></tr>
     </table>
   </td></tr>
 </table>
