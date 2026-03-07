@@ -68,7 +68,11 @@ export function SendCustomQuoteModal({ open, onClose }) {
     }
     try {
       const availRes = await fetch("/api/availability");
-      const availData = availRes.ok ? await availRes.json() : { unavailable: [] };
+      if (!availRes.ok) {
+        setError("Could not verify availability. Please try again or check the calendar before sending.");
+        return;
+      }
+      const availData = await availRes.json();
       const ranges = availData.unavailable || [];
       const overlaps = dates.some((d) =>
         ranges.some((r) => d >= r.start && d <= r.end)
@@ -78,7 +82,8 @@ export function SendCustomQuoteModal({ open, onClose }) {
         return;
       }
     } catch {
-      // If availability check fails, allow send (e.g. API down)
+      setError("Could not verify availability. Please try again or check the calendar before sending.");
+      return;
     }
     setStatus("sending");
     setError("");

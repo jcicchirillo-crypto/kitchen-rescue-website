@@ -828,6 +828,31 @@ async function bookNow() {
         }, { once: true });
         return;
     }
+    try {
+        const availRes = await fetch('/api/availability');
+        const availData = availRes.ok ? await availRes.json() : { unavailable: [] };
+        const ranges = availData.unavailable || [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const blocked = new Set();
+        ranges.forEach(function(r) {
+            if (r.end < todayStr) return;
+            let cur = r.start < todayStr ? todayStr : r.start;
+            while (cur <= r.end) {
+                blocked.add(cur);
+                const d = new Date(cur + 'T00:00:00Z');
+                d.setUTCDate(d.getUTCDate() + 1);
+                cur = d.toISOString().slice(0, 10);
+            }
+        });
+        const bad = selectedDates.filter(function(d) { return blocked.has(d); });
+        if (bad.length) {
+            toast('Some of your selected dates are no longer available. Please choose different dates.', 'error');
+            return;
+        }
+    } catch (e) {
+        toast('Could not verify availability. Please try again.', 'error');
+        return;
+    }
     const days = selectedDates.length;
     const hire = days * dailyRate;
     const deliv = await getDeliveryCost();

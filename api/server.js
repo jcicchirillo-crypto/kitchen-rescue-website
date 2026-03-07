@@ -912,6 +912,7 @@ function generateQuoteEmailHTML(data) {
                   })()}
                 </table>
                 <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;">${Number(data.totalCost) === Number(data.totalCost) ? 'Subject to site check' : 'VAT at 20% will be added · Subject to site check'}</p>
+                <p style="margin:12px 0 0;color:#991b1b;font-size:14px;font-weight:600;">On top of this there is a refundable deposit of £250.00 — so you can see the actual cost to secure your booking.</p>
               </td></tr>
             </table>
           </td></tr>
