@@ -185,12 +185,16 @@
             document.getElementById('payment-form').addEventListener('submit', async function(event) {
                 event.preventDefault();
                 const submitButton = document.getElementById('submit-payment');
+                const errorEl = document.getElementById('error-message');
+                const successEl = document.getElementById('success-message');
+                errorEl.style.display = 'none';
+                successEl.style.display = 'none';
                 submitButton.disabled = true;
                 submitButton.textContent = 'Sending confirmation...';
                 const bookingReference = 'KR' + Date.now().toString().slice(-6);
                 const amountDue = document.getElementById('amountDue').textContent || amountFormatted;
                 try {
-                    await fetch('/api/booking-received', {
+                    const res = await fetch('/api/booking-received', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -206,8 +210,29 @@
                             postcode: bookingData.postcode || sessionStorage.getItem('postcode') || null
                         })
                     });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        const msg = data.error || data.details || `Server error (${res.status}). Please try again or call us on 07342 606655.`;
+                        errorEl.textContent = msg;
+                        errorEl.style.display = 'block';
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Continue to confirmation';
+                        return;
+                    }
+                    if (!data.saved) {
+                        errorEl.textContent = 'Booking could not be saved. Please call us on 07342 606655 to complete your booking.';
+                        errorEl.style.display = 'block';
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Continue to confirmation';
+                        return;
+                    }
                 } catch (e) {
-                    console.warn('Booking-received email request failed:', e);
+                    console.error('Booking-received request failed:', e);
+                    errorEl.textContent = 'Network error. Please check your connection and try again, or call us on 07342 606655.';
+                    errorEl.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Continue to confirmation';
+                    return;
                 }
                 submitButton.textContent = 'Redirecting...';
                 sessionStorage.setItem('paymentConfirmed', 'true');
