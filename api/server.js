@@ -27,6 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
+const { addLead } = require('./leads-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
 
@@ -1614,68 +1615,98 @@ app.get('/api/diagnose', authenticateAdmin, async (req, res) => {
     }
 });
 
-// Create new booking
+// Create new booking (admin panel) — must use addBooking() so Supabase insert runs
 app.post('/api/bookings', authenticateAdmin, async (req, res) => {
     try {
+        const body = req.body || {};
         const newBooking = {
-            id: `KR-${Date.now()}`,
-            ...req.body,
+            id: body.id || `KR-${Date.now()}`,
+            name: body.name || body.customer_name || 'Manual booking',
+            email: body.email || body.customer_email || '',
+            phone: body.phone || body.customer_phone || '',
+            postcode: body.postcode || null,
+            deliveryAddress: body.deliveryAddress || body.delivery_address || null,
+            startDate: body.startDate || body.delivery_date || null,
+            endDate: body.endDate || null,
+            days: body.days ?? body.hire_length ?? null,
+            selectedDates: Array.isArray(body.selectedDates) ? body.selectedDates : (Array.isArray(body.selected_dates) ? body.selected_dates : []),
+            notes: body.notes || null,
+            status: body.status || 'Awaiting deposit',
+            source: body.source || 'admin',
+            totalCost: body.totalCost ?? body.total_cost ?? null,
+            dailyCost: body.dailyCost ?? body.daily_cost ?? null,
+            deliveryCost: body.deliveryCost ?? body.delivery_cost ?? null,
+            collectionCost: body.collectionCost ?? body.collection_cost ?? null,
             createdAt: new Date().toISOString()
         };
-        
-        // Read existing bookings
-        const bookings = await getAllBookings();
-        
-        // Add new booking
-        bookings.push(newBooking);
-        
-        // Write back to file
-        await saveAllBookings(bookings);
-        
+        const saved = await addBooking(newBooking);
+        if (!saved) {
+            console.error('POST /api/bookings: addBooking failed (Supabase insert may have failed)');
+            return res.status(500).json({ error: 'Failed to create booking. Check server logs and Supabase table/RLS.' });
+        }
         res.json(newBooking);
     } catch (error) {
+        console.error('POST /api/bookings error:', error);
         res.status(500).json({ error: 'Failed to create booking' });
     }
 });
 
-// Update booking
+// Update booking (admin panel) — use updateBooking() for Supabase, else file
 app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
     try {
         const bookingId = req.params.id;
-        
-        // Read existing bookings
+        const body = req.body || {};
         const bookings = await getAllBookings();
-        
-        // Find and update booking
-        const bookingIndex = bookings.findIndex(b => b.id === bookingId);
-        if (bookingIndex === -1) {
+        const existing = bookings.find(b => b.id === bookingId);
+        if (!existing) {
             return res.status(404).json({ error: 'Booking not found' });
         }
-        
-        const oldBooking = bookings[bookingIndex];
-        const newStatus = req.body.status;
-        const oldStatus = oldBooking.status;
-        
-        bookings[bookingIndex] = { ...bookings[bookingIndex], ...req.body };
-        
-        // Write back to file
-        await saveAllBookings(bookings);
-        
-        // If status changed to confirmed, block dates (only block confirmed bookings, not quotes)
+        const oldStatus = existing.status;
+        const newStatus = body.status;
+
+        // Map admin field names to Supabase column names for updateBooking
+        const updates = {};
+        if (body.name !== undefined) updates.customer_name = body.name;
+        if (body.email !== undefined) updates.customer_email = body.email;
+        if (body.phone !== undefined) updates.customer_phone = body.phone;
+        if (body.deliveryAddress !== undefined) updates.delivery_address = body.deliveryAddress;
+        if (body.postcode !== undefined) updates.postcode = body.postcode;
+        if (body.startDate !== undefined) updates.delivery_date = body.startDate ? new Date(body.startDate).toISOString().split('T')[0] : null;
+        if (body.days !== undefined) updates.hire_length = body.days;
+        if (body.selectedDates !== undefined) updates.selected_dates = body.selectedDates;
+        if (body.notes !== undefined) updates.notes = body.notes;
+        if (body.status !== undefined) updates.status = body.status;
+        if (body.source !== undefined) updates.source = body.source;
+        if (body.totalCost !== undefined) updates.total_cost = body.totalCost;
+        if (body.dailyCost !== undefined) updates.daily_cost = body.dailyCost;
+        if (body.deliveryCost !== undefined) updates.delivery_cost = body.deliveryCost;
+        if (body.collectionCost !== undefined) updates.collection_cost = body.collectionCost;
+
+        const hasUpdates = Object.keys(updates).length > 0;
+        if (hasUpdates) {
+            const ok = await updateBooking(bookingId, updates);
+            if (!ok) {
+                console.error('PUT /api/bookings/:id: updateBooking failed');
+                return res.status(500).json({ error: 'Failed to update booking in database.' });
+            }
+        }
+
         if (newStatus && newStatus !== oldStatus) {
             const confirmedStatuses = ['confirmed', 'Confirmed', 'Deposit Paid', 'deposit paid'];
-            if (confirmedStatuses.includes(newStatus) && oldBooking.startDate && oldBooking.days) {
-                // Block dates only when status changes to confirmed
+            if (confirmedStatuses.includes(newStatus) && (existing.startDate || existing.delivery_date) && (existing.days || existing.hire_length)) {
                 const bookingData = {
-                    deliveryDate: oldBooking.startDate,
-                    hireLength: oldBooking.days
+                    deliveryDate: existing.startDate || existing.delivery_date,
+                    hireLength: existing.days ?? existing.hire_length
                 };
                 await blockAvailabilityDates(bookingData, newStatus);
             }
         }
-        
-        res.json(bookings[bookingIndex]);
+
+        const updatedList = await getAllBookings();
+        const updated = updatedList.find(b => b.id === bookingId);
+        res.json(updated || { ...existing, ...body });
     } catch (error) {
+        console.error('PUT /api/bookings error:', error);
         res.status(500).json({ error: 'Failed to update booking' });
     }
 });
@@ -2085,32 +2116,17 @@ app.post('/api/quote/calculate', async (req, res) => {
             days
         };
         
-        // Save quote calculation to admin (even if they don't email it)
+        // Save quote calculation as a lead (not in bookings — trade quotes go to leads table)
         try {
-            const bookingId = `trade-quote-calc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-            const calculationBooking = {
-                id: bookingId,
+            await addLead({
                 name: `Quote Request - ${postcode}`,
                 email: `quote-${postcode.replace(/\s+/g, '').toLowerCase()}@temp.local`,
-                postcode: postcode || '',
-                phone: '',
-                source: 'trade-quote-calculated',
-                status: 'Quote Calculated',
-                totalCost: total,
-                dailyCost: 70,
-                deliveryCost: individualDeliveryCost,
-                collectionCost: individualDeliveryCost,
-                days: days,
-                notes: `Quote calculated for ${weeks} week(s).${startDate ? ` Start date: ${startDate}.` : ''}`,
-                timestamp: new Date().toISOString(),
-                createdAt: new Date().toISOString()
-            };
-            
-            await addBooking(calculationBooking);
-            console.log('✅ Quote calculation saved to admin:', postcode, weeks, 'weeks');
+                phone: null,
+                source: 'trade-quote-calculated'
+            });
+            console.log('✅ Quote calculation saved to leads:', postcode, weeks, 'weeks');
         } catch (saveErr) {
-            console.error('⚠️ Error saving quote calculation to admin:', saveErr);
-            // Don't fail the request if saving fails
+            console.error('⚠️ Error saving quote calculation to leads:', saveErr);
         }
         
         res.json(quoteResult);
@@ -2152,33 +2168,18 @@ app.post('/api/quote/send', async (req, res) => {
 
     // PDF generation removed - builders can add their own uplift to quotes
 
-    // --- Save builder info to admin area
+    // --- Save builder as lead (trade quotes go to leads table, not bookings)
     try {
-      console.log('💾 Saving trade quote to admin...');
-      const bookingId = `trade-quote-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const tradeQuoteBooking = {
-        id: bookingId,
+      console.log('💾 Saving trade quote to leads...');
+      await addLead({
         name: builderName || 'Trade Partner',
         email: builderEmail,
-        postcode: postcode || '',
         phone: '',
-        source: 'trade-quote',
-        status: 'Trade Quote Request',
-        totalCost: quote.total,
-        dailyCost: quote.basePrice / (weeks * 7),
-        deliveryCost: quote.deliveryPrice / 2,
-        collectionCost: quote.deliveryPrice / 2,
-        days: weeks * 7,
-        notes: `Quote requested from trade quote builder. Duration: ${weeks} week(s).${startDate ? ` Start date: ${startDate}.` : ''}${referralCode ? ` Referral code: ${referralCode}` : ''}`,
-        timestamp: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      };
-      
-      await addBooking(tradeQuoteBooking);
-      console.log('✅ Trade quote builder info saved to admin:', builderEmail);
+        source: 'trade-quote'
+      });
+      console.log('✅ Trade quote builder saved to leads:', builderEmail);
     } catch (saveErr) {
-      console.error('❌ Error saving trade quote builder info:', saveErr);
-      // Don't fail the request if saving fails
+      console.error('❌ Error saving trade quote to leads:', saveErr);
     }
 
     // --- Email HTML (no clickable referral link to avoid NOT_FOUND)
