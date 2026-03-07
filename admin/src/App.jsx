@@ -334,6 +334,15 @@ function KitchenRescueAdmin() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/> Calendar</CardTitle>
               <CardDescription>Month view of bookings. Click a booking to view details.</CardDescription>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <Button variant="outline" size="icon" onClick={() => setMonth(subMonths(month, 1))} aria-label="Previous month">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[140px] text-center font-medium text-slate-700">{format(month, "MMMM yyyy")}</span>
+                <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(month, 1))} aria-label="Next month">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <MonthCalendar month={month} bookings={filtered} onSelectBooking={setSelectedId} />
