@@ -810,22 +810,61 @@ function generateQuoteEmailHTML(data) {
           </td></tr>
           <tr><td align="center" style="padding:0;">
             <p style="margin:12px 0 0;color:#9ca3af;font-size:13px;">🔒 No card required &nbsp;·&nbsp; ✅ Free cancellation &nbsp;·&nbsp; 📞 We call to confirm</p>
+            <p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">By booking you agree to our <a href="${baseUrl}/terms-conditions.html" style="color:#dc2626;text-decoration:underline;">Terms &amp; Conditions</a></p>
           </td></tr>
         </table>
 
-        <!-- How to book -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:28px;">
+        <!-- Payment instructions -->
+        ${(() => {
+          const startDate = new Date((data.startDate || '') + 'T00:00:00Z');
+          const daysUntil = Math.ceil((startDate - new Date()) / 86400000);
+          const isUrgent  = daysUntil <= 7;
+          const depositAmt = isUrgent
+            ? (data.totalCost === 'TBC' ? 'full hire cost (TBC)' : `£${Number(data.totalCost).toFixed(2)} + VAT`)
+            : '£250.00';
+          const depositNote = isUrgent
+            ? 'As your delivery is within 7 days, full payment is required to confirm your booking.'
+            : 'This is a refundable security deposit, returned within 5 working days of collection provided the pod is undamaged.';
+          return `
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:20px;">
           <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">How to secure your booking</p>
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">💳 How to secure your booking</p>
+            <p style="margin:0 0 10px;color:#374151;font-size:14px;line-height:1.6;">To confirm your dates, please transfer your deposit by bank transfer:</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #d1fae5;border-radius:8px;margin-bottom:12px;">
+              <tr><td style="padding:14px 18px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:4px 0;color:#6b7280;font-size:13px;width:140px;">Account name</td>
+                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">Woodpeckers Hertfordshire Ltd</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Sort code</td>
+                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">09-01-29</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Account number</td>
+                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">72136964</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Amount to pay</td>
+                    <td style="padding:4px 0;color:#dc2626;font-size:15px;font-weight:700;">${depositAmt}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Reference</td>
+                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">KR-${(data.name||'').split(' ')[0].toUpperCase()}-${(data.startDate||'').replace(/-/g,'').slice(4)}</td>
+                  </tr>
+                </table>
+              </td></tr>
+            </table>
+            <p style="margin:0 0 14px;color:#374151;font-size:13px;line-height:1.5;">ℹ️ ${depositNote}</p>
             <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="padding:5px 0;color:#374151;font-size:14px;">1. Click Book Now above</td>
-              </tr>
-              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">2. Complete our quick site checklist</td></tr>
-              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">3. Pay your £250 refundable deposit</td></tr>
+              <tr><td style="padding:4px 0;color:#374151;font-size:14px;">1. Transfer the amount above using the reference shown</td></tr>
+              <tr><td style="padding:4px 0;color:#374151;font-size:14px;">2. Click <strong>Book Now</strong> above and complete the site checklist</td></tr>
+              <tr><td style="padding:4px 0;color:#374151;font-size:14px;">3. We'll confirm your booking once payment is received</td></tr>
             </table>
           </td></tr>
-        </table>
+        </table>`;
+        })()}
 
         ${data.notes ? `<p style="margin:0 0 24px;color:#6b7280;font-size:14px;background:#f9fafb;border-left:3px solid #dc2626;padding:12px 16px;border-radius:0 8px 8px 0;"><strong>Your notes:</strong> ${data.notes}</p>` : ''}
 

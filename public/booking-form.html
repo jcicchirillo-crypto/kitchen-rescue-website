@@ -155,6 +155,20 @@
         </div>
     </div>
 
+    <div class="form-card" style="background:#f9fafb;border:1px solid #e5e7eb;">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+            <input type="checkbox" id="tcCheck" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:#dc2626;cursor:pointer;">
+            <label for="tcCheck" style="font-size:0.9rem;color:#374151;line-height:1.6;cursor:pointer;">
+                I have read and agree to the
+                <a href="terms-conditions.html" target="_blank" style="color:#dc2626;text-decoration:underline;font-weight:600;">Terms &amp; Conditions</a>
+                of hire, including the £250 refundable security deposit and cancellation policy.
+            </label>
+        </div>
+        <div id="tcErr" style="color:#dc2626;font-size:0.82rem;margin-top:8px;margin-left:32px;display:none;">
+            Please read and accept the Terms &amp; Conditions to continue.
+        </div>
+    </div>
+
     <div class="actions">
         <a href="booking-checklist.html" id="backBtn" class="btn-back">← Back</a>
         <button id="continueBtn" class="btn-cont">Continue to payment →</button>
@@ -227,6 +241,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('continueBtn').addEventListener('click', function() {
+        const tcCheck = document.getElementById('tcCheck');
+        const tcErr   = document.getElementById('tcErr');
+        if (!tcCheck.checked) {
+            tcErr.style.display = 'block';
+            tcCheck.focus();
+            if (!validate()) return;
+            return;
+        }
+        tcErr.style.display = 'none';
         if (!validate()) return;
         const formData = {
             fullName:        document.getElementById('fullName').value.trim(),
