@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -203,6 +203,7 @@ function KitchenRescueAdmin() {
   const [selectedToDelete, setSelectedToDelete] = useState([]);
   const [deletingIds, setDeletingIds] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const toggleDelete = (id) => {
     setSelectedToDelete((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -684,7 +685,7 @@ function KitchenRescueAdmin() {
                   <span className="text-slate-500">Created</span><span>{selectedBooking.createdAt || selectedBooking.timestamp ? format(new Date(selectedBooking.createdAt || selectedBooking.timestamp), "d MMM yyyy HH:mm") : '—'}</span>
                   {selectedBooking.notes && (<><span className="text-slate-500">Notes</span><span className="break-words">{selectedBooking.notes}</span></>)}
                 </div>
-                <div className="pt-3 border-t">
+                <div className="pt-3 border-t flex flex-wrap items-center gap-2">
                   <a
                     href={`/delivery-check?name=${encodeURIComponent(selectedBooking.name || '')}&address=${encodeURIComponent(selectedBooking.deliveryAddress || '')}`}
                     target="_blank"
@@ -694,7 +695,22 @@ function KitchenRescueAdmin() {
                     <ClipboardCheck className="h-4 w-4" />
                     Open delivery checklist
                   </a>
-                  <p className="text-xs text-slate-500 mt-1">Opens in new tab with customer details pre-filled</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = `${window.location.origin}/delivery-check?name=${encodeURIComponent(selectedBooking.name || '')}&address=${encodeURIComponent(selectedBooking.deliveryAddress || '')}`;
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      } catch {}
+                    }}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition-colors"
+                  >
+                    <Copy className="h-4 w-4" />
+                    {linkCopied ? 'Copied!' : 'Copy link for WhatsApp'}
+                  </button>
+                  <p className="text-xs text-slate-500 w-full">Share with driver – opens in new tab or paste in WhatsApp</p>
                 </div>
               </CardContent>
             </Card>
