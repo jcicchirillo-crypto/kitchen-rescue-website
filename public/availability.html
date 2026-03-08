@@ -398,8 +398,16 @@ const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2
 let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDates = [];
 let selectionStart = null; // ISO string of first-click while picking end date
-let dailyRate = 70; // overridden by ?rate= URL param
+let dailyRate = 70; // tiered by default; overridden by ?rate= URL param for custom quotes
+let urlOverrideRate = null; // when ?rate= is set (e.g. admin custom quote), use this instead of tiered
 let fixedDeliveryCost = null; // overridden by ?delivery= URL param
+
+function getDailyRateForDays(days) {
+    if (days >= 28) return 45;  // 4+ weeks
+    if (days >= 21) return 50;   // 3 weeks
+    if (days >= 14) return 60;  // 2 weeks
+    return 70;                   // 1 week (7–13 days)
+}
 let availabilityData = { unavailable: [] };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -413,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bannerParts = [];
     if (urlRate && urlRate > 0 && urlRate < 500) {
+        urlOverrideRate = urlRate;
         dailyRate = urlRate;
         bannerParts.push(`£${dailyRate}/day hire rate`);
     }
@@ -688,10 +697,16 @@ async function updateQuotePanel() {
     const start = new Date(selectedDates[0] + 'T12:00:00');
     const end   = new Date(selectedDates[selectedDates.length - 1] + 'T12:00:00');
     const days  = selectedDates.length;
-    const hire  = days * dailyRate;
+    const effectiveRate = urlOverrideRate ?? getDailyRateForDays(days);
+    dailyRate = effectiveRate; // for bookNow, handleEmailSubmit
+    const hire  = days * effectiveRate;
     const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     const pcValue = document.getElementById('postcodeInput').value.toUpperCase().trim();
     const hasPostcode = !!pcValue;
+
+    const hireRowHtml = effectiveRate < 70
+        ? `Hire (${days} × <s style="color:#9ca3af;">£70</s> <strong style="color:#166534;">£${effectiveRate}</strong>/day)`
+        : `Hire (${days} × £${effectiveRate}/day)`;
 
     // Show a loading state while the postcode lookup runs
     if (hasPostcode) {
@@ -699,7 +714,7 @@ async function updateQuotePanel() {
             <div class="quote-row"><span class="ql">Delivery date</span><span class="qv">${fd(start)}</span></div>
             <div class="quote-row"><span class="ql">Collection date</span><span class="qv">${fd(end)}</span></div>
             <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
-            <div class="quote-row"><span class="ql">Hire (${days} × £${dailyRate}/day)</span><span class="qv">£${hire}</span></div>
+            <div class="quote-row"><span class="ql">${hireRowHtml}</span><span class="qv">£${hire}</span></div>
             <div class="quote-row"><span class="ql" style="color:#9ca3af;font-style:italic;">Calculating delivery…</span><span class="qv" style="color:#9ca3af;">⏳</span></div>`;
     }
 
@@ -755,7 +770,7 @@ async function updateQuotePanel() {
         <div class="quote-row"><span class="ql">Delivery date</span><span class="qv">${fd(start)}</span></div>
         <div class="quote-row"><span class="ql">Collection date</span><span class="qv">${fd(end)}</span></div>
         <div class="quote-row"><span class="ql">Duration</span><span class="qv">${days} days</span></div>
-        <div class="quote-row"><span class="ql">Hire (${days} × £${dailyRate}/day)</span><span class="qv">£${hire}</span></div>
+        <div class="quote-row"><span class="ql">${hireRowHtml}</span><span class="qv">£${hire}</span></div>
         ${deliveryRows}
         ${hasPostcode
             ? `<button class="btn-book" onclick="bookNow()">📅 Book Now</button>
@@ -873,7 +888,7 @@ async function bookNow() {
     sessionStorage.setItem('quoteTotal', String(total));
     sessionStorage.setItem('quoteStartDate', selectedDates[0]);
     const p = new URLSearchParams({ dates: selectedDates.join(','), postcode: pc });
-    if (dailyRate !== 70) p.set('rate', dailyRate);
+    p.set('rate', dailyRate); // always pass rate (tiered or custom)
     if (fixedDeliveryCost !== null) p.set('delivery', fixedDeliveryCost);
     window.location.href = `booking-checklist.html?${p}`;
 }

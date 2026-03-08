@@ -210,7 +210,7 @@ document.getElementById('continueBtn').addEventListener('click', function() {
     if (this.disabled) return;
     sessionStorage.setItem('checklistCompleted', 'true');
     const p = new URLSearchParams({ dates: datesParam, postcode });
-    if (dailyRate !== 70)         p.set('rate',     dailyRate);
+    p.set('rate', dailyRate); // always pass (tiered: 70/60/50/45)
     if (fixedDelivery !== null)   p.set('delivery', fixedDelivery);
     window.location.href = `booking-form.html?${p}`;
 });

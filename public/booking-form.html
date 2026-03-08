@@ -230,8 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('deliveryDate').value  = fd(start);
                 document.getElementById('hireLength').value    = `${days} days`;
                 document.getElementById('postcode').value      = postcode || '';
-                let backHref = `booking-checklist.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}`;
-                if (dailyRate !== 70) backHref += '&rate=' + dailyRate;
+                let backHref = `booking-checklist.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}&rate=${dailyRate}`;
                 if (fixedDelivery != null) backHref += '&delivery=' + fixedDelivery;
                 document.getElementById('backBtn').href = backHref;
             }

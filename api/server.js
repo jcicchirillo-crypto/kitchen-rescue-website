@@ -592,16 +592,49 @@ app.post('/request-quote', async (req, res) => {
     }
 });
 
-// Send quote email
+// Send quote email (or lead notification only)
 app.post('/send-quote-email', async (req, res) => {
     try {
-        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost } = req.body;
+        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type } = req.body;
         
-        console.log('Quote email request received for:', email);
+        const isLeadOnly = type === 'new_lead' || !selectedDates?.length;
+        
+        console.log('Quote/lead request received for:', email, isLeadOnly ? '(lead only — admin notification)' : '(full quote)');
         console.log('Transporter exists:', !!transporter);
         console.log('EMAIL_USER set:', !!process.env.EMAIL_USER);
         console.log('EMAIL_PASS set:', !!process.env.EMAIL_PASS);
         
+        // Lead gate: only notify admin, no customer email
+        if (isLeadOnly) {
+            if (!transporter) {
+                console.log('Email not configured — lead saved to Supabase only');
+                return res.json({ success: true, message: 'Thanks! You can now check availability.' });
+            }
+            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const leadSubject = req.body.subject || `New lead: ${name || 'Unknown'} — ${phone || 'no phone'}`;
+            const leadHtml = `
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#dc2626;">New availability check lead</h2>
+                    <p><strong>Name:</strong> ${(name || '—').replace(/</g, '&lt;')}</p>
+                    <p><strong>Email:</strong> ${(email || '—').replace(/</g, '&lt;')}</p>
+                    <p><strong>Phone:</strong> ${(phone || '—').replace(/</g, '&lt;')}</p>
+                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They filled in the form to access the availability calendar. No quote sent — follow up when they request one.</p>
+                </div>`;
+            try {
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: adminEmail,
+                    subject: leadSubject,
+                    html: leadHtml
+                });
+                console.log('Lead notification sent to admin:', adminEmail);
+            } catch (err) {
+                console.error('Error sending lead notification:', err.message);
+            }
+            return res.json({ success: true, message: 'Thanks! You can now check availability.' });
+        }
+        
+        // Full quote request: send quote to customer AND notify admin
         // Check if email is configured
         if (!transporter) {
             console.log('Email not configured - storing quote request for manual follow-up');
@@ -1019,7 +1052,7 @@ function generateQuoteEmailHTML(data) {
         ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
         <div class="price-breakdown">
           <div class="pb-row">
-            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × £${dailyRate}/day</span>
+            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 70 ? `<s style="color:#999">£70</s> <strong style="color:#86efac">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
             <span>${money(hireCost)}</span>
           </div>
           <div class="pb-row">
@@ -2193,10 +2226,11 @@ app.post('/api/quote/calculate', async (req, res) => {
 
         const individualDeliveryCost = Math.max(75, Math.round(estimatedMiles) * 2);
         const deliveryPrice = individualDeliveryCost * 2; // delivery + collection
-        
-        // Calculate base hire cost (£70/day or weekly rate)
+
+        // Tiered daily rate: 1wk £70, 2wk £60, 3wk £50, 4+wk £45
         const days = weeks * 7;
-        const basePrice = days * 70;
+        const dailyRate = days >= 28 ? 45 : days >= 21 ? 50 : days >= 14 ? 60 : 70;
+        const basePrice = days * dailyRate;
         
         // Calculate total
         const total = basePrice + deliveryPrice;

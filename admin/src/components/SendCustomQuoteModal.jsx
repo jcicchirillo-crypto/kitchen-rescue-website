@@ -21,6 +21,13 @@ function buildDateRange(start, end) {
   return dates;
 }
 
+function getDailyRateForDays(days) {
+  if (days >= 28) return 45;
+  if (days >= 21) return 50;
+  if (days >= 14) return 60;
+  return 70;
+}
+
 const EMPTY = {
   name: "",
   email: "",
@@ -47,6 +54,16 @@ export function SendCustomQuoteModal({ open, onClose }) {
       setError("");
     }
   }, [open]);
+
+  // Auto-apply tiered rate when dates change
+  useEffect(() => {
+    if (!form.startDate || !form.endDate) return;
+    const dates = buildDateRange(form.startDate, form.endDate);
+    if (dates.length >= 7) {
+      const tiered = getDailyRateForDays(dates.length);
+      setForm((f) => ({ ...f, dailyRate: tiered }));
+    }
+  }, [form.startDate, form.endDate]);
 
   // Auto-calculate delivery cost from postcode when postcode changes
   useEffect(() => {
@@ -77,7 +94,9 @@ export function SendCustomQuoteModal({ open, onClose }) {
 
   const dates = buildDateRange(form.startDate, form.endDate);
   const days = dates.length;
-  const dailyCost = days * Number(form.dailyRate || 0);
+  const tieredRate = getDailyRateForDays(days);
+  const effectiveRate = Number(form.dailyRate) || tieredRate;
+  const dailyCost = days * effectiveRate;
   const delivCost = Number(form.deliveryCost || 0);
   const collCost = Number(form.collectionCost || 0);
   const totalCost = dailyCost + delivCost + collCost;
@@ -124,7 +143,7 @@ export function SendCustomQuoteModal({ open, onClose }) {
         startDate: form.startDate,
         endDate: form.endDate,
         days,
-        dailyRate: Number(form.dailyRate),
+        dailyRate: effectiveRate,
         dailyCost,
         deliveryCost: delivCost,
         collectionCost: collCost,
@@ -300,7 +319,7 @@ export function SendCustomQuoteModal({ open, onClose }) {
                     onChange={set("dailyRate")}
                     className="mt-1"
                   />
-                  <p className="text-xs text-slate-400 mt-1">Standard £70</p>
+                  <p className="text-xs text-slate-400 mt-1">Tiered: 1wk £70, 2wk £60, 3wk £50, 4+wk £45</p>
                 </div>
                 <div>
                   <Label htmlFor="cq-delivery">Delivery (£)</Label>
