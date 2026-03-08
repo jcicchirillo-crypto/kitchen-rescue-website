@@ -705,7 +705,7 @@ async function updateQuotePanel() {
     const hasPostcode = !!pcValue;
 
     const hireRowHtml = effectiveRate < 70
-        ? `Hire (${days} × <s style="color:#9ca3af;">£70</s> <strong style="color:#166534;">£${effectiveRate}</strong>/day)`
+        ? `Hire (${days} × <s style="color:#dc2626;">£70</s> <strong style="color:#166534;">£${effectiveRate}</strong>/day)`
         : `Hire (${days} × £${effectiveRate}/day)`;
 
     // Show a loading state while the postcode lookup runs
