@@ -87,8 +87,12 @@ function MonthCalendar({
     return { startStr: startStr || null, endStr: endStr || null };
   };
 
+  const isConfirmedStatus = (s) => {
+    const v = (s || "").toLowerCase();
+    return v === "confirmed" || v === "deposit paid";
+  };
   const bookingInRange = (b, day) => {
-    if (b.status !== "Confirmed") return false;
+    if (!isConfirmedStatus(b.status)) return false;
     const { startStr, endStr } = getBookingRange(b);
     if (!startStr || !endStr) return false;
     const dayStr = format(startOfDay(day), "yyyy-MM-dd");

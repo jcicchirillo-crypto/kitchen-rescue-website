@@ -1828,7 +1828,11 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
             subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
             html
         });
-        await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
+        const updated = await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
+        if (!updated) {
+            console.error('Failed to update booking status to Confirmed for:', bookingId);
+            return res.status(500).json({ success: false, error: 'Confirmation email sent but failed to update booking status. Please refresh and try again.' });
+        }
         console.log('Booking confirmation email sent to:', booking.email, 'Ref:', bookingId);
         res.json({ success: true, message: 'Confirmation email sent', email: booking.email });
     } catch (error) {

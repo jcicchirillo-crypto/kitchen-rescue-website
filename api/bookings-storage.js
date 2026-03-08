@@ -326,17 +326,24 @@ async function addBooking(newBooking) {
     }
 }
 
-// Update an existing booking (bookingId is booking_reference from admin list)
+// Update an existing booking (bookingId can be booking_reference or id from admin list)
 async function updateBooking(bookingId, updates) {
     if (useSupabase && supabase) {
         try {
-            const { error } = await supabase
+            // Match on either booking_reference or id (handles both schema variants)
+            const escaped = String(bookingId).replace(/\\/g, '\\\\').replace(/"/g, '""');
+            const orFilter = `booking_reference.eq."${escaped}",id.eq."${escaped}"`;
+            const { data, error } = await supabase
                 .from('bookings')
                 .update(updates)
-                .eq('booking_reference', bookingId)
+                .or(orFilter)
                 .select();
             if (error) {
                 console.error('Error updating Supabase:', error);
+                return false;
+            }
+            if (!data || data.length === 0) {
+                console.error('updateBooking: no rows matched for id:', bookingId, '(check if booking_reference or id column exists)');
                 return false;
             }
             return true;
@@ -356,14 +363,16 @@ async function updateBooking(bookingId, updates) {
     }
 }
 
-// Delete a booking (bookingId is booking_reference from admin list)
+// Delete a booking (bookingId can be booking_reference or id from admin list)
 async function deleteBooking(bookingId) {
     if (useSupabase && supabase) {
         try {
+            const escaped = String(bookingId).replace(/\\/g, '\\\\').replace(/"/g, '""');
+            const orFilter = `booking_reference.eq."${escaped}",id.eq."${escaped}"`;
             const { error } = await supabase
                 .from('bookings')
                 .delete()
-                .eq('booking_reference', bookingId);
+                .or(orFilter);
             
             if (error) {
                 console.error('Error deleting from Supabase:', error);
