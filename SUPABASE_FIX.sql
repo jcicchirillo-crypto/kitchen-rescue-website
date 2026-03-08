@@ -1,7 +1,8 @@
 -- Fix for Supabase bookings table
--- Add missing collectionCost column
+-- Add missing columns as needed
 
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS collectionCost DECIMAL;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS confirmation_email_sent_at TIMESTAMPTZ;
 
 -- If table doesn't exist yet, use this full schema:
 

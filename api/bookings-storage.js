@@ -168,6 +168,7 @@ async function getAllBookings() {
                     status: booking.status || 'Awaiting deposit',
                     source: booking.source || 'quote',
                     pod: booking.pod || '16ft Pod',
+                    confirmation_email_sent_at: booking.confirmation_email_sent_at || booking.confirmationEmailSentAt || null,
                     createdAt: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString(),
                     timestamp: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString()
                 };
@@ -330,23 +331,30 @@ async function addBooking(newBooking) {
 async function updateBooking(bookingId, updates) {
     if (useSupabase && supabase) {
         try {
-            // Match on either booking_reference or id (handles both schema variants)
-            const escaped = String(bookingId).replace(/\\/g, '\\\\').replace(/"/g, '""');
-            const orFilter = `booking_reference.eq."${escaped}",id.eq."${escaped}"`;
-            const { data, error } = await supabase
+            // Try booking_reference first (snake_case schema), then id (camelCase schema)
+            let { data, error } = await supabase
                 .from('bookings')
                 .update(updates)
-                .or(orFilter)
+                .eq('booking_reference', bookingId)
                 .select();
             if (error) {
-                console.error('Error updating Supabase:', error);
+                console.error('Error updating Supabase (booking_reference):', error);
                 return false;
             }
-            if (!data || data.length === 0) {
-                console.error('updateBooking: no rows matched for id:', bookingId, '(check if booking_reference or id column exists)');
+            if (data && data.length > 0) return true;
+            // No match on booking_reference - try id (e.g. tables without booking_reference)
+            const res2 = await supabase
+                .from('bookings')
+                .update(updates)
+                .eq('id', bookingId)
+                .select();
+            if (res2.error) {
+                console.error('Error updating Supabase (id):', res2.error);
                 return false;
             }
-            return true;
+            if (res2.data && res2.data.length > 0) return true;
+            console.error('updateBooking: no rows matched for id:', bookingId);
+            return false;
         } catch (error) {
             console.error('Error updating to Supabase:', error);
             return false;
@@ -367,12 +375,20 @@ async function updateBooking(bookingId, updates) {
 async function deleteBooking(bookingId) {
     if (useSupabase && supabase) {
         try {
-            const escaped = String(bookingId).replace(/\\/g, '\\\\').replace(/"/g, '""');
-            const orFilter = `booking_reference.eq."${escaped}",id.eq."${escaped}"`;
-            const { error } = await supabase
+            // Try booking_reference first, then id (handles both schema variants)
+            let { error } = await supabase
                 .from('bookings')
                 .delete()
-                .or(orFilter);
+                .eq('booking_reference', bookingId);
+            if (error) {
+                console.error('Error deleting from Supabase (booking_reference):', error);
+                return false;
+            }
+            // Also try by id in case table uses id as primary identifier
+            ({ error } = await supabase
+                .from('bookings')
+                .delete()
+                .eq('id', bookingId));
             
             if (error) {
                 console.error('Error deleting from Supabase:', error);

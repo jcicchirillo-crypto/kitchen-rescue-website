@@ -1807,34 +1807,53 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
         if (!booking || !booking.email) {
             return res.status(404).json({ success: false, error: 'Booking not found or no email' });
         }
-        if (!transporter) {
-            return res.status(503).json({ success: false, error: 'Email not configured' });
+
+        const alreadySent = !!(booking.confirmation_email_sent_at || booking.confirmationEmailSentAt);
+
+        if (!alreadySent) {
+            if (!transporter) {
+                return res.status(503).json({ success: false, error: 'Email not configured' });
+            }
+            const html = generateBookingConfirmedEmailHTML({
+                name: booking.name,
+                fullName: booking.name,
+                email: booking.email,
+                bookingReference: booking.id,
+                id: booking.id,
+                deliveryDate: booking.startDate || booking.delivery_date,
+                startDate: booking.startDate,
+                hireLength: booking.days || booking.hire_length,
+                days: booking.days,
+                deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
+            });
+            await transporter.sendMail({
+                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                to: booking.email,
+                subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
+                html
+            });
         }
-        const html = generateBookingConfirmedEmailHTML({
-            name: booking.name,
-            fullName: booking.name,
-            email: booking.email,
-            bookingReference: booking.id,
-            id: booking.id,
-            deliveryDate: booking.startDate || booking.delivery_date,
-            startDate: booking.startDate,
-            hireLength: booking.days || booking.hire_length,
-            days: booking.days,
-            deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
-        });
-        await transporter.sendMail({
-            from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
-            to: booking.email,
-            subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
-            html
-        });
-        const updated = await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
+
+        const updates = { status: 'Confirmed', source: 'booking' };
+        if (!alreadySent) {
+            updates.confirmation_email_sent_at = new Date().toISOString();
+        }
+        let updated = await updateBooking(bookingId, updates);
+        if (!updated && Object.keys(updates).length > 2) {
+            // Retry without confirmation_email_sent_at if column may not exist yet
+            updated = await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
+        }
         if (!updated) {
             console.error('Failed to update booking status to Confirmed for:', bookingId);
-            return res.status(500).json({ success: false, error: 'Confirmation email sent but failed to update booking status. Please refresh and try again.' });
+            return res.status(500).json({ success: false, error: alreadySent ? 'Failed to update booking status. Please refresh and try again.' : 'Confirmation email sent but failed to update booking status. Please refresh and try again.' });
         }
-        console.log('Booking confirmation email sent to:', booking.email, 'Ref:', bookingId);
-        res.json({ success: true, message: 'Confirmation email sent', email: booking.email });
+        if (alreadySent) {
+            console.log('Booking status updated (email already sent):', bookingId);
+            res.json({ success: true, message: 'Status updated', email: booking.email });
+        } else {
+            console.log('Booking confirmation email sent to:', booking.email, 'Ref:', bookingId);
+            res.json({ success: true, message: 'Confirmation email sent', email: booking.email });
+        }
     } catch (error) {
         console.error('Error sending booking confirmation:', error);
         res.status(500).json({ success: false, error: error.message });
