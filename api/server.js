@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead } = require('./leads-storage');
+const { addLead, getAllLeads } = require('./leads-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
 
@@ -859,188 +859,216 @@ app.post('/api/booking-received', async (req, res) => {
 
 function generateQuoteEmailHTML(data) {
     const baseUrl = 'https://www.thekitchenrescue.co.uk';
-    const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
-    const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
+    const money = (n) => {
+        if (n === 'TBC' || n === null || n === undefined) return 'TBC';
+        const num = Number(n);
+        return isNaN(num) ? 'TBC' : `£${num.toFixed(2)}`;
+    };
+    const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+
+    // Friendly greeting (e.g. "Mrs Jay" or "John" from "John Smith")
+    const firstName = (data.name || '').trim() || 'there';
+    const days = Number(data.days) || 0;
+    const dailyRate = Number(data.dailyRate) || 70;
+    const hireCost = Number(data.dailyCost) || (days * dailyRate);
+    const delivNum = Number(data.deliveryCost);
+    const collNum = Number(data.collectionCost);
+    const delivColl = (!isNaN(delivNum) ? delivNum : 0) + (!isNaN(collNum) ? collNum : 0);
+    const delivCollIsTBC = (data.deliveryCost === 'TBC' || data.collectionCost === 'TBC' || (isNaN(delivNum) && data.deliveryCost) || (isNaN(collNum) && data.collectionCost));
+    const totalExVat = Number(data.totalCost);
+    const hasNumericTotal = !isNaN(totalExVat) && totalExVat > 0;
+    const vatAmt = hasNumericTotal ? totalExVat * 0.2 : 0;
+    const totalIncVat = hasNumericTotal ? totalExVat * 1.2 : 0;
+    const dailyEquivalent = hasNumericTotal && days > 0 ? totalIncVat / days : 0;
+
+    const ctaUrl = `${baseUrl}/availability.html?dates=${(data.selectedDates || []).join(',')}&postcode=${encodeURIComponent(data.postcode || '')}&skipgate=true${dailyRate !== 70 ? '&rate=' + dailyRate : ''}${delivColl > 0 ? '&delivery=' + delivColl : ''}`;
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Your Kitchen Pod Quote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Kitchen Rescue Quote — ${firstName}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #e8e8e8; font-family: 'DM Sans', sans-serif; color: #1e293b; padding: 40px 20px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 560px; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.18); }
+  .header { background: #000; padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; }
+  .logo-the { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: #dc2626; margin-bottom: 3px; font-weight: 500; }
+  .logo-name { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 600; color: #fff; line-height: 1; }
+  .logo-tag { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #999; margin-top: 5px; }
+  .header-tag { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 20px; }
+  .hero { background: #dc2626; padding: 36px 40px 32px; }
+  .hero-name { font-size: 13px; color: #fff; margin-bottom: 10px; font-weight: 400; }
+  .hero-headline { font-family: 'Playfair Display', serif; font-size: 27px; font-weight: 600; color: #fff; line-height: 1.25; margin-bottom: 14px; }
+  .hero-sub { font-size: 15px; color: #fff; line-height: 1.65; font-weight: 400; }
+  .body { background: #fff; padding: 36px 40px; }
+  .section-eyebrow { font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: #dc2626; font-weight: 500; margin-bottom: 14px; }
+  .life-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
+  .life-intro { font-size: 15px; line-height: 1.7; color: #444; margin-bottom: 18px; }
+  .life-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .life-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: #f6f6f6; border-radius: 10px; font-size: 13px; color: #333; line-height: 1.4; }
+  .life-item .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .included-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
+  .included-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
+  .inc-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #333; }
+  .inc-row::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+  .booking-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid #f0f0f0; }
+  .booking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .b-box { background: #f6f6f6; border-radius: 10px; padding: 12px 14px; border-left: 3px solid #dc2626; }
+  .b-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #999; margin-bottom: 3px; }
+  .b-value { font-size: 15px; font-weight: 500; color: #1e293b; }
+  .price-section { margin-bottom: 28px; }
+  .price-reveal { background: #111; border-radius: 12px; padding: 28px 28px 24px; text-align: center; margin-top: 14px; }
+  .price-context { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #aaa; margin-bottom: 10px; }
+  .price-main { font-family: 'Playfair Display', serif; font-size: 58px; font-weight: 600; color: #fff; line-height: 1; letter-spacing: -0.02em; }
+  .price-vat-line { font-size: 13px; color: #ccc; margin-top: 6px; }
+  .price-daily { font-size: 12px; color: #999; margin-top: 4px; font-style: italic; }
+  .price-breakdown { margin-top: 20px; padding-top: 18px; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 7px; }
+  .pb-row { display: flex; justify-content: space-between; font-size: 13px; color: #bbb; }
+  .pb-row.subtotal { padding-top: 10px; margin-top: 4px; border-top: 1px solid #2a2a2a; color: #ddd; }
+  .pb-row.vat-row { color: #999; }
+  .pb-row.grand { font-size: 14px; font-weight: 500; color: #fff; padding-top: 10px; margin-top: 4px; border-top: 1px solid #2a2a2a; }
+  .deposit-note { margin-top: 14px; font-size: 12.5px; color: #888; text-align: center; font-style: italic; line-height: 1.6; }
+  .deposit-note strong { color: #555; font-style: normal; }
+  .cta-section { text-align: center; margin-bottom: 28px; }
+  .cta-btn { display: inline-block; background: #dc2626; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 18px 52px; border-radius: 50px; text-decoration: none; margin-bottom: 10px; }
+  .cta-urgency { font-size: 12px; color: #999; font-style: italic; }
+  .trust { background: #f6f6f6; border-radius: 10px; padding: 16px 20px; font-size: 13.5px; color: #555; line-height: 1.65; text-align: center; }
+  .trust strong { color: #1e293b; }
+  .footer { background: #000; padding: 22px 40px; text-align: center; }
+  .footer p { font-size: 11.5px; color: #888; line-height: 1.8; }
+  .footer a { color: #dc2626; text-decoration: none; }
+</style>
 </head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
-  <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<body>
+<div class="wrap">
 
-      <!-- Header -->
-      <tr><td style="background:#111827;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
-        <img src="https://www.thekitchenrescue.co.uk/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
-        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Your Kitchen Pod Quote</h1>
-        <p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:14px;">Valid for 7 days · No obligation</p>
-      </td></tr>
+  <div class="header">
+    <div>
+      <div class="logo-the">The</div>
+      <div class="logo-name">Kitchen Rescue</div>
+      <div class="logo-tag">Temporary Kitchen Hire</div>
+    </div>
+    <div class="header-tag">No obligation quote</div>
+  </div>
 
-      <!-- Body -->
-      <tr><td style="background:#ffffff;padding:36px 40px;">
-        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${data.name}</strong>,</p>
-        <p style="margin:0 0 28px;color:#6b7280;font-size:15px;line-height:1.6;">Thanks for checking availability with Kitchen Rescue. Here's the quote for your selected dates — no card required to hold these dates.</p>
+  <div class="hero">
+    <div class="hero-name">Hi ${firstName},</div>
+    <div class="hero-headline">Your kitchen renovation just got a whole lot easier.</div>
+    <div class="hero-sub">While the builders are in, your family keeps cooking, eating together, and living normally — right on your driveway. No takeaways every night. No stress.</div>
+  </div>
 
-        <!-- Dates box -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Booking Details</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Delivery date</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.startDate)}</td>
-              </tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Collection date</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.endDate)}</td>
-              </tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Duration</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${data.days} day${data.days > 1 ? 's' : ''}</td>
-              </tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;font-weight:600;">Location</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:700;">${data.postcode}</td>
-              </tr>
-            </table>
-          </td></tr>
-        </table>
+  <div class="body">
 
-        <!-- Pricing box -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Cost Breakdown</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £${data.dailyRate || 70}/day)</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.dailyCost)}</td>
-              </tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;">Delivery</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.deliveryCost)}</td>
-              </tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr>
-                <td style="padding:6px 0;color:#374151;font-size:14px;">Collection</td>
-                <td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.collectionCost)}</td>
-              </tr>
-            </table>
-            <!-- Total with VAT (only when totalCost is numeric) -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border-radius:8px;margin-top:14px;">
-              <tr><td style="padding:14px 16px;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                  ${(function() {
-                    const tot = Number(data.totalCost);
-                    if (tot === tot && !isNaN(tot)) {
-                      return `<tr><td style="color:#374151;font-size:14px;">Subtotal (exc. VAT)</td><td align="right" style="color:#111827;font-size:14px;font-weight:600;">${money(data.totalCost)}</td></tr>
-                  <tr><td style="color:#6b7280;font-size:13px;padding-top:4px;">VAT (20%)</td><td align="right" style="color:#6b7280;font-size:13px;padding-top:4px;">${money(tot * 0.2)}</td></tr>
-                  <tr><td style="color:#991b1b;font-size:15px;font-weight:700;padding-top:8px;">Total (inc. VAT)</td><td align="right" style="color:#dc2626;font-size:22px;font-weight:700;padding-top:8px;">${money(tot * 1.2)}</td></tr>`;
-                    }
-                    const totalLabel = typeof data.totalCost === 'string' ? data.totalCost : money(data.totalCost);
-                    return `<tr><td style="color:#991b1b;font-size:15px;font-weight:700;">Total</td><td align="right" style="color:#dc2626;font-size:16px;font-weight:700;">${totalLabel}</td></tr>`;
-                  })()}
-                </table>
-                <p style="margin:6px 0 0;color:#9ca3af;font-size:12px;">${Number(data.totalCost) === Number(data.totalCost) ? 'Subject to site check' : 'VAT at 20% will be added · Subject to site check'}</p>
-                <p style="margin:12px 0 0;color:#991b1b;font-size:14px;font-weight:600;">On top of this there is a refundable deposit of £250.00 — so you can see the actual cost to secure your booking.</p>
-              </td></tr>
-            </table>
-          </td></tr>
-        </table>
+    <div class="life-section">
+      <div class="section-eyebrow">What the next ${days} days looks like</div>
+      <div class="life-intro">From the morning your builders start, a fully-equipped kitchen is parked outside your front door. Everything works. You just walk out and use it.</div>
+      <div class="life-grid">
+        <div class="life-item"><span class="icon">☕</span>Proper breakfast every morning — not a petrol station coffee</div>
+        <div class="life-item"><span class="icon">🍳</span>Cook real meals for your family — oven, hob, everything</div>
+        <div class="life-item"><span class="icon">🫧</span>Dishwasher and washing machine still running as normal</div>
+        <div class="life-item"><span class="icon">🏠</span>Dust and noise stay outside — your home stays liveable</div>
+      </div>
+    </div>
 
-        <!-- CTA -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-          <tr><td align="center" style="padding:8px 0;">
-            <a href="${baseUrl}/availability.html?dates=${(data.selectedDates||[]).join(',')}&postcode=${data.postcode}&skipgate=true${data.dailyRate && Number(data.dailyRate) !== 70 ? '&rate=' + Number(data.dailyRate) : ''}${(data.deliveryCost && data.collectionCost && data.deliveryCost !== 'TBC') ? '&delivery=' + (Number(data.deliveryCost) + Number(data.collectionCost)) : ''}" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:8px;">Book Now →</a>
-          </td></tr>
-          <tr><td align="center" style="padding:0;">
-            <p style="margin:12px 0 0;color:#9ca3af;font-size:13px;">🔒 No card required &nbsp;·&nbsp; ✅ Free cancellation &nbsp;·&nbsp; 📞 We call to confirm</p>
-            <p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">By booking you agree to our <a href="${baseUrl}/terms-conditions.html" style="color:#dc2626;text-decoration:underline;">Terms &amp; Conditions</a></p>
-          </td></tr>
-        </table>
+    <div class="included-section">
+      <div class="section-eyebrow">Everything in your pod</div>
+      <div class="included-grid">
+        <div class="inc-row">Full-size oven &amp; grill</div>
+        <div class="inc-row">4-ring induction hob</div>
+        <div class="inc-row">Large fridge-freezer</div>
+        <div class="inc-row">Dishwasher</div>
+        <div class="inc-row">Washing machine</div>
+        <div class="inc-row">Hot &amp; cold sink</div>
+        <div class="inc-row">Microwave</div>
+        <div class="inc-row">LED lighting &amp; sockets</div>
+        <div class="inc-row">Heating</div>
+      </div>
+    </div>
 
-        <!-- Payment instructions -->
-        ${(() => {
-          const startDate = new Date((data.startDate || '') + 'T00:00:00Z');
-          const daysUntil = Math.ceil((startDate - new Date()) / 86400000);
-          const isUrgent  = daysUntil <= 7;
-          const totalExVat = data.totalCost === 'TBC' ? null : Number(data.totalCost);
-          const hireDeliveryIncVat = totalExVat != null ? totalExVat * 1.2 : null;
-          const fullAmountIncDeposit = hireDeliveryIncVat != null ? hireDeliveryIncVat + 250 : null; // £250 refundable deposit included in total
-          const depositAmt = isUrgent
-            ? (totalExVat == null ? 'full hire cost (TBC)' : `£${fullAmountIncDeposit.toFixed(2)} (hire + delivery + VAT + £250 refundable deposit)`)
-            : '£250.00 (no VAT on deposit)';
-          const depositNote = isUrgent
-            ? 'As your delivery is within 7 days, full payment is required: hire + delivery (inc. VAT) plus a £250 refundable security deposit. The £250 is returned within 5 working days of collection once the pod is inspected.'
-            : 'This is a refundable security deposit (no VAT) — returned within 5 working days of collection provided the pod is undamaged. The remaining balance (hire + delivery + VAT) is due 5 days before delivery.';
-          return `
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:20px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">💳 How to secure your booking</p>
-            <p style="margin:0 0 10px;color:#374151;font-size:14px;line-height:1.6;">To confirm your dates, please transfer your deposit by bank transfer:</p>
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #d1fae5;border-radius:8px;margin-bottom:12px;">
-              <tr><td style="padding:14px 18px;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="padding:4px 0;color:#6b7280;font-size:13px;width:140px;">Account name</td>
-                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">Woodpeckers Hertfordshire Ltd</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Sort code</td>
-                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">09-01-29</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Account number</td>
-                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">72136964</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Amount to pay</td>
-                    <td style="padding:4px 0;color:#dc2626;font-size:15px;font-weight:700;">${depositAmt}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:4px 0;color:#6b7280;font-size:13px;">Reference</td>
-                    <td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">KR-${(data.name||'').split(' ')[0].toUpperCase()}-${(data.startDate||'').replace(/-/g,'').slice(4)}</td>
-                  </tr>
-                </table>
-              </td></tr>
-            </table>
-            <p style="margin:0 0 14px;color:#374151;font-size:13px;line-height:1.5;">ℹ️ ${depositNote}</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 0;color:#374151;font-size:14px;">1. Transfer the amount above using the reference shown</td></tr>
-              <tr><td style="padding:4px 0;color:#374151;font-size:14px;">2. Click <strong>Book Now</strong> above and complete the site checklist</td></tr>
-              <tr><td style="padding:4px 0;color:#374151;font-size:14px;">3. We'll confirm your booking once payment is received</td></tr>
-            </table>
-          </td></tr>
-        </table>`;
-        })()}
+    <div class="booking-section">
+      <div class="section-eyebrow">Your booking</div>
+      <div class="booking-grid">
+        <div class="b-box">
+          <div class="b-label">We deliver</div>
+          <div class="b-value">${fd(data.startDate)}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">We collect</div>
+          <div class="b-value">${fd(data.endDate)}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Duration</div>
+          <div class="b-value">${days} day${days !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Your location</div>
+          <div class="b-value">${(data.postcode || '—').toUpperCase()}</div>
+        </div>
+      </div>
+    </div>
 
-        ${data.notes ? `<p style="margin:0 0 24px;color:#6b7280;font-size:14px;background:#f9fafb;border-left:3px solid #dc2626;padding:12px 16px;border-radius:0 8px 8px 0;"><strong>Your notes:</strong> ${data.notes}</p>` : ''}
+    <div class="price-section">
+      <div class="section-eyebrow">Your investment</div>
+      <div class="price-reveal">
+        <div class="price-context">Total (exc. VAT)</div>
+        <div class="price-main">${hasNumericTotal ? '£' + totalExVat.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
+        ${hasNumericTotal ? `<div class="price-vat-line">+ VAT (20%) = <strong style="color:#fff">${money(totalIncVat)} total</strong></div>` : ''}
+        ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">That's just £${Math.round(dailyEquivalent)} a day — less than a family takeaway.</div>` : ''}
+        <div class="price-breakdown">
+          <div class="pb-row">
+            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × £${dailyRate}/day</span>
+            <span>${money(hireCost)}</span>
+          </div>
+          <div class="pb-row">
+            <span>Delivery, set up &amp; collection</span>
+            <span>${delivCollIsTBC ? 'TBC' : money(delivColl)}</span>
+          </div>
+          <div class="pb-row subtotal">
+            <span>Subtotal (exc. VAT)</span>
+            <span>${money(totalExVat)}</span>
+          </div>
+          ${hasNumericTotal ? `
+          <div class="pb-row vat-row">
+            <span>VAT (20%)</span>
+            <span>${money(vatAmt)}</span>
+          </div>
+          <div class="pb-row grand">
+            <span>Total inc. VAT</span>
+            <span>${money(totalIncVat)}</span>
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="deposit-note">
+        A <strong>refundable £250 deposit</strong> is required to confirm your booking —
+        returned in full after collection. It is not a fee.
+      </div>
+    </div>
 
-        <p style="margin:0 0 6px;color:#374151;font-size:15px;">Any questions? We're here to help:</p>
-        <p style="margin:0 0 4px;color:#6b7280;font-size:14px;">📞 <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">+44 7342 606655</a></p>
-        <p style="margin:0 0 4px;color:#6b7280;font-size:14px;">📧 <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a></p>
-        <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">💬 <a href="https://wa.me/447342606655" style="color:#dc2626;text-decoration:none;">WhatsApp us</a></p>
+    <div class="cta-section">
+      <a href="${ctaUrl}" class="cta-btn">Confirm My Booking</a>
+      <div class="cta-urgency">Quote valid 7 days · No card needed to hold your dates</div>
+    </div>
 
-        <p style="margin:0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
-      </td></tr>
+    <div class="trust">
+      <strong>Any questions? Just call or text us on <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a>.</strong><br>
+      We handle everything — delivery, set up and collection.<br>You just use the kitchen.
+    </div>
 
-      <!-- Footer -->
-      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:24px 40px;text-align:center;">
-        <p style="margin:0 0 6px;color:rgba(255,255,255,0.5);font-size:12px;">Woodpeckers Hertfordshire Ltd t/a The Kitchen Rescue · Company No. 14316407</p>
-        <p style="margin:0;color:rgba(255,255,255,0.3);font-size:12px;"><a href="https://www.thekitchenrescue.co.uk" style="color:rgba(255,255,255,0.4);text-decoration:none;">www.thekitchenrescue.co.uk</a></p>
-      </td></tr>
+  </div>
 
-    </table>
-  </td></tr>
-</table>
+  <div class="footer">
+    <p>
+      <a href="mailto:hello@thekitchenrescue.co.uk">hello@thekitchenrescue.co.uk</a><br>
+      <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a><br><br>
+      The Kitchen Rescue · Woodpeckers Hertfordshire Ltd<br>
+      Company No. 14316407 · VAT Registered
+    </p>
+  </div>
+
+</div>
 </body>
 </html>`;
 }
@@ -1779,6 +1807,17 @@ app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete booking' });
+    }
+});
+
+// Get all leads (enquiries from availability gate, trade quotes, etc.)
+app.get('/api/leads', authenticateAdmin, async (req, res) => {
+    try {
+        const leads = await getAllLeads();
+        res.json(leads);
+    } catch (error) {
+        console.error('Error fetching leads:', error);
+        res.status(500).json([]);
     }
 });
 

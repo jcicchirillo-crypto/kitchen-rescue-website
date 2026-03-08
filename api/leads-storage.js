@@ -36,4 +36,28 @@ async function addLead(lead) {
     }
 }
 
-module.exports = { addLead };
+/**
+ * Fetch all leads from the Supabase `leads` table (for admin panel).
+ * Returns array of { id, name, email, phone, source, created_at }.
+ */
+async function getAllLeads() {
+    if (!useSupabase || !supabase) {
+        return [];
+    }
+    try {
+        const { data, error } = await supabase
+            .from('leads')
+            .select('id, name, email, phone, source, created_at')
+            .order('created_at', { ascending: false });
+        if (error) {
+            console.error('❌ Supabase leads fetch error:', error.message, error.details);
+            return [];
+        }
+        return data || [];
+    } catch (err) {
+        console.error('❌ getAllLeads exception:', err);
+        return [];
+    }
+}
+
+module.exports = { addLead, getAllLeads };

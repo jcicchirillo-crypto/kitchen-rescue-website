@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -202,6 +202,7 @@ function KitchenRescueAdmin() {
   const [confirmationMessage, setConfirmationMessage] = useState(null);
   const [selectedToDelete, setSelectedToDelete] = useState([]);
   const [deletingIds, setDeletingIds] = useState([]);
+  const [leads, setLeads] = useState([]);
 
   const toggleDelete = (id) => {
     setSelectedToDelete((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -228,6 +229,7 @@ function KitchenRescueAdmin() {
     if (token) {
       setIsLoggedIn(true);
       fetchBookings();
+      fetchLeads();
     }
   }, [isLoggedIn]);
 
@@ -236,6 +238,18 @@ function KitchenRescueAdmin() {
     const t = setTimeout(() => setConfirmationMessage(null), 5000);
     return () => clearTimeout(t);
   }, [confirmationMessage]);
+
+  const fetchLeads = async () => {
+    const res = await fetch("/api/leads", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setLeads(data);
+    } else {
+      setLeads([]);
+    }
+  };
 
   const fetchBookings = async () => {
     const res = await fetch("/api/bookings", {
@@ -369,13 +383,86 @@ function KitchenRescueAdmin() {
           <Stat icon={Wallet} label="This month revenue" value={`£${bookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
         </div>
 
+        <Card className="mb-4 border-amber-200 bg-amber-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-800">
+              <MessageSquare className="h-5 w-5" />
+              New Enquiries ({leads.length})
+            </CardTitle>
+            <CardDescription>Leads from availability gate, trade quotes, etc. Follow up to convert to bookings.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {leads.length === 0 ? (
+              <p className="text-slate-500 text-sm py-4">No enquiries yet. Click Refresh to check for new leads.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leads.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-medium">{l.name || '—'}</TableCell>
+                      <TableCell>
+                        {l.email ? (
+                          <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {l.email}
+                          </a>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {l.phone ? (
+                          <a href={`tel:${l.phone}`} className="text-slate-700 hover:underline flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {l.phone}
+                          </a>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {l.source || 'website'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-500 text-sm">
+                        {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : '—'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                          onClick={() => {
+                            setShowCreateBooking(true);
+                            // Could prefill from lead in future
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Convert to booking
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
           <div className="relative w-full md:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
             <Input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search bookings..." className="pl-8"/>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchBookings} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => { fetchBookings(); fetchLeads(); }} className="gap-2">
               <RefreshCw className="h-4 w-4"/>
               Refresh
             </Button>
