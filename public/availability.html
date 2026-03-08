@@ -685,8 +685,8 @@ async function updateQuotePanel() {
         body.innerHTML = `<div class="quote-empty"><div class="ei">📅</div><p>Select a date on the calendar to see your instant quote.</p></div>`;
         return;
     }
-    const start = new Date(selectedDates[0]);
-    const end   = new Date(selectedDates[selectedDates.length-1]);
+    const start = new Date(selectedDates[0] + 'T12:00:00');
+    const end   = new Date(selectedDates[selectedDates.length - 1] + 'T12:00:00');
     const days  = selectedDates.length;
     const hire  = days * dailyRate;
     const fd = d => d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -730,6 +730,16 @@ async function updateQuotePanel() {
         const totalInc = subtotal + vat;
         const deposit = 250;
         const totalWithDeposit = totalInc + deposit;
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        start.setHours(12, 0, 0, 0);
+        const daysUntilDelivery = Math.ceil((start - today) / (24 * 60 * 60 * 1000));
+        const fullPaymentRequired = daysUntilDelivery <= 7;
+        const payNowAmount = fullPaymentRequired ? totalWithDeposit : deposit;
+        const payNowLabel = fullPaymentRequired ? 'Total to pay (full payment required)' : 'Pay now to secure';
+        const vatNote = fullPaymentRequired
+            ? 'Subject to site check · Deposit refunded after collection'
+            : `Subject to site check · Balance £${(totalWithDeposit - deposit).toFixed(2)} due 5 days before delivery · Deposit refunded after collection`;
         deliveryRows = `
             <div class="quote-row"><span class="ql">Delivery, set up &amp; collection</span><span class="qv">£${delivCostVal.toFixed(2)}</span></div>
             <div class="quote-price-reveal">
@@ -737,8 +747,8 @@ async function updateQuotePanel() {
                 <div class="vat-line">+ VAT (20%) = £${totalInc.toFixed(2)} total</div>
             </div>
             <div class="quote-row"><span class="ql">Refundable security deposit</span><span class="qv">£${deposit.toFixed(2)}</span></div>
-            <div class="quote-total"><span class="tl">Total to pay (inc. deposit)</span><span class="tp">£${totalWithDeposit.toFixed(2)}</span></div>
-            <p class="quote-vat">Subject to site check · Deposit refunded after collection</p>`;
+            <div class="quote-total"><span class="tl">${payNowLabel}</span><span class="tp">£${payNowAmount.toFixed(2)}</span></div>
+            <p class="quote-vat">${vatNote}</p>`;
     }
 
     body.innerHTML = `
