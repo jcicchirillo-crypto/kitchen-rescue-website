@@ -1016,7 +1016,7 @@ function generateQuoteEmailHTML(data) {
         <div class="price-context">Total (exc. VAT)</div>
         <div class="price-main">${hasNumericTotal ? '£' + totalExVat.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
         ${hasNumericTotal ? `<div class="price-vat-line">+ VAT (20%) = <strong style="color:#fff">${money(totalIncVat)} total</strong></div>` : ''}
-        ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">That's just £${Math.round(dailyEquivalent)} a day — less than a family takeaway.</div>` : ''}
+        ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
         <div class="price-breakdown">
           <div class="pb-row">
             <span>Hire — ${days} day${days !== 1 ? 's' : ''} × £${dailyRate}/day</span>

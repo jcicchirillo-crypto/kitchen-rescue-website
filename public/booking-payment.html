@@ -20,6 +20,9 @@
         .booking-summary { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
         .summary-row.total { border-top: 1px solid #e5e7eb; padding-top: 0.5rem; margin-top: 0.5rem; font-weight: 600; }
+        .summary-price-reveal { background: #111; border-radius: 0.5rem; padding: 1rem 1.25rem; margin: 0.75rem 0; text-align: center; }
+        .summary-price-reveal .main { font-size: 1.5rem; font-weight: 700; color: #fff; }
+        .summary-price-reveal .vat-line { font-size: 0.8rem; color: #ccc; margin-top: 4px; }
         .bank-container { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
         .bank-details { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.25rem; margin: 1rem 0; font-family: ui-monospace, monospace; font-size: 0.95rem; }
         .bank-details p { margin: 0.25rem 0; }
@@ -269,17 +272,9 @@
                         <span>${(data.deliveryAddress || '').replace(/</g, '&lt;')}</span>
                     </div>
                     ${isFullBalance ? `
-                    <div class="summary-row">
-                        <span>Subtotal (exc. VAT):</span>
-                        <span>£${amountExVat.toFixed(2)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>VAT (20%):</span>
-                        <span>£${vatAmount.toFixed(2)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Hire + delivery (inc. VAT):</span>
-                        <span>£${(hireDeliveryVat || 0).toFixed(2)}</span>
+                    <div class="summary-price-reveal">
+                        <div class="main">£${amountExVat.toFixed(2)}</div>
+                        <div class="vat-line">+ VAT (20%) = £${(hireDeliveryVat || 0).toFixed(2)} total</div>
                     </div>
                     <div class="summary-row">
                         <span>Refundable security deposit:</span>
