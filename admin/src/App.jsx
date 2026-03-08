@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -683,6 +683,18 @@ function KitchenRescueAdmin() {
                   <span className="text-slate-500">Source</span><span>{(selectedBooking.source === 'booking' || (selectedBooking.source === 'quote' && selectedBooking.status === 'Confirmed')) ? 'Booking' : selectedBooking.source || '—'}</span>
                   <span className="text-slate-500">Created</span><span>{selectedBooking.createdAt || selectedBooking.timestamp ? format(new Date(selectedBooking.createdAt || selectedBooking.timestamp), "d MMM yyyy HH:mm") : '—'}</span>
                   {selectedBooking.notes && (<><span className="text-slate-500">Notes</span><span className="break-words">{selectedBooking.notes}</span></>)}
+                </div>
+                <div className="pt-3 border-t">
+                  <a
+                    href={`/delivery-check?name=${encodeURIComponent(selectedBooking.name || '')}&address=${encodeURIComponent(selectedBooking.deliveryAddress || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
+                  >
+                    <ClipboardCheck className="h-4 w-4" />
+                    Open delivery checklist
+                  </a>
+                  <p className="text-xs text-slate-500 mt-1">Opens in new tab with customer details pre-filled</p>
                 </div>
               </CardContent>
             </Card>

@@ -28,6 +28,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
 const { addLead, getAllLeads } = require('./leads-storage');
+const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
 
@@ -62,7 +63,7 @@ console.log('EMAIL_PASS exists:', !!process.env.EMAIL_PASS);
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increased for delivery checklist photo uploads
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -304,6 +305,11 @@ app.get('/api/availability', async (req, res) => {
         console.error('Error building availability:', e);
         res.json({ unavailable: [] });
     }
+});
+
+// Delivery checklist page (kitchenrescue.co.uk/delivery-check)
+app.get('/delivery-check', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'delivery-check.html'));
 });
 
 // Serve all HTML files
@@ -2184,6 +2190,93 @@ app.get('/api/delivery-cost', async (req, res) => {
     } catch (err) {
         console.error('Delivery cost error:', err);
         res.status(500).json({ error: 'Could not calculate delivery cost' });
+    }
+});
+
+// Delivery checklist submit (from /delivery-check page)
+app.post('/api/delivery-checklist', async (req, res) => {
+    try {
+        const { customerName, customerAddress, drivewayLength, drivewayWidth, surfaceType, gradient, checks, notes, photos } = req.body || {};
+        if (!customerName || !customerAddress) {
+            return res.status(400).json({ error: 'Customer name and address are required' });
+        }
+        const record = await addDeliveryChecklist({
+            customerName,
+            customerAddress,
+            drivewayLength,
+            drivewayWidth,
+            surfaceType,
+            gradient,
+            checks: checks || {},
+            notes,
+            photos: Array.isArray(photos) ? photos.slice(0, 6) : [] // limit to 6 photos
+        });
+        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        const checkLabels = {
+            driveway_suitable: 'Driveway suitable for trailer',
+            ground_level: 'Ground level and stable',
+            access_clear: 'Access clear for towing vehicle',
+            wheel_chocks: 'Wheel chocks installed',
+            stabiliser_legs: 'Stabiliser legs lowered',
+            trailer_level: 'Trailer level checked',
+            electrical_connection: 'Electrical connection checked',
+            water_connection: 'Water connection installed',
+            waste_pipe: 'Waste pipe positioned safely',
+            supply_suitable: 'Customer supply confirmed suitable',
+            extension_cable: 'Extension cable used/not used',
+            rcd_place: 'RCD in place',
+            steps_installed: 'Steps installed safely',
+            no_trip_hazards: 'No trip hazards from cables/hoses',
+            appliances_tested: 'Appliances tested',
+            customer_shown: 'Customer shown how appliances work',
+            emergency_contact: 'Emergency contact provided',
+            photos_taken: 'Photos taken of installation'
+        };
+        let html = `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+                <h2 style="color:#dc2626;">Delivery checklist submitted</h2>
+                <p><strong>Customer:</strong> ${(customerName || '').replace(/</g, '&lt;')}</p>
+                <p><strong>Address:</strong> ${(customerAddress || '').replace(/</g, '&lt;')}</p>
+                <h3>Driveway pre-check</h3>
+                <p>Length: ${(drivewayLength || '—').replace(/</g, '&lt;')} | Width: ${(drivewayWidth || '—').replace(/</g, '&lt;')} | Surface: ${(surfaceType || '—')} | Gradient: ${(gradient || '—')}</p>
+                <h3>Checklist</h3>
+                <ul style="list-style:none;padding:0;">`;
+        for (const [key, label] of Object.entries(checkLabels)) {
+            const checked = checks && checks[key];
+            html += `<li>${checked ? '✅' : '⬜'} ${label}</li>`;
+        }
+        html += `</ul>`;
+        if (notes) {
+            html += `<p><strong>Notes:</strong> ${(notes || '').replace(/</g, '&lt;')}</p>`;
+        }
+        html += `<p style="color:#6b7280;font-size:13px;margin-top:20px;">Submitted at ${new Date().toLocaleString('en-GB')}</p></div>`;
+        const attachments = [];
+        if (Array.isArray(photos) && photos.length > 0) {
+            photos.forEach((p, i) => {
+                if (p.data && p.name) {
+                    const buf = Buffer.from(p.data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+                    attachments.push({ filename: p.name || `photo-${i + 1}.jpg`, content: buf });
+                }
+            });
+        }
+        if (transporter && adminEmail) {
+            try {
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: adminEmail,
+                    subject: `Delivery checklist – ${(customerName || 'Unknown').replace(/</g, '')}`,
+                    html,
+                    attachments: attachments.length ? attachments : undefined
+                });
+                console.log('Delivery checklist email sent to admin');
+            } catch (emailErr) {
+                console.error('Error sending delivery checklist email:', emailErr.message);
+            }
+        }
+        res.json({ success: true, id: record?.id });
+    } catch (err) {
+        console.error('Delivery checklist error:', err);
+        res.status(500).json({ success: false, error: 'Failed to submit checklist' });
     }
 });
 

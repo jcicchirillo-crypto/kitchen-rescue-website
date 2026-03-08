@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Checklist • Kitchen Rescue</title>
+    <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #f9fafb !important; color: #111827 !important; }
+        .dc-page { max-width: 680px; margin: 0 auto; padding: 2rem 1rem 5rem; }
+        .dc-header { text-align: center; margin-bottom: 24px; }
+        .dc-header h1 { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0 0 6px; }
+        .dc-header p { font-size: 0.875rem; color: #6b7280; margin: 0; line-height: 1.5; }
+        .form-section { background: #fff; border-radius: 10px; border: 1px solid #e5e7eb; padding: 18px 20px; margin-bottom: 16px; }
+        .form-section h2 { font-size: 0.9rem; font-weight: 700; color: #374151; margin: 0 0 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-group { flex: 1; min-width: 160px; }
+        .form-group label { display: block; font-size: 0.75rem; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #dc2626; }
+        .form-group textarea { min-height: 70px; resize: vertical; }
+        .cl-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: #fff; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.15s; user-select: none; margin-bottom: 8px; }
+        .cl-item:hover { border-color: #d1d5db; }
+        .cl-item.checked { background: #fef2f2; border-color: #dc2626; }
+        .cl-item input { display: none; }
+        .cb { width: 20px; height: 20px; border-radius: 5px; border: 2px solid #d1d5db; background: #fff; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .cl-item.checked .cb { background: #dc2626; border-color: #dc2626; }
+        .cb svg { display: none; }
+        .cl-item.checked .cb svg { display: block; }
+        .ci-title { font-size: 0.88rem; font-weight: 500; color: #1f2937; margin: 0; line-height: 1.4; }
+        .section-lbl { font-size: 0.68rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; margin: 18px 0 8px 0; }
+        .section-lbl:first-child { margin-top: 0; }
+        .photo-upload { border: 2px dashed #d1d5db; border-radius: 10px; padding: 24px; text-align: center; background: #fafafa; }
+        .photo-upload input { display: none; }
+        .photo-upload label { cursor: pointer; color: #6b7280; font-size: 0.875rem; }
+        .photo-upload:hover { border-color: #dc2626; background: #fef2f2; }
+        .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .photo-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; }
+        .photo-preview .remove-photo { position: absolute; top: -6px; right: -6px; background: #dc2626; color: #fff; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 12px; line-height: 1; }
+        .photo-preview .thumb-wrap { position: relative; }
+        .btn-submit { width: 100%; padding: 16px; background: #dc2626; color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 24px; transition: background 0.2s; }
+        .btn-submit:hover:not(:disabled) { background: #b91c1c; }
+        .btn-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+        .success-msg { background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 16px; border-radius: 10px; text-align: center; font-weight: 600; margin-top: 20px; display: none; }
+        .error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 16px; border-radius: 10px; text-align: center; margin-top: 20px; display: none; }
+    </style>
+</head>
+<body>
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <div class="logo-section">
+                <a href="/"><img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo-img"></a>
+            </div>
+            <nav class="nav">
+                <a href="/index.html#features" class="nav-link">Features</a>
+                <a href="/index.html#spec" class="nav-link">Spec</a>
+                <a href="/index.html#faqs" class="nav-link">FAQs</a>
+                <a href="/index.html#contact" class="nav-link nav-cta">Contact</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="dc-page">
+    <div class="dc-header">
+        <h1>Kitchen Rescue – Delivery Checklist</h1>
+        <p>Complete this checklist before leaving the site. The same link can be used for every delivery.</p>
+    </div>
+
+    <form id="deliveryCheckForm">
+        <!-- Customer details -->
+        <div class="form-section">
+            <h2>Customer details</h2>
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Customer name</label>
+                    <input type="text" id="customerName" required placeholder="John Smith">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Delivery address</label>
+                    <textarea id="customerAddress" required placeholder="123 High Street, Town, Postcode"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driveway pre-check -->
+        <div class="form-section">
+            <h2>Driveway suitability pre-check</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Driveway length</label>
+                    <input type="text" id="drivewayLength" placeholder="e.g. 8m">
+                </div>
+                <div class="form-group">
+                    <label>Driveway width</label>
+                    <input type="text" id="drivewayWidth" placeholder="e.g. 3m">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Surface type</label>
+                    <select id="surfaceType">
+                        <option value="">Select...</option>
+                        <option value="concrete">Concrete</option>
+                        <option value="tarmac">Tarmac</option>
+                        <option value="gravel">Gravel</option>
+                        <option value="block paving">Block paving</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Gradient</label>
+                    <select id="gradient">
+                        <option value="">Select...</option>
+                        <option value="flat">Flat</option>
+                        <option value="slight">Slight slope</option>
+                        <option value="moderate">Moderate slope</option>
+                        <option value="steep">Steep (note in comments)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Site Safety -->
+        <div class="form-section">
+            <h2>Site safety</h2>
+            <div class="cl-item" data-id="driveway_suitable">
+                <input type="checkbox" name="check" value="driveway_suitable"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Driveway suitable for trailer</span>
+            </div>
+            <div class="cl-item" data-id="ground_level">
+                <input type="checkbox" name="check" value="ground_level"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Ground level and stable</span>
+            </div>
+            <div class="cl-item" data-id="access_clear">
+                <input type="checkbox" name="check" value="access_clear"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Access clear for towing vehicle</span>
+            </div>
+        </div>
+
+        <!-- Trailer setup -->
+        <div class="form-section">
+            <h2>Trailer setup</h2>
+            <div class="cl-item" data-id="wheel_chocks">
+                <input type="checkbox" name="check" value="wheel_chocks"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Wheel chocks installed</span>
+            </div>
+            <div class="cl-item" data-id="stabiliser_legs">
+                <input type="checkbox" name="check" value="stabiliser_legs"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Stabiliser legs lowered</span>
+            </div>
+            <div class="cl-item" data-id="trailer_level">
+                <input type="checkbox" name="check" value="trailer_level"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Trailer level checked</span>
+            </div>
+        </div>
+
+        <!-- Services -->
+        <div class="form-section">
+            <h2>Services</h2>
+            <div class="cl-item" data-id="electrical_connection">
+                <input type="checkbox" name="check" value="electrical_connection"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Electrical connection checked</span>
+            </div>
+            <div class="cl-item" data-id="water_connection">
+                <input type="checkbox" name="check" value="water_connection"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Water connection installed</span>
+            </div>
+            <div class="cl-item" data-id="waste_pipe">
+                <input type="checkbox" name="check" value="waste_pipe"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Waste pipe positioned safely</span>
+            </div>
+        </div>
+
+        <!-- Electrical supply -->
+        <div class="form-section">
+            <h2>Electrical supply</h2>
+            <div class="cl-item" data-id="supply_suitable">
+                <input type="checkbox" name="check" value="supply_suitable"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Customer supply confirmed suitable</span>
+            </div>
+            <div class="cl-item" data-id="extension_cable">
+                <input type="checkbox" name="check" value="extension_cable"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Extension cable used / not used (as required)</span>
+            </div>
+            <div class="cl-item" data-id="rcd_place">
+                <input type="checkbox" name="check" value="rcd_place"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">RCD in place</span>
+            </div>
+        </div>
+
+        <!-- Safety -->
+        <div class="form-section">
+            <h2>Safety</h2>
+            <div class="cl-item" data-id="steps_installed">
+                <input type="checkbox" name="check" value="steps_installed"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Steps installed safely</span>
+            </div>
+            <div class="cl-item" data-id="no_trip_hazards">
+                <input type="checkbox" name="check" value="no_trip_hazards"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">No trip hazards from cables/hoses</span>
+            </div>
+            <div class="cl-item" data-id="appliances_tested">
+                <input type="checkbox" name="check" value="appliances_tested"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Appliances tested</span>
+            </div>
+        </div>
+
+        <!-- Handover -->
+        <div class="form-section">
+            <h2>Handover</h2>
+            <div class="cl-item" data-id="customer_shown">
+                <input type="checkbox" name="check" value="customer_shown"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Customer shown how appliances work</span>
+            </div>
+            <div class="cl-item" data-id="emergency_contact">
+                <input type="checkbox" name="check" value="emergency_contact"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Emergency contact provided</span>
+            </div>
+            <div class="cl-item" data-id="photos_taken">
+                <input type="checkbox" name="check" value="photos_taken"><div class="cb"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="ci-title">Photos taken of installation</span>
+            </div>
+        </div>
+
+        <!-- Photo upload -->
+        <div class="form-section">
+            <h2>Upload photos of installation</h2>
+            <div class="photo-upload">
+                <input type="file" id="photoInput" accept="image/*" multiple>
+                <label for="photoInput">📷 Tap to add photos (optional, max 6)</label>
+                <div class="photo-preview" id="photoPreview"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label>Additional notes</label>
+                <textarea id="notes" placeholder="Any issues, comments or observations..."></textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Submit delivery checklist</button>
+    </form>
+
+    <div class="success-msg" id="successMsg">✅ Checklist submitted. A copy has been emailed to admin.</div>
+    <div class="error-msg" id="errorMsg"></div>
+</main>
+
+<script>
+// Pre-fill from URL params (e.g. when opened from admin booking details)
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name');
+    const address = params.get('address');
+    if (name) document.getElementById('customerName').value = decodeURIComponent(name);
+    if (address) document.getElementById('customerAddress').value = decodeURIComponent(address);
+})();
+
+const CHECK_IDS = [
+    'driveway_suitable', 'ground_level', 'access_clear',
+    'wheel_chocks', 'stabiliser_legs', 'trailer_level',
+    'electrical_connection', 'water_connection', 'waste_pipe',
+    'supply_suitable', 'extension_cable', 'rcd_place',
+    'steps_installed', 'no_trip_hazards', 'appliances_tested',
+    'customer_shown', 'emergency_contact', 'photos_taken'
+];
+
+document.querySelectorAll('.cl-item').forEach(el => {
+    el.addEventListener('click', function() {
+        const cb = this.querySelector('input[type="checkbox"]');
+        cb.checked = !cb.checked;
+        this.classList.toggle('checked', cb.checked);
+    });
+});
+
+const photoInput = document.getElementById('photoInput');
+const photoPreview = document.getElementById('photoPreview');
+let photoDataUrls = [];
+
+photoInput.addEventListener('change', function() {
+    const files = Array.from(this.files);
+    const remaining = 6 - photoDataUrls.length;
+    const toAdd = files.slice(0, remaining);
+    toAdd.forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            photoDataUrls.push({ name: file.name, data: e.target.result });
+            const wrap = document.createElement('div');
+            wrap.className = 'thumb-wrap';
+            wrap.innerHTML = '<img src="' + e.target.result + '" alt="Photo"><button type="button" class="remove-photo" title="Remove">×</button>';
+            wrap.querySelector('.remove-photo').onclick = () => {
+                const idx = photoDataUrls.findIndex(p => p.data === e.target.result);
+                if (idx >= 0) photoDataUrls.splice(idx, 1);
+                wrap.remove();
+            };
+            photoPreview.appendChild(wrap);
+        };
+        reader.readAsDataURL(file);
+    });
+    this.value = '';
+});
+
+document.getElementById('deliveryCheckForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const successMsg = document.getElementById('successMsg');
+    const errorMsg = document.getElementById('errorMsg');
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+    errorMsg.textContent = '';
+
+    const checks = {};
+    CHECK_IDS.forEach(id => {
+        const el = document.querySelector(`.cl-item[data-id="${id}"] input`);
+        checks[id] = el ? el.checked : false;
+    });
+
+    const payload = {
+        customerName: document.getElementById('customerName').value.trim(),
+        customerAddress: document.getElementById('customerAddress').value.trim(),
+        drivewayLength: document.getElementById('drivewayLength').value.trim(),
+        drivewayWidth: document.getElementById('drivewayWidth').value.trim(),
+        surfaceType: document.getElementById('surfaceType').value,
+        gradient: document.getElementById('gradient').value,
+        checks,
+        notes: document.getElementById('notes').value.trim(),
+        photos: photoDataUrls
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    try {
+        const res = await fetch('/api/delivery-checklist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            successMsg.style.display = 'block';
+            document.getElementById('deliveryCheckForm').reset();
+            document.querySelectorAll('.cl-item').forEach(el => {
+                el.classList.remove('checked');
+                const inp = el.querySelector('input');
+                if (inp) inp.checked = false;
+            });
+            photoDataUrls = [];
+            photoPreview.innerHTML = '';
+        } else {
+            errorMsg.textContent = data.error || 'Failed to submit. Please try again.';
+            errorMsg.style.display = 'block';
+        }
+    } catch (err) {
+        errorMsg.textContent = 'Network error. Please try again.';
+        errorMsg.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Submit delivery checklist';
+});
+</script>
+</body>
+</html>
