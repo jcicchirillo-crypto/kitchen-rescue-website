@@ -331,29 +331,45 @@ async function addBooking(newBooking) {
 async function updateBooking(bookingId, updates) {
     if (useSupabase && supabase) {
         try {
+            console.log('[updateBooking] Matching by booking_reference or id:', JSON.stringify(bookingId), '(format: e.g. KR-1772922362001)');
             // Try booking_reference first (snake_case schema), then id (camelCase schema)
             let { data, error } = await supabase
                 .from('bookings')
                 .update(updates)
                 .eq('booking_reference', bookingId)
                 .select();
+            console.log('[updateBooking] 1st attempt eq(booking_reference):', {
+                rowsMatched: data?.length ?? 0,
+                error: error ? { message: error.message, code: error.code, details: error.details } : null,
+                returnedIds: data?.map(r => r.booking_reference || r.id) ?? []
+            });
             if (error) {
-                console.error('Error updating Supabase (booking_reference):', error);
-                return false;
+                console.error('[updateBooking] Supabase error (booking_reference):', error.message);
+                // Fall through to try id in case booking_reference column doesn't exist
+            } else if (data && data.length > 0) {
+                console.log('[updateBooking] SUCCESS via booking_reference');
+                return true;
             }
-            if (data && data.length > 0) return true;
-            // No match on booking_reference - try id (e.g. tables without booking_reference)
+            // No match on booking_reference - try id (e.g. tables without booking_reference or id holds the ref)
             const res2 = await supabase
                 .from('bookings')
                 .update(updates)
                 .eq('id', bookingId)
                 .select();
+            console.log('[updateBooking] 2nd attempt eq(id):', {
+                rowsMatched: res2.data?.length ?? 0,
+                error: res2.error ? { message: res2.error.message, code: res2.error.code } : null,
+                returnedIds: res2.data?.map(r => r.booking_reference || r.id) ?? []
+            });
             if (res2.error) {
-                console.error('Error updating Supabase (id):', res2.error);
+                console.error('[updateBooking] Supabase error (id):', res2.error.message);
                 return false;
             }
-            if (res2.data && res2.data.length > 0) return true;
-            console.error('updateBooking: no rows matched for id:', bookingId);
+            if (res2.data && res2.data.length > 0) {
+                console.log('[updateBooking] SUCCESS via id');
+                return true;
+            }
+            console.error('[updateBooking] No rows matched for bookingId:', bookingId, '| Tried both booking_reference and id');
             return false;
         } catch (error) {
             console.error('Error updating to Supabase:', error);

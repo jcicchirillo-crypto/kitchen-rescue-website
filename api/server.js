@@ -293,8 +293,9 @@ app.get('/api/availability', async (req, res) => {
         const bookings = await getAllBookings();
         const todayStr = new Date().toISOString().slice(0, 10);
         const ranges = [];
+        const confirmedStatuses = ['Confirmed', 'confirmed', 'Deposit Paid', 'deposit paid'];
         for (const b of bookings) {
-            if (b.status !== 'Confirmed') continue;
+            if (!confirmedStatuses.includes(b.status)) continue;
             const range = getBookingDateRange(b);
             if (!range || range.end < todayStr) continue;
             ranges.push(range);
@@ -1799,14 +1800,17 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
 app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) => {
     try {
         const { bookingId } = req.body;
+        console.log('[send-confirmation] Received bookingId/booking_reference:', JSON.stringify(bookingId), '| type:', typeof bookingId);
         if (!bookingId) {
             return res.status(400).json({ success: false, error: 'Missing bookingId' });
         }
         const bookings = await getAllBookings();
         const booking = bookings.find(b => b.id === bookingId);
         if (!booking || !booking.email) {
+            console.log('[send-confirmation] Booking not found for id:', bookingId, '| Available ids (sample):', bookings.slice(0, 5).map(b => b.id));
             return res.status(404).json({ success: false, error: 'Booking not found or no email' });
         }
+        console.log('[send-confirmation] Found booking:', booking.name, '| id:', booking.id, '| Will update Supabase by booking_reference then id');
 
         const alreadySent = !!(booking.confirmation_email_sent_at || booking.confirmationEmailSentAt);
 
@@ -1840,12 +1844,22 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
         }
         let updated = await updateBooking(bookingId, updates);
         if (!updated && Object.keys(updates).length > 2) {
-            // Retry without confirmation_email_sent_at if column may not exist yet
+            console.log('[send-confirmation] First update failed, retrying without confirmation_email_sent_at');
             updated = await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
         }
         if (!updated) {
-            console.error('Failed to update booking status to Confirmed for:', bookingId);
+            console.error('[send-confirmation] Supabase update FAILED for bookingId:', bookingId, '| Check logs above for eq(booking_reference) and eq(id) results');
             return res.status(500).json({ success: false, error: alreadySent ? 'Failed to update booking status. Please refresh and try again.' : 'Confirmation email sent but failed to update booking status. Please refresh and try again.' });
+        }
+        // Block availability dates so no one else can book (same as when editing a booking to Confirmed)
+        const startOrDelivery = booking.startDate || booking.delivery_date || booking.deliveryDate;
+        const daysOrHire = booking.days ?? booking.hire_length ?? booking.hireLength;
+        if (startOrDelivery && daysOrHire) {
+            const bookingData = {
+                deliveryDate: startOrDelivery,
+                hireLength: daysOrHire
+            };
+            await blockAvailabilityDates(bookingData, 'Confirmed');
         }
         if (alreadySent) {
             console.log('Booking status updated (email already sent):', bookingId);
