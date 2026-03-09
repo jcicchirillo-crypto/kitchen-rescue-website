@@ -280,16 +280,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         tcErr.style.display = 'none';
         if (!validate()) return;
+        const datesArr = datesParam ? datesParam.split(',').filter(Boolean).sort() : [];
+        const deliveryDateISO = datesArr.length ? datesArr[0] : null;
         const formData = {
             fullName:        document.getElementById('fullName').value.trim(),
             email:           document.getElementById('email').value.trim(),
             phone:           document.getElementById('phone').value.trim(),
             deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
             postcode:        document.getElementById('postcode').value.trim(),
-            deliveryDate:    document.getElementById('deliveryDate').value,
+            deliveryDate:    deliveryDateISO || document.getElementById('deliveryDate').value,
             hireLength:      document.getElementById('hireLength').value,
             notes:           document.getElementById('notes').value.trim(),
-            selectedDates:   datesParam,
+            selectedDates:   datesArr,
             dailyRate,
             fixedDelivery
         };

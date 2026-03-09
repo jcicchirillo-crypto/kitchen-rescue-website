@@ -802,7 +802,7 @@ app.post('/send-quote-email', async (req, res) => {
 app.post('/api/booking-received', async (req, res) => {
     console.log('=== /api/booking-received req.body (full) ===', JSON.stringify(req.body, null, 2));
     try {
-        const { fullName, email, phone, deliveryDate, hireLength, deliveryAddress, amountDue, bookingReference, totalCost, postcode } = req.body;
+        const { fullName, email, phone, deliveryDate, hireLength, deliveryAddress, amountDue, bookingReference, totalCost, postcode, selectedDates: reqSelectedDates } = req.body;
         if (!email || !fullName) {
             return res.status(400).json({ success: false, error: 'Missing email or fullName' });
         }
@@ -813,9 +813,13 @@ app.post('/api/booking-received', async (req, res) => {
             const d = new Date(String(deliveryDate).trim() + 'T12:00:00');
             if (!isNaN(d.getTime())) startDate = d.toISOString().split('T')[0];
         }
-        const days = hireLength ? parseInt(hireLength, 10) : null;
-        const selectedDates = [];
-        if (startDate && days) {
+        const days = hireLength ? parseInt(String(hireLength).replace(/\D/g, ''), 10) || null : null;
+        let selectedDates = [];
+        if (Array.isArray(reqSelectedDates) && reqSelectedDates.length > 0) {
+            selectedDates = reqSelectedDates.map(d => String(d).trim()).filter(Boolean).sort();
+            if (selectedDates.length && !startDate) startDate = selectedDates[0];
+        }
+        if (selectedDates.length === 0 && startDate && days) {
             const base = new Date(startDate + 'T12:00:00');
             if (!isNaN(base.getTime())) {
                 for (let i = 0; i < days; i++) {
@@ -1814,42 +1818,44 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
 
         const alreadySent = !!(booking.confirmation_email_sent_at || booking.confirmationEmailSentAt);
 
-        if (!alreadySent) {
-            if (!transporter) {
-                return res.status(503).json({ success: false, error: 'Email not configured' });
-            }
-            const html = generateBookingConfirmedEmailHTML({
-                name: booking.name,
-                fullName: booking.name,
-                email: booking.email,
-                bookingReference: booking.id,
-                id: booking.id,
-                deliveryDate: booking.startDate || booking.delivery_date,
-                startDate: booking.startDate,
-                hireLength: booking.days || booking.hire_length,
-                days: booking.days,
-                deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
-            });
-            await transporter.sendMail({
-                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
-                to: booking.email,
-                subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
-                html
-            });
-        }
-
-        const updates = { status: 'Confirmed', source: 'booking' };
+        // Update status FIRST, then send email only if update succeeds (prevents duplicate emails on retry)
+        const updates = { status: 'Confirmed' };
         if (!alreadySent) {
             updates.confirmation_email_sent_at = new Date().toISOString();
         }
         let updated = await updateBooking(bookingId, updates);
-        if (!updated && Object.keys(updates).length > 2) {
+        if (!updated && updates.confirmation_email_sent_at) {
             console.log('[send-confirmation] First update failed, retrying without confirmation_email_sent_at');
-            updated = await updateBooking(bookingId, { status: 'Confirmed', source: 'booking' });
+            updated = await updateBooking(bookingId, { status: 'Confirmed' });
         }
         if (!updated) {
             console.error('[send-confirmation] Supabase update FAILED for bookingId:', bookingId, '| Check logs above for eq(booking_reference) and eq(id) results');
-            return res.status(500).json({ success: false, error: alreadySent ? 'Failed to update booking status. Please refresh and try again.' : 'Confirmation email sent but failed to update booking status. Please refresh and try again.' });
+            return res.status(500).json({ success: false, error: 'Failed to update booking status. Please refresh and try again.' });
+        }
+
+        if (!alreadySent) {
+            if (!transporter) {
+                console.warn('[send-confirmation] Status updated but email not configured - customer not notified');
+            } else {
+                const html = generateBookingConfirmedEmailHTML({
+                    name: booking.name,
+                    fullName: booking.name,
+                    email: booking.email,
+                    bookingReference: booking.id,
+                    id: booking.id,
+                    deliveryDate: booking.startDate || booking.delivery_date,
+                    startDate: booking.startDate,
+                    hireLength: booking.days || booking.hire_length,
+                    days: booking.days,
+                    deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
+                });
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: booking.email,
+                    subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
+                    html
+                });
+            }
         }
         // Block availability dates so no one else can book (same as when editing a booking to Confirmed)
         const startOrDelivery = booking.startDate || booking.delivery_date || booking.deliveryDate;

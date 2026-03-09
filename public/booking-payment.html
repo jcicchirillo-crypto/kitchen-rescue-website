@@ -197,6 +197,11 @@
                 const bookingReference = 'KR' + Date.now().toString().slice(-6);
                 const amountDue = document.getElementById('amountDue').textContent || amountFormatted;
                 try {
+                    const selectedDates = Array.isArray(bookingData.selectedDates)
+                        ? bookingData.selectedDates
+                        : (typeof bookingData.selectedDates === 'string' && bookingData.selectedDates
+                            ? bookingData.selectedDates.split(',').map(d => d.trim()).filter(Boolean)
+                            : []);
                     const res = await fetch('/api/booking-received', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -210,7 +215,8 @@
                             amountDue: amountDue,
                             bookingReference: bookingReference,
                             totalCost: sessionStorage.getItem('quoteTotal') || null,
-                            postcode: bookingData.postcode || sessionStorage.getItem('postcode') || null
+                            postcode: bookingData.postcode || sessionStorage.getItem('postcode') || null,
+                            selectedDates
                         })
                     });
                     const data = await res.json().catch(() => ({}));

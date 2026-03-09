@@ -3,6 +3,7 @@
 
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS collectionCost DECIMAL;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS confirmation_email_sent_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS source TEXT;
 
 -- If table doesn't exist yet, use this full schema:
 
