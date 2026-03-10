@@ -128,26 +128,31 @@ function renderMonth(monthStart, availability) {
     const lead = jsDayToIso(firstDay.getDay()) - 1;
     for (let i = 0; i < lead; i++) dateGrid.appendChild(document.createElement('div'));
 
-    // Expand ranges into a Set of ISO date strings
+    // Expand ranges into a Set of ISO date strings (use yyyy-mm-dd parsing to avoid timezone shifts)
     const unavailableSet = new Set();
     (availability.unavailable || []).forEach(r => {
-        const start = new Date(r.start);
-        const end = new Date(r.end);
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            unavailableSet.add(d.toISOString().slice(0,10));
+        if (!r.start || !r.end) return;
+        let cur = r.start;
+        while (cur <= r.end) {
+            unavailableSet.add(cur);
+            const [y, m, d] = cur.split('-').map(Number);
+            const next = new Date(y, m - 1, d + 1);
+            cur = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
         }
     });
 
     const today = new Date();
-    const startDateStr = startDate.toISOString().slice(0,10);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     for (let day = 1; day <= lastDay.getDate(); day++) {
-        const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
-        const iso = date.toISOString().slice(0,10);
+        const yyyy = monthStart.getFullYear();
+        const mm = String(monthStart.getMonth() + 1).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        const iso = `${yyyy}-${mm}-${dd}`;
         const cell = document.createElement('div');
         cell.className = 'date';
         const isUnavailable = unavailableSet.has(iso);
-        const isPast = iso < startDateStr; // Use startDate instead of today
+        const isPast = iso < todayStr;
         cell.classList.add(isUnavailable ? 'disabled' : 'available');
         if (isPast) cell.classList.add('past-date');
         cell.textContent = String(day);

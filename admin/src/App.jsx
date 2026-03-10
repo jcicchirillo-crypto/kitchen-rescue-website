@@ -99,11 +99,15 @@ function MonthCalendar({
     return dayStr >= startStr && dayStr <= endStr;
   };
 
+  const firstDay = startOfMonth(month);
+  const leadBlanks = (firstDay.getDay() + 6) % 7;
+
   return (
     <div className="grid grid-cols-7 gap-2">
       {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
         <div key={d} className="text-xs font-medium text-slate-500 text-center">{d}</div>
       ))}
+      {Array.from({ length: leadBlanks }, (_, i) => <div key={`blank-${i}`} />)}
       {days.map((day) => (
         <div key={+day} className={`min-h-[90px] rounded-xl border p-2 relative ${isToday(day) ? "border-red-600" : "border-slate-200"}`}>
           <div className="text-xs font-semibold">{format(day, "d")}</div>
