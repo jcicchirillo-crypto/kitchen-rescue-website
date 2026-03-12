@@ -589,6 +589,34 @@ app.post('/request-quote', async (req, res) => {
         }
         console.log('Homepage quote request saved to admin:', trimmedEmail);
 
+        // Add to Brevo mailing list and trigger follow-up
+        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            try {
+                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const res2 = await fetch('https://api.brevo.com/v3/contacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': process.env.BREVO_API_KEY
+                    },
+                    body: JSON.stringify({
+                        email: trimmedEmail,
+                        attributes: { FIRSTNAME: trimmedName || '' },
+                        listIds: [listId],
+                        updateEnabled: true
+                    })
+                });
+                if (res2.ok) {
+                    console.log('Contact added to Brevo:', trimmedEmail);
+                } else {
+                    const errBody = await res2.text();
+                    console.error('Brevo contact add failed:', res2.status, errBody);
+                }
+            } catch (e) {
+                console.error('Brevo contact add failed:', e.message);
+            }
+        }
+
         return res.json({
             success: true,
             message: 'Thanks! We\'ll send your quote to this email address shortly.'
@@ -613,8 +641,43 @@ app.post('/send-quote-email', async (req, res) => {
         
         // Lead gate: only notify admin, no customer email
         if (isLeadOnly) {
+            // Save lead to database (backup to client-side Supabase insert)
+            await addLead({
+                name: name || '—',
+                email: email || '',
+                phone: phone ?? null,
+                source: 'availability_gate'
+            });
+            // Add to Brevo for follow-up
+            if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+                try {
+                    const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                    if (!isNaN(listId)) {
+                        const res2 = await fetch('https://api.brevo.com/v3/contacts', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'api-key': process.env.BREVO_API_KEY
+                            },
+                            body: JSON.stringify({
+                                email: (email || '').trim().toLowerCase(),
+                                attributes: { FIRSTNAME: (name || '').trim() || '' },
+                                listIds: [listId],
+                                updateEnabled: true
+                            })
+                        });
+                        if (res2.ok) {
+                            console.log('Lead added to Brevo:', email);
+                        } else {
+                            const errBody = await res2.text();
+                            console.error('Brevo lead add failed:', res2.status, errBody);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Brevo lead add failed:', e.message);
+                }
+            }
             if (!transporter) {
-                console.log('Email not configured — lead saved to Supabase only');
                 return res.json({ success: true, message: 'Thanks! You can now check availability.' });
             }
             const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
@@ -783,6 +846,32 @@ app.post('/send-quote-email', async (req, res) => {
             console.error('❌❌❌ Common issues: RLS policies, missing columns, or wrong data types');
             console.error('========================================');
             // Still send email even if save fails
+        }
+
+        // Add to Brevo for follow-up (availability page "Email me this quote")
+        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            try {
+                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                if (!isNaN(listId)) {
+                    const res = await fetch('https://api.brevo.com/v3/contacts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+                        body: JSON.stringify({
+                            email: (email || '').trim().toLowerCase(),
+                            attributes: { FIRSTNAME: (name || '').trim() },
+                            listIds: [listId],
+                            updateEnabled: true
+                        })
+                    });
+                    if (res.ok) {
+                        console.log('Quote contact added to Brevo:', email);
+                    } else {
+                        console.error('Brevo quote add failed:', res.status, await res.text());
+                    }
+                }
+            } catch (e) {
+                console.error('Brevo quote add failed:', e.message);
+            }
         }
         
         console.log('Quote emails sent successfully');
