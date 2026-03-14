@@ -318,14 +318,6 @@
 </a>
 
 <script>
-// Supabase — initialise safely so a bad/missing key never crashes the page
-const SUPABASE_URL = 'https://pgjkdehkmkstcfspcvaa.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnamtkZWhrbWtzdGNmc3BjdmFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NzU1NTEsImV4cCI6MjA3NzI1MTU1MX0.YjLAFIyfiTZzAANg_Zp4SL4qjlWvsxFHhjcHFa-0A1w';
-window._supabase = null;
-try {
-    window._supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch(e) { console.warn('Supabase init failed:', e); }
-
 let currentLead = null;
 const savedLead = sessionStorage.getItem('kr_lead');
 const skipGate = new URLSearchParams(window.location.search).get('skipgate') === 'true';
@@ -347,7 +339,7 @@ function submitLeadGate(e) {
     const phone = document.getElementById('lg-phone').value.trim();
     if (!name || !email || !phone) return;
 
-    const lead = { name, email, phone, source: 'availability_gate', created_at: new Date().toISOString() };
+    const lead = { name, email, phone, source: 'availability_gate' };
     currentLead = lead;
     sessionStorage.setItem('kr_lead', JSON.stringify(lead));
 
@@ -360,26 +352,15 @@ function submitLeadGate(e) {
 
     prefillFromLead();
 
-    // Best-effort background saves (never block the UI)
-    if (window._supabase) {
-        console.log('Supabase insert attempt:', { name: lead.name, email: lead.email, phone: lead.phone, source: lead.source, created_at: lead.created_at });
-        window._supabase.from('leads').insert([{
-            name: lead.name,
-            email: lead.email,
-            phone: lead.phone,
-            source: lead.source,
-            created_at: lead.created_at
-        }]).then(({ error }) => {
-            if (error) console.error('Supabase insert error:', error);
-            else console.log('Lead saved to Supabase successfully');
-        });
-    } else {
-        console.warn('window._supabase not initialised — lead not saved to database');
-    }
-    fetch('/send-quote-email', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...lead, type: 'new_lead', subject: 'New lead: ' + name + ' — ' + phone })
-    }).catch(() => {});
+    // Save to server: Supabase + Brevo + admin notification (never block the UI)
+    fetch('/api/lead-gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead)
+    }).then(r => r.json()).then(data => {
+        if (data.success) console.log('Lead saved:', email);
+        else console.warn('Lead gate save issue:', data.message || data.error);
+    }).catch(err => console.warn('Lead gate request failed:', err));
 }
 
 function prefillFromLead() {

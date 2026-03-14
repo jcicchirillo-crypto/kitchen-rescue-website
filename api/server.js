@@ -542,6 +542,96 @@ app.post('/schedule-reminder', async (req, res) => {
     }
 });
 
+// Availability lead gate — save lead + add to Brevo (replaces direct client Supabase insert)
+app.post('/api/lead-gate', async (req, res) => {
+    try {
+        const { name, email, phone } = req.body || {};
+        const trimmedName = (name || '').trim();
+        const trimmedEmail = (email || '').trim().toLowerCase();
+        const trimmedPhone = (phone || '').trim();
+
+        if (!trimmedEmail) {
+            return res.status(400).json({ success: false, message: 'Email is required.' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+        }
+
+        // Save lead to Supabase
+        const saved = await addLead({
+            name: trimmedName || '—',
+            email: trimmedEmail,
+            phone: trimmedPhone || null,
+            source: 'availability_gate'
+        });
+        if (!saved) {
+            console.error('Lead gate: failed to save lead to Supabase:', trimmedEmail);
+        } else {
+            console.log('Lead gate: lead saved to Supabase:', trimmedEmail);
+        }
+
+        // Add to Brevo list #5 (or BREVO_LIST_ID from env)
+        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            try {
+                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                if (!isNaN(listId)) {
+                    const res2 = await fetch('https://api.brevo.com/v3/contacts', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'api-key': process.env.BREVO_API_KEY
+                        },
+                        body: JSON.stringify({
+                            email: trimmedEmail,
+                            attributes: { FIRSTNAME: trimmedName || '' },
+                            listIds: [listId],
+                            updateEnabled: true
+                        })
+                    });
+                    if (res2.ok) {
+                        console.log('Lead gate: contact added to Brevo:', trimmedEmail);
+                    } else {
+                        const errBody = await res2.text();
+                        console.error('Lead gate: Brevo add failed', res2.status, errBody);
+                    }
+                }
+            } catch (e) {
+                console.error('Lead gate: Brevo add failed:', e.message);
+            }
+        }
+
+        // Notify admin by email
+        if (transporter) {
+            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const leadHtml = `
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#dc2626;">New availability check lead</h2>
+                    <p><strong>Name:</strong> ${(trimmedName || '—').replace(/</g, '&lt;')}</p>
+                    <p><strong>Email:</strong> ${(trimmedEmail || '—').replace(/</g, '&lt;')}</p>
+                    <p><strong>Phone:</strong> ${(trimmedPhone || '—').replace(/</g, '&lt;')}</p>
+                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They filled in the form to access the availability calendar. No quote sent — follow up when they request one.</p>
+                </div>`;
+            try {
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: adminEmail,
+                    subject: `New lead: ${trimmedName || 'Unknown'} — ${trimmedPhone || 'no phone'}`,
+                    html: leadHtml
+                });
+                console.log('Lead gate: admin notification sent to:', adminEmail);
+            } catch (err) {
+                console.error('Lead gate: admin email failed:', err.message);
+            }
+        }
+
+        return res.json({ success: true, message: 'Thanks! You can now check availability.' });
+    } catch (error) {
+        console.error('Error in /api/lead-gate:', error);
+        return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+    }
+});
+
 // Homepage: request quote (email only) — we'll send them a quote
 app.post('/request-quote', async (req, res) => {
     try {
