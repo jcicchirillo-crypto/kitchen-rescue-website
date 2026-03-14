@@ -571,10 +571,11 @@ app.post('/api/lead-gate', async (req, res) => {
             console.log('Lead gate: lead saved to Supabase:', trimmedEmail);
         }
 
-        // Add to Brevo list #5 (or BREVO_LIST_ID from env)
-        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+        // Add to Brevo — use BREVO_LEAD_GATE_LIST_ID for "Kitchen Rescue leads" (e.g. 5), else BREVO_LIST_ID
+        const leadGateListId = process.env.BREVO_LEAD_GATE_LIST_ID || process.env.BREVO_LIST_ID;
+        if (process.env.BREVO_API_KEY && leadGateListId) {
             try {
-                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const listId = parseInt(String(leadGateListId).trim(), 10);
                 if (!isNaN(listId)) {
                     const res2 = await fetch('https://api.brevo.com/v3/contacts', {
                         method: 'POST',
