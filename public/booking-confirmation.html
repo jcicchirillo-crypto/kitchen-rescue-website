@@ -176,15 +176,14 @@
                 const endDate = new Date(startDate);
                 endDate.setDate(startDate.getDate() + parseInt(data.hireLength) - 1);
                 
-                // Calculate total cost (this would normally come from your pricing calculation)
-                const dailyRate = 70;
+                const dailyRate = data.dailyRate || 70;
                 const days = parseInt(data.hireLength);
                 const dailyCost = days * dailyRate;
-                
-                // Calculate delivery cost using same logic as availability page
-                let deliveryCost = getDeliveryCost(data.postcode);
-                
-                const totalCost = dailyCost + deliveryCost;
+                const dCost = data.deliveryCost != null ? Number(data.deliveryCost) : null;
+                const cCost = data.collectionCost != null ? Number(data.collectionCost) : null;
+                const hasSeparateCosts = dCost != null && !isNaN(dCost) && cCost != null && !isNaN(cCost);
+                const deliveryCostTotal = hasSeparateCosts ? (dCost + cCost) : getDeliveryCost(data.postcode);
+                const totalCost = dailyCost + deliveryCostTotal;
                 const balanceDue = totalCost; // Full hire cost (deposit is separate and refundable)
                 
                 summaryContent.innerHTML = `

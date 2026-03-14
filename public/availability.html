@@ -400,7 +400,8 @@ let selectedDates = [];
 let selectionStart = null; // ISO string of first-click while picking end date
 let dailyRate = 70; // tiered by default; overridden by ?rate= URL param for custom quotes
 let urlOverrideRate = null; // when ?rate= is set (e.g. admin custom quote), use this instead of tiered
-let fixedDeliveryCost = null; // overridden by ?delivery= URL param
+let fixedDeliveryCost = null; // overridden by ?delivery= URL param (total; split 50/50 for delivery & collection)
+let fixedDeliveryCosts = null; // overridden by ?deliveryCost=&collectionCost= URL params (from quote email CTA)
 
 function getDailyRateForDays(days) {
     if (days >= 28) return 45;  // 4+ weeks
@@ -418,6 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const urlRate = parseInt(urlParams.get('rate'));
     const urlDelivery = parseInt(urlParams.get('delivery'));
+    const urlDeliveryCost = parseInt(urlParams.get('deliveryCost'));
+    const urlCollectionCost = parseInt(urlParams.get('collectionCost'));
 
     const bannerParts = [];
     if (urlRate && urlRate > 0 && urlRate < 500) {
@@ -425,8 +428,11 @@ document.addEventListener('DOMContentLoaded', () => {
         dailyRate = urlRate;
         bannerParts.push(`£${dailyRate}/day hire rate`);
     }
-    if (urlDelivery && urlDelivery >= 0) {
-        fixedDeliveryCost = urlDelivery; // total delivery+collection cost
+    if (urlDeliveryCost != null && !isNaN(urlDeliveryCost) && urlCollectionCost != null && !isNaN(urlCollectionCost)) {
+        fixedDeliveryCosts = { deliveryCost: urlDeliveryCost, collectionCost: urlCollectionCost };
+        bannerParts.push(`Delivery & set up: £${urlDeliveryCost} · Collection: £${urlCollectionCost}`);
+    } else if (urlDelivery && urlDelivery >= 0) {
+        fixedDeliveryCost = urlDelivery; // total delivery+collection cost (backward compat)
         bannerParts.push(`Delivery, set up & collection: £${fixedDeliveryCost}`);
     }
     if (bannerParts.length) {
@@ -718,12 +724,12 @@ async function updateQuotePanel() {
             <div class="quote-row"><span class="ql" style="color:#9ca3af;font-style:italic;">Calculating delivery…</span><span class="qv" style="color:#9ca3af;">⏳</span></div>`;
     }
 
-    const delivCostVal = hasPostcode ? await getDeliveryCost() : undefined;
+    const delivCosts = hasPostcode ? await getDeliveryCost() : undefined;
 
     let deliveryRows;
     if (!hasPostcode) {
         deliveryRows = '';
-    } else if (delivCostVal === null) {
+    } else if (delivCosts === null) {
         const subtotal = hire;
         const vat = subtotal * 0.2;
         const totalInc = subtotal + vat;
@@ -740,7 +746,9 @@ async function updateQuotePanel() {
            </div>
            <p class="quote-vat">Subject to site check</p>`;
     } else {
-        const subtotal = hire + delivCostVal;
+        const deliveryCost = delivCosts.deliveryCost;
+        const collectionCost = delivCosts.collectionCost;
+        const subtotal = hire + deliveryCost + collectionCost;
         const vat = subtotal * 0.2;
         const totalInc = subtotal + vat;
         const deposit = 250;
@@ -756,7 +764,8 @@ async function updateQuotePanel() {
             ? 'Subject to site check · Deposit refunded after collection'
             : `Subject to site check · Balance £${(totalWithDeposit - deposit).toFixed(2)} due 5 days before delivery · Deposit refunded after collection`;
         deliveryRows = `
-            <div class="quote-row"><span class="ql">Delivery, set up &amp; collection</span><span class="qv">£${delivCostVal.toFixed(2)}</span></div>
+            <div class="quote-row"><span class="ql">Delivery &amp; set up</span><span class="qv">£${deliveryCost.toFixed(2)}</span></div>
+            <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${collectionCost.toFixed(2)}</span></div>
             <div class="quote-price-reveal">
                 <div class="main">£${subtotal.toFixed(2)}</div>
                 <div class="vat-line">+ VAT (20%) = £${totalInc.toFixed(2)} total</div>
@@ -787,11 +796,16 @@ async function updateQuotePanel() {
 }
 
 async function getDeliveryCost() {
-    // Fixed delivery cost set via ?delivery= URL param — skip postcode lookup
-    if (fixedDeliveryCost !== null) return fixedDeliveryCost;
+    // Fixed costs from ?deliveryCost=&collectionCost= (quote email CTA)
+    if (fixedDeliveryCosts !== null) return fixedDeliveryCosts;
+    // Fixed total from ?delivery= — split 50/50 (backward compat)
+    if (fixedDeliveryCost !== null) {
+        const half = Math.round(fixedDeliveryCost / 2);
+        return { deliveryCost: half, collectionCost: half };
+    }
 
     const postcode = document.getElementById('postcodeInput').value.toUpperCase().trim();
-    if (!postcode) return 0;
+    if (!postcode) return null;
 
     // Distance map fallback (works with partial area codes like "AL1" or "SW")
     const areaMap = {
@@ -809,9 +823,13 @@ async function getDeliveryCost() {
         return areaMap[area2] ?? areaMap[area1] ?? null;
     }
 
-    function costFromMiles(miles) {
+    function costsFromMiles(miles) {
         if (miles === null || miles > 100) return null;
-        return Math.max(75, Math.round(miles) * 2) * 2; // delivery + collection
+        const distanceToCustomer = Math.round(miles);
+        const distanceFromCustomer = distanceToCustomer; // round trip — same distance
+        const deliveryCost = Math.max(100, distanceToCustomer * 2);   // £2/mile, £100 min
+        const collectionCost = Math.max(100, distanceFromCustomer * 2); // same formula
+        return { deliveryCost, collectionCost };
     }
 
     try {
@@ -830,14 +848,14 @@ async function getDeliveryCost() {
                       Math.cos(baseLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
                       Math.sin(dLng/2) ** 2;
             const miles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return costFromMiles(miles);
+            return costsFromMiles(miles);
         }
 
         // Postcode not found (partial/area-only) — fall back to map estimate
-        return costFromMiles(milesFromMap(postcode));
+        return costsFromMiles(milesFromMap(postcode));
     } catch (e) {
         console.error('Postcode lookup failed, using map fallback:', e);
-        return costFromMiles(milesFromMap(postcode));
+        return costsFromMiles(milesFromMap(postcode));
     }
 }
 
@@ -883,13 +901,18 @@ async function bookNow() {
     }
     const days = selectedDates.length;
     const hire = days * dailyRate;
-    const deliv = await getDeliveryCost();
-    const total = hire + (deliv === null ? 0 : deliv);
+    const costs = await getDeliveryCost();
+    const deliveryCost = costs ? costs.deliveryCost : 0;
+    const collectionCost = costs ? costs.collectionCost : 0;
+    const total = hire + deliveryCost + collectionCost;
     sessionStorage.setItem('quoteTotal', String(total));
     sessionStorage.setItem('quoteStartDate', selectedDates[0]);
+    sessionStorage.setItem('deliveryCost', String(deliveryCost));
+    sessionStorage.setItem('collectionCost', String(collectionCost));
     const p = new URLSearchParams({ dates: selectedDates.join(','), postcode: pc });
-    p.set('rate', dailyRate); // always pass rate (tiered or custom)
-    if (fixedDeliveryCost !== null) p.set('delivery', fixedDeliveryCost);
+    p.set('rate', dailyRate);
+    if (deliveryCost > 0) p.set('deliveryCost', deliveryCost);
+    if (collectionCost > 0) p.set('collectionCost', collectionCost);
     window.location.href = `booking-checklist.html?${p}`;
 }
 
@@ -903,8 +926,11 @@ async function handleEmailSubmit(e) {
     e.preventDefault();
     const btn = document.getElementById('sendEmailBtn');
     btn.disabled=true; btn.textContent='Sending…';
-    const days=selectedDates.length, deliv=await getDeliveryCost();
-    const delivTBC = deliv === null || deliv === 0;
+    const days=selectedDates.length;
+    const costs=await getDeliveryCost();
+    const delivTBC = costs === null;
+    const deliveryCost = costs ? costs.deliveryCost : 0;
+    const collectionCost = costs ? costs.collectionCost : 0;
     const payload = {
         name: document.getElementById('quoteName').value.trim(),
         email: document.getElementById('quoteEmail').value.trim(),
@@ -913,9 +939,9 @@ async function handleEmailSubmit(e) {
         postcode: document.getElementById('postcodeInput').value.toUpperCase().trim(),
         selectedDates, startDate: selectedDates[0], endDate: selectedDates[selectedDates.length-1],
         days, dailyRate, dailyCost: days*dailyRate,
-        deliveryCost: delivTBC ? 'TBC' : deliv,
-        collectionCost: delivTBC ? 'TBC' : deliv,
-        totalCost: delivTBC ? `£${days*dailyRate} hire + delivery TBC` : days*dailyRate+(deliv*2)
+        deliveryCost: delivTBC ? 'TBC' : deliveryCost,
+        collectionCost: delivTBC ? 'TBC' : collectionCost,
+        totalCost: delivTBC ? `£${days*dailyRate} hire + delivery TBC` : days*dailyRate + deliveryCost + collectionCost
     };
     try {
         const res = await fetch('/send-quote-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});

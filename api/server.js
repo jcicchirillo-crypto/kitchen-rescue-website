@@ -793,7 +793,7 @@ app.post('/send-quote-email', async (req, res) => {
             await transporter.sendMail(businessMailOptions);
             console.log('Business notification email sent successfully to:', adminEmail);
         } catch (emailError) {
-            console.error('Error sending business email:', emailError.message);
+            console.error('❌ Admin quote copy FAILED - email not sent to:', adminEmail, '| Error:', emailError.message);
         }
         
         // Save the quote as a booking in the admin system
@@ -891,7 +891,7 @@ app.post('/send-quote-email', async (req, res) => {
 app.post('/api/booking-received', async (req, res) => {
     console.log('=== /api/booking-received req.body (full) ===', JSON.stringify(req.body, null, 2));
     try {
-        const { fullName, email, phone, deliveryDate, hireLength, deliveryAddress, amountDue, bookingReference, totalCost, postcode, selectedDates: reqSelectedDates } = req.body;
+        const { fullName, email, phone, deliveryDate, hireLength, deliveryAddress, amountDue, bookingReference, totalCost, postcode, selectedDates: reqSelectedDates, deliveryCost, collectionCost } = req.body;
         if (!email || !fullName) {
             return res.status(400).json({ success: false, error: 'Missing email or fullName' });
         }
@@ -929,6 +929,8 @@ app.post('/api/booking-received', async (req, res) => {
             postcode: postcode || null,
             selectedDates,
             totalCost: totalCost != null && totalCost !== '' ? Number(totalCost) : null,
+            deliveryCost: deliveryCost != null && deliveryCost !== '' ? Number(deliveryCost) : null,
+            collectionCost: collectionCost != null && collectionCost !== '' ? Number(collectionCost) : null,
             status: 'Awaiting deposit',
             source: 'booking'
         };
@@ -975,6 +977,30 @@ app.post('/api/booking-received', async (req, res) => {
         } else {
             console.log('Email not configured - booking received and admin emails skipped');
         }
+
+        // Add to Brevo for follow-up
+        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            try {
+                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                if (!isNaN(listId)) {
+                    const res = await fetch('https://api.brevo.com/v3/contacts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+                        body: JSON.stringify({
+                            email: (email || '').trim().toLowerCase(),
+                            attributes: { FIRSTNAME: (fullName || '').trim() || '' },
+                            listIds: [listId],
+                            updateEnabled: true
+                        })
+                    });
+                    if (res.ok) console.log('Booking contact added to Brevo:', email);
+                    else console.error('Brevo booking add failed:', res.status, await res.text());
+                }
+            } catch (e) {
+                console.error('Brevo booking add failed:', e.message);
+            }
+        }
+
         res.json({ success: true, sent: !!transporter, saved });
     } catch (error) {
         console.error('Error in booking-received:', error);
@@ -1014,7 +1040,12 @@ function generateQuoteEmailHTML(data) {
     const totalIncVat = hasNumericTotal ? totalExVat * 1.2 : 0;
     const dailyEquivalent = hasNumericTotal && days > 0 ? totalIncVat / days : 0;
 
-    const ctaUrl = `${baseUrl}/availability.html?dates=${(data.selectedDates || []).join(',')}&postcode=${encodeURIComponent(data.postcode || '')}&skipgate=true${dailyRate !== 70 ? '&rate=' + dailyRate : ''}${delivColl > 0 ? '&delivery=' + delivColl : ''}`;
+    const ctaParts = [];
+    if (dailyRate !== 70) ctaParts.push('rate=' + dailyRate);
+    if (!isNaN(delivNum) && delivNum > 0) ctaParts.push('deliveryCost=' + delivNum);
+    if (!isNaN(collNum) && collNum > 0) ctaParts.push('collectionCost=' + collNum);
+    const ctaQuery = ctaParts.length ? '&' + ctaParts.join('&') : '';
+    const ctaUrl = `${baseUrl}/availability.html?dates=${(data.selectedDates || []).join(',')}&postcode=${encodeURIComponent(data.postcode || '')}&skipgate=true${ctaQuery}`;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -2315,7 +2346,7 @@ app.get('/api/delivery-cost', async (req, res) => {
         if (miles > 100) {
             return res.status(400).json({ error: 'We deliver up to 100 miles. Please call 07342 606655 for a quote.' });
         }
-        const perTrip = Math.max(75, Math.round(miles) * 2);
+        const perTrip = Math.max(100, Math.round(miles) * 2); // £2/mile, £100 min per trip
         const deliveryCost = perTrip;
         const collectionCost = perTrip;
         res.json({ deliveryCost, collectionCost, total: perTrip * 2, miles: Math.round(miles * 10) / 10 });
@@ -2589,6 +2620,27 @@ app.post('/api/quote/send', async (req, res) => {
                 await transporter.sendMail(mailOptions);
     console.log('Trade quote email sent to:', builderEmail);
 
+    // Add to Brevo for follow-up
+    if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+      try {
+        const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+        if (!isNaN(listId)) {
+          const res = await fetch('https://api.brevo.com/v3/contacts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+            body: JSON.stringify({
+              email: (builderEmail || '').trim().toLowerCase(),
+              attributes: { FIRSTNAME: (builderName || '').trim() || '' },
+              listIds: [listId],
+              updateEnabled: true
+            })
+          });
+          if (res.ok) console.log('Trade quote contact added to Brevo:', builderEmail);
+          else console.error('Brevo trade quote add failed:', res.status, await res.text());
+        }
+      } catch (e) { console.error('Brevo trade quote add failed:', e.message); }
+    }
+
     return res.json({ success: true, referralCode });
   } catch (err) {
     console.error('SEND ENDPOINT CRASH:', err);
@@ -2714,6 +2766,45 @@ app.post('/api/trade-pack-request', async (req, res) => {
             console.error('❌ ERROR sending trade pack email:', emailError);
             console.error('   📧 Failed to send to:', email);
             // Still return success if email fails
+        }
+
+        // Send admin copy
+        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        if (adminEmail && transporter) {
+            try {
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: adminEmail,
+                    subject: `📋 New Trade Pack Request - ${name} (${company})`,
+                    html: `<h2>New Trade Pack Request</h2><p><strong>Name:</strong> ${name}</p><p><strong>Company:</strong> ${company}</p><p><strong>Email:</strong> ${email}</p><p><strong>Phone:</strong> ${phone || '—'}</p><p><strong>Kitchen fits/month:</strong> ${kitchen_fits || '—'}</p><p><strong>Message:</strong> ${message || '—'}</p><p><strong>Referral code:</strong> ${referralCode || 'N/A'}</p>`
+                });
+                console.log('Admin copy sent to:', adminEmail);
+            } catch (e) {
+                console.error('Admin copy failed:', e.message);
+            }
+        }
+
+        // Add to Brevo
+        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            try {
+                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                if (!isNaN(listId)) {
+                    const res = await fetch('https://api.brevo.com/v3/contacts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+                        body: JSON.stringify({
+                            email: (email || '').trim().toLowerCase(),
+                            attributes: { FIRSTNAME: (name || '').trim() },
+                            listIds: [listId],
+                            updateEnabled: true
+                        })
+                    });
+                    if (res.ok) console.log('Trade pack contact added to Brevo:', email);
+                    else console.error('Brevo trade pack failed:', res.status, await res.text());
+                }
+            } catch (e) {
+                console.error('Brevo trade pack failed:', e.message);
+            }
         }
 
         console.log('✅ ===== TRADE PACK REQUEST COMPLETED SUCCESSFULLY =====\n');
@@ -3356,6 +3447,29 @@ app.post('/api/insurance-claims-enquiry', async (req, res) => {
             }
         } else {
             console.log('Email not configured - enquiry stored for manual follow-up');
+        }
+
+        // Add to Brevo
+        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            try {
+                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                if (!isNaN(listId)) {
+                    const res = await fetch('https://api.brevo.com/v3/contacts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+                        body: JSON.stringify({
+                            email: (email || '').trim().toLowerCase(),
+                            attributes: { FIRSTNAME: (fullName || '').trim() },
+                            listIds: [listId],
+                            updateEnabled: true
+                        })
+                    });
+                    if (res.ok) console.log('Insurance contact added to Brevo:', email);
+                    else console.error('Brevo insurance failed:', res.status, await res.text());
+                }
+            } catch (e) {
+                console.error('Brevo insurance failed:', e.message);
+            }
         }
 
         res.json({ 

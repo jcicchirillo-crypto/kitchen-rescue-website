@@ -154,8 +154,10 @@
             if (isNaN(quoteTotalExVat) || quoteTotalExVat <= 0) {
                 const days = parseInt(bookingData.hireLength, 10) || 0;
                 const rate = bookingData.dailyRate || 70;
-                const delivery = bookingData.fixedDelivery != null ? Number(bookingData.fixedDelivery) * 2 : 0;
-                quoteTotalExVat = days * rate + delivery;
+                const dCost = bookingData.deliveryCost != null ? Number(bookingData.deliveryCost) : (sessionStorage.getItem('deliveryCost') ? parseFloat(sessionStorage.getItem('deliveryCost')) : null);
+                const cCost = bookingData.collectionCost != null ? Number(bookingData.collectionCost) : (sessionStorage.getItem('collectionCost') ? parseFloat(sessionStorage.getItem('collectionCost')) : null);
+                const totalDeliveryCollection = (dCost != null && !isNaN(dCost) && cCost != null && !isNaN(cCost)) ? (dCost + cCost) : (bookingData.fixedDelivery != null ? Number(bookingData.fixedDelivery) : 0);
+                quoteTotalExVat = days * rate + totalDeliveryCollection;
             }
             const startDate = quoteStartDateStr ? new Date(quoteStartDateStr + 'T12:00:00') : new Date(bookingData.deliveryDate + 'T12:00:00');
             const today = new Date();
@@ -216,6 +218,8 @@
                             bookingReference: bookingReference,
                             totalCost: sessionStorage.getItem('quoteTotal') || null,
                             postcode: bookingData.postcode || sessionStorage.getItem('postcode') || null,
+                            deliveryCost: bookingData.deliveryCost != null ? Number(bookingData.deliveryCost) : null,
+                            collectionCost: bookingData.collectionCost != null ? Number(bookingData.collectionCost) : null,
                             selectedDates
                         })
                     });

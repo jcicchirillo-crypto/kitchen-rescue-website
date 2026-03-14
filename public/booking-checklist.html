@@ -161,8 +161,28 @@ const postcode   = urlParams.get('postcode') || sessionStorage.getItem('postcode
 const dailyRate       = parseInt(urlParams.get('rate') || sessionStorage.getItem('dailyRate') || '70') || 70;
 const fixedDelivParam = urlParams.get('delivery');
 const fixedDelivery   = fixedDelivParam !== null ? parseInt(fixedDelivParam) : (sessionStorage.getItem('fixedDelivery') ? parseInt(sessionStorage.getItem('fixedDelivery')) : null);
+const deliveryCostParam = urlParams.get('deliveryCost') || sessionStorage.getItem('deliveryCost');
+const collectionCostParam = urlParams.get('collectionCost') || sessionStorage.getItem('collectionCost');
+let deliveryCost = deliveryCostParam ? parseFloat(deliveryCostParam) : null;
+let collectionCost = collectionCostParam ? parseFloat(collectionCostParam) : null;
+// Backward compat: old flow used delivery= (total); split 50/50
+if ((deliveryCost == null || collectionCost == null) && fixedDelivery != null && !isNaN(fixedDelivery)) {
+    const half = Math.round(fixedDelivery / 2);
+    deliveryCost = half;
+    collectionCost = half;
+}
+// Fallback: estimate from postcode when no URL params
+if ((deliveryCost == null || collectionCost == null) && postcode) {
+    const dc = delivCost(postcode);
+    if (dc) {
+        deliveryCost = dc.deliveryCost;
+        collectionCost = dc.collectionCost;
+    }
+}
 if (urlParams.get('rate'))     sessionStorage.setItem('dailyRate', dailyRate);
 if (fixedDelivParam !== null)  sessionStorage.setItem('fixedDelivery', fixedDelivery);
+if (deliveryCost != null && !isNaN(deliveryCost)) sessionStorage.setItem('deliveryCost', deliveryCost);
+if (collectionCost != null && !isNaN(collectionCost)) sessionStorage.setItem('collectionCost', collectionCost);
 
 if (datesParam) {
     sessionStorage.setItem('selectedDates', datesParam);
@@ -175,24 +195,28 @@ if (datesParam) {
     document.getElementById('sb-del').textContent = fd(start);
     document.getElementById('sb-col').textContent = fd(end);
     document.getElementById('sb-dur').textContent = `${days} day${days>1?'s':''}`;
-    const dc = fixedDelivery !== null ? fixedDelivery / 2 : delivCost(postcode);
-    const subtotalExVat = dc === null ? (days * dailyRate) : (days * dailyRate + (fixedDelivery !== null ? fixedDelivery : dc * 2));
+    const totalDeliveryCollection = (deliveryCost != null && collectionCost != null && !isNaN(deliveryCost) && !isNaN(collectionCost))
+        ? (deliveryCost + collectionCost) : null;
+    const subtotalExVat = totalDeliveryCollection === null ? (days * dailyRate) : (days * dailyRate + totalDeliveryCollection);
     const totalIncVat = subtotalExVat * 1.2;
     const deposit = 250;
     const totalWithDeposit = totalIncVat + deposit;
-    document.getElementById('sb-tot').textContent = dc === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalWithDeposit.toFixed(2)} total (inc. VAT + £250 deposit)`;
-    const extraParams = (dailyRate !== 70 ? '&rate=' + dailyRate : '') + (fixedDelivery !== null ? '&delivery=' + fixedDelivery : '');
+    document.getElementById('sb-tot').textContent = totalDeliveryCollection === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalWithDeposit.toFixed(2)} total (inc. VAT + £250 deposit)`;
+    let extraParams = (dailyRate !== 70 ? '&rate=' + dailyRate : '');
+    if (deliveryCost != null && collectionCost != null && !isNaN(deliveryCost) && !isNaN(collectionCost)) {
+        extraParams += '&deliveryCost=' + deliveryCost + '&collectionCost=' + collectionCost;
+    } else if (fixedDelivery !== null) extraParams += '&delivery=' + fixedDelivery;
     document.getElementById('backBtn').href = `availability.html?dates=${encodeURIComponent(datesParam)}&postcode=${encodeURIComponent(postcode)}${extraParams}`;
 }
 
 function delivCost(pc) {
     if (!pc) return null; // unknown → delivery quote required
-    if (pc.startsWith('EN10')) return 10;
     const area = pc.substring(0,2).toUpperCase();
     const map = {'EN':5,'AL':15,'HP':20,'LU':25,'MK':30,'SG':35,'CB':40,'CM':45,'CO':50,'E':15,'EC':20,'N':10,'NW':12,'SE':18,'SW':20,'W':15,'WC':18,'IG':20,'RM':25,'DA':25,'BR':30,'CR':35,'KT':40,'SM':35,'TW':45,'UB':50,'HA':40,'WD':45};
     const miles = map[area] ?? null;
     if (miles === null) return null; // outside 100-mile zone → quote required
-    return Math.max(75, miles * 2);
+    const perTrip = Math.max(100, Math.round(miles) * 2); // £2/mile, £100 min
+    return { deliveryCost: perTrip, collectionCost: perTrip };
 }
 
 function tick(el) {
@@ -210,8 +234,9 @@ document.getElementById('continueBtn').addEventListener('click', function() {
     if (this.disabled) return;
     sessionStorage.setItem('checklistCompleted', 'true');
     const p = new URLSearchParams({ dates: datesParam, postcode });
-    p.set('rate', dailyRate); // always pass (tiered: 70/60/50/45)
-    if (fixedDelivery !== null)   p.set('delivery', fixedDelivery);
+    p.set('rate', dailyRate);
+    if (deliveryCost != null && !isNaN(deliveryCost)) p.set('deliveryCost', deliveryCost);
+    if (collectionCost != null && !isNaN(collectionCost)) p.set('collectionCost', collectionCost);
     window.location.href = `booking-form.html?${p}`;
 });
 </script>
