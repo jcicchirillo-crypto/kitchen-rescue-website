@@ -60,6 +60,7 @@ console.log('=== SERVER STARTED - NEW CODE VERSION ===');
 console.log('Checking email configuration...');
 console.log('EMAIL_USER exists:', !!process.env.EMAIL_USER);
 console.log('EMAIL_PASS exists:', !!process.env.EMAIL_PASS);
+console.log('Brevo config — BREVO_API_KEY:', !!process.env.BREVO_API_KEY, '| BREVO_LEAD_GATE_LIST_ID (Kitchen Rescue leads):', process.env.BREVO_LEAD_GATE_LIST_ID || '(not set)', '| BREVO_LIST_ID:', process.env.BREVO_LIST_ID || '(not set)');
 
 // Middleware
 app.use(cors());
@@ -93,6 +94,56 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     console.log('Email credentials not configured. Quote emails will not be sent.');
     console.log('To enable email quotes, set EMAIL_USER and EMAIL_PASS in your .env file');
 }
+
+// Brevo (Kitchen Rescue leads) — all enquiries should sync to this list
+const BREVO_LEADS_LIST = process.env.BREVO_LEAD_GATE_LIST_ID || process.env.BREVO_LIST_ID;
+console.log('Brevo config: API key set:', !!process.env.BREVO_API_KEY, '| Leads list ID:', BREVO_LEADS_LIST || '(not set — leads will NOT sync to Brevo)');
+if (!process.env.BREVO_API_KEY || !BREVO_LEADS_LIST) {
+    console.warn('⚠️ Brevo: Set BREVO_API_KEY and BREVO_LEAD_GATE_LIST_ID (or BREVO_LIST_ID) in Vercel/env for leads to sync to Kitchen Rescue leads.');
+}
+
+// Diagnostic: test Brevo API directly — GET /api/test-brevo?email=your@email.com (optional)
+// Returns raw Brevo response so we can see the exact error. Remove after debugging.
+app.get('/api/test-brevo', async (req, res) => {
+    const testEmail = (req.query.email || `brevo-test-${Date.now()}@example.com`).trim().toLowerCase();
+    const listId = parseInt(String(BREVO_LEADS_LIST || '').trim(), 10);
+    const result = {
+        ok: false,
+        config: {
+            BREVO_API_KEY_set: !!process.env.BREVO_API_KEY,
+            BREVO_LEADS_LIST_raw: BREVO_LEADS_LIST,
+            listId_parsed: isNaN(listId) ? null : listId,
+            testEmail
+        },
+        brevo: { status: null, statusText: null, body: null }
+    };
+    if (!process.env.BREVO_API_KEY) {
+        return res.json({ ...result, error: 'BREVO_API_KEY not set' });
+    }
+    if (isNaN(listId)) {
+        return res.json({ ...result, error: 'Invalid list ID — set BREVO_LEAD_GATE_LIST_ID to 5' });
+    }
+    try {
+        const brevoRes = await fetch('https://api.brevo.com/v3/contacts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+            body: JSON.stringify({
+                email: testEmail,
+                attributes: { FIRSTNAME: 'Brevo Test' },
+                listIds: [listId],
+                updateEnabled: true
+            })
+        });
+        const body = await brevoRes.text();
+        result.brevo = { status: brevoRes.status, statusText: brevoRes.statusText, body };
+        result.ok = brevoRes.ok;
+        try { result.brevo.body = JSON.parse(body); } catch (_) { result.brevo.body = body; }
+        res.json(result);
+    } catch (e) {
+        result.error = e.message;
+        res.json(result);
+    }
+});
 
 // Serve static files
 app.get('/', (req, res) => {
@@ -288,7 +339,23 @@ function getBookingDateRange(b) {
 }
 
 // Live availability from confirmed bookings (so calendar and custom quotes stay in sync)
+// Add ?testBrevo=1 to run Brevo diagnostic (returns raw API response instead of availability)
 app.get('/api/availability', async (req, res) => {
+    if (req.query.testBrevo === '1') {
+        const testEmail = (req.query.email || `brevo-test-${Date.now()}@example.com`).trim().toLowerCase();
+        const listId = parseInt(String(BREVO_LEADS_LIST || '').trim(), 10);
+        const result = { ok: false, config: { BREVO_API_KEY_set: !!process.env.BREVO_API_KEY, BREVO_LEADS_LIST_raw: BREVO_LEADS_LIST, listId_parsed: isNaN(listId) ? null : listId, testEmail }, brevo: { status: null, body: null } };
+        if (!process.env.BREVO_API_KEY) return res.json({ ...result, error: 'BREVO_API_KEY not set' });
+        if (isNaN(listId)) return res.json({ ...result, error: 'Invalid list ID — set BREVO_LEAD_GATE_LIST_ID to 5' });
+        try {
+            const brevoRes = await fetch('https://api.brevo.com/v3/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY }, body: JSON.stringify({ email: testEmail, attributes: { FIRSTNAME: 'Brevo Test' }, listIds: [listId], updateEnabled: true }) });
+            const body = await brevoRes.text();
+            result.brevo = { status: brevoRes.status, statusText: brevoRes.statusText, body: body };
+            try { result.brevo.body = JSON.parse(body); } catch (_) { result.brevo.body = body; }
+            result.ok = brevoRes.ok;
+        } catch (e) { result.error = e.message; }
+        return res.json(result);
+    }
     try {
         const bookings = await getAllBookings();
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -571,8 +638,8 @@ app.post('/api/lead-gate', async (req, res) => {
             console.log('Lead gate: lead saved to Supabase:', trimmedEmail);
         }
 
-        // Add to Brevo — use BREVO_LEAD_GATE_LIST_ID for "Kitchen Rescue leads" (e.g. 5), else BREVO_LIST_ID
-        const leadGateListId = process.env.BREVO_LEAD_GATE_LIST_ID || process.env.BREVO_LIST_ID;
+        // Add to Brevo "Kitchen Rescue leads" list
+        const leadGateListId = BREVO_LEADS_LIST;
         if (process.env.BREVO_API_KEY && leadGateListId) {
             try {
                 const listId = parseInt(String(leadGateListId).trim(), 10);
@@ -596,10 +663,15 @@ app.post('/api/lead-gate', async (req, res) => {
                         const errBody = await res2.text();
                         console.error('Lead gate: Brevo add failed', res2.status, errBody);
                     }
+                } else {
+                    console.warn('Lead gate: Brevo skipped — invalid list ID (must be a number):', leadGateListId);
                 }
             } catch (e) {
                 console.error('Lead gate: Brevo add failed:', e.message);
             }
+        } else {
+            if (!process.env.BREVO_API_KEY) console.warn('Lead gate: Brevo skipped — BREVO_API_KEY not set');
+            else if (!leadGateListId) console.warn('Lead gate: Brevo skipped — set BREVO_LEAD_GATE_LIST_ID or BREVO_LIST_ID to your Kitchen Rescue leads list ID');
         }
 
         // Notify admin by email
@@ -681,9 +753,9 @@ app.post('/request-quote', async (req, res) => {
         console.log('Homepage quote request saved to admin:', trimmedEmail);
 
         // Add to Brevo mailing list and trigger follow-up
-        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+        if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
             try {
-                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
                 const res2 = await fetch('https://api.brevo.com/v3/contacts', {
                     method: 'POST',
                     headers: {
@@ -740,9 +812,9 @@ app.post('/send-quote-email', async (req, res) => {
                 source: 'availability_gate'
             });
             // Add to Brevo for follow-up
-            if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+            if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
                 try {
-                    const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                    const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
                     if (!isNaN(listId)) {
                         const res2 = await fetch('https://api.brevo.com/v3/contacts', {
                             method: 'POST',
@@ -940,9 +1012,9 @@ app.post('/send-quote-email', async (req, res) => {
         }
 
         // Add to Brevo for follow-up (availability page "Email me this quote")
-        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+        if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
             try {
-                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
                 if (!isNaN(listId)) {
                     const res = await fetch('https://api.brevo.com/v3/contacts', {
                         method: 'POST',
@@ -959,10 +1031,15 @@ app.post('/send-quote-email', async (req, res) => {
                     } else {
                         console.error('Brevo quote add failed:', res.status, await res.text());
                     }
+                } else {
+                    console.warn('Brevo skipped (quote): invalid list ID:', BREVO_LEADS_LIST);
                 }
             } catch (e) {
                 console.error('Brevo quote add failed:', e.message);
             }
+        } else {
+            if (!process.env.BREVO_API_KEY) console.warn('Brevo skipped (quote): BREVO_API_KEY not set');
+            else if (!BREVO_LEADS_LIST) console.warn('Brevo skipped (quote): BREVO_LEAD_GATE_LIST_ID / BREVO_LIST_ID not set');
         }
         
         console.log('Quote emails sent successfully');
@@ -1070,9 +1147,9 @@ app.post('/api/booking-received', async (req, res) => {
         }
 
         // Add to Brevo for follow-up
-        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+        if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
             try {
-                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
                 if (!isNaN(listId)) {
                     const res = await fetch('https://api.brevo.com/v3/contacts', {
                         method: 'POST',
@@ -2712,9 +2789,9 @@ app.post('/api/quote/send', async (req, res) => {
     console.log('Trade quote email sent to:', builderEmail);
 
     // Add to Brevo for follow-up
-    if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+    if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
       try {
-        const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+        const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
         if (!isNaN(listId)) {
           const res = await fetch('https://api.brevo.com/v3/contacts', {
             method: 'POST',
@@ -2876,9 +2953,9 @@ app.post('/api/trade-pack-request', async (req, res) => {
         }
 
         // Add to Brevo
-        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+        if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
             try {
-                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
                 if (!isNaN(listId)) {
                     const res = await fetch('https://api.brevo.com/v3/contacts', {
                         method: 'POST',
@@ -3541,9 +3618,9 @@ app.post('/api/insurance-claims-enquiry', async (req, res) => {
         }
 
         // Add to Brevo
-        if (process.env.BREVO_API_KEY && process.env.BREVO_LIST_ID) {
+        if (process.env.BREVO_API_KEY && BREVO_LEADS_LIST) {
             try {
-                const listId = parseInt(process.env.BREVO_LIST_ID, 10);
+                const listId = parseInt(String(BREVO_LEADS_LIST).trim(), 10);
                 if (!isNaN(listId)) {
                     const res = await fetch('https://api.brevo.com/v3/contacts', {
                         method: 'POST',
