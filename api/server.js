@@ -338,6 +338,24 @@ function getBookingDateRange(b) {
     return { start: startStr, end: endStr };
 }
 
+// Block one full calendar day after each hire ends (cleaning, inspection, prep). Next booking
+// cannot include that day. Stored booking dates are unchanged — only /api/availability expands.
+const HIRE_TURNAROUND_DAYS_AFTER = 1;
+
+function isoYmdAddDays(ymd, days) {
+    const d = new Date(String(ymd).slice(0, 10) + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+function expandUnavailableRangeWithTurnaround(range) {
+    if (!range || !range.start || !range.end) return null;
+    return {
+        start: range.start,
+        end: isoYmdAddDays(range.end, HIRE_TURNAROUND_DAYS_AFTER)
+    };
+}
+
 // Live availability from confirmed bookings (so calendar and custom quotes stay in sync)
 // Add ?testBrevo=1 to run Brevo diagnostic (returns raw API response instead of availability)
 app.get('/api/availability', async (req, res) => {
@@ -364,14 +382,16 @@ app.get('/api/availability', async (req, res) => {
         for (const b of bookings) {
             if (!confirmedStatuses.includes(b.status)) continue;
             const range = getBookingDateRange(b);
-            if (!range || range.end < todayStr) continue;
-            ranges.push(range);
+            if (!range) continue;
+            const blocked = expandUnavailableRangeWithTurnaround(range);
+            if (!blocked || blocked.end < todayStr) continue;
+            ranges.push(blocked);
         }
         res.setHeader('Cache-Control', 'no-store, max-age=0');
-        res.json({ unavailable: ranges });
+        res.json({ unavailable: ranges, turnaroundDaysAfterHire: HIRE_TURNAROUND_DAYS_AFTER });
     } catch (e) {
         console.error('Error building availability:', e);
-        res.json({ unavailable: [] });
+        res.json({ unavailable: [], turnaroundDaysAfterHire: HIRE_TURNAROUND_DAYS_AFTER });
     }
 });
 
@@ -553,17 +573,17 @@ async function blockAvailabilityDates(bookingData, bookingStatus = 'confirmed') 
             console.log('No existing availability file, creating new one');
         }
         
-        // Calculate start and end dates for blocking
+        // Calculate start and end dates for blocking (match live /api/availability incl. turnaround)
         const deliveryDate = new Date(bookingData.deliveryDate);
         const endDate = new Date(deliveryDate);
-        endDate.setDate(deliveryDate.getDate() + parseInt(bookingData.hireLength) - 1);
-        
+        endDate.setDate(deliveryDate.getDate() + parseInt(bookingData.hireLength, 10) - 1);
         const startDateStr = deliveryDate.toISOString().slice(0, 10);
-        const endDateStr = endDate.toISOString().slice(0, 10);
-        
-        // Check if this date range already exists
-        const exists = availability.unavailable.some(range => 
-            range.start === startDateStr && range.end === endDateStr
+        const hireEndStr = endDate.toISOString().slice(0, 10);
+        const endDateStr = isoYmdAddDays(hireEndStr, HIRE_TURNAROUND_DAYS_AFTER);
+
+        // Check if this date range already exists (hire-only or with turnaround)
+        const exists = availability.unavailable.some(range =>
+            range.start === startDateStr && (range.end === endDateStr || range.end === hireEndStr)
         );
         
         if (!exists) {
@@ -575,7 +595,7 @@ async function blockAvailabilityDates(bookingData, bookingStatus = 'confirmed') 
             
             // Write back to file
             fs.writeFileSync(availabilityPath, JSON.stringify(availability, null, 2));
-            console.log(`Availability blocked: ${startDateStr} to ${endDateStr} (status: ${bookingStatus})`);
+            console.log(`Availability blocked: ${startDateStr} to ${endDateStr} incl. ${HIRE_TURNAROUND_DAYS_AFTER}d turnaround (status: ${bookingStatus})`);
         } else {
             console.log(`Date range already blocked: ${startDateStr} to ${endDateStr}`);
         }
