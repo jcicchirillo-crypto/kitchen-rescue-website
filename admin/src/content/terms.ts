@@ -92,7 +92,19 @@ Charges may be deducted from your deposit for:
 - Excessive cleaning
 - Misuse or unauthorised alterations
 
-## 8. Insurance & liability
+## 8. Use of the unit & safety
+For safety and insurance purposes, the following rules apply. They reflect sensible use of a domestic-style kitchen in a portable unit — if anything isn’t clear, please ask us and we’ll be glad to help.
+
+- No smoking is permitted inside the unit
+- Deep fat frying is not permitted
+- Cooking must be carried out using standard domestic methods only
+- The unit must be kept well ventilated during cooking
+- Flammable materials must not be stored inside or near the unit
+- Waste must be disposed of regularly and not allowed to build up
+
+The Hirer agrees to use the unit in a safe and responsible manner at all times.
+
+## 9. Insurance & liability
 ${BUSINESS.tradingName} maintains appropriate insurance cover in connection with the hire of the portable kitchen unit, including public liability insurance up to £5,000,000.
 
 The kitchen unit and its contents are insured while in transit, during delivery and setup, and throughout the hire period.
@@ -107,7 +119,7 @@ ${BUSINESS.tradingName} shall not be liable for any loss, damage, or injury resu
 
 Nothing in these terms excludes or limits liability where it would be unlawful to do so.
 
-## 9. Cleaning & Hygiene Standards
+## 10. Cleaning & Hygiene Standards
 ${BUSINESS.tradingName} ensures that each unit is thoroughly cleaned and sanitised prior to delivery.
 
 This includes:
@@ -122,13 +134,13 @@ At the end of the hire period, the unit should be returned in a generally clean 
 
 The Hirer is responsible for ensuring safe and hygienic use of the kitchen during the hire period, including proper food handling and waste disposal.
 
-## 10. Privacy
+## 11. Privacy
 We process personal data in accordance with our Privacy Policy available at ${BUSINESS.website}/privacy-policy.html.
 
-## 11. Governing law
+## 12. Governing law
 These terms are governed by the laws of England and Wales and disputes are subject to the courts of England and Wales.
 
-## 12. Contact
+## 13. Contact
 If you have any concerns or disputes regarding charges, damage, or refunds, please contact us immediately:
 - **Email:** ${BUSINESS.supportEmail}
 - **Phone:** ${BUSINESS.phone}
