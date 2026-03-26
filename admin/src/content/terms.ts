@@ -6,7 +6,7 @@ import { BUSINESS } from "../config/business";
 export const TERMS_MARKDOWN = `
 # Terms & Conditions
 
-_Last updated: 5 January 2026_
+_Last updated: March 2026_
 
 These Terms & Conditions apply to hire of a temporary kitchen provided by **${BUSINESS.tradingName}**.
 
@@ -92,19 +92,43 @@ Charges may be deducted from your deposit for:
 - Excessive cleaning
 - Misuse or unauthorised alterations
 
-## 8. Liability
-Nothing in these terms excludes or limits liability where it would be unlawful to do so.  
-We are not responsible for losses caused by misuse of the Equipment or failure to follow instructions.
+## 8. Insurance & liability
+${BUSINESS.tradingName} maintains appropriate insurance cover in connection with the hire of the portable kitchen unit, including public liability insurance up to £5,000,000.
 
-The Kitchen Rescue maintains public liability insurance. Customers remain responsible for any damage to the hired equipment and are encouraged to arrange their own insurance for the hire period.
+The kitchen unit and its contents are insured while in transit, during delivery and setup, and throughout the hire period.
 
-## 9. Privacy
+This insurance covers injury to third parties and damage to third-party property where ${BUSINESS.tradingName} is deemed responsible.
+
+The Hirer is responsible for using the unit in a safe and reasonable manner, following all provided instructions, maintaining general cleanliness during the hire period, and ensuring the unit is secure when not in use.
+
+The Hirer will be liable for any damage caused by misuse, negligence, or failure to follow instructions, including loss or damage to the unit or its contents beyond fair wear and tear.
+
+${BUSINESS.tradingName} shall not be liable for any loss, damage, or injury resulting from misuse of the unit, or any indirect or consequential loss arising during the hire period.
+
+Nothing in these terms excludes or limits liability where it would be unlawful to do so.
+
+## 9. Cleaning & Hygiene Standards
+${BUSINESS.tradingName} ensures that each unit is thoroughly cleaned and sanitised prior to delivery.
+
+This includes:
+- Cleaning and disinfecting all work surfaces
+- Cleaning of appliances including oven, hob, fridge, sink and dishwasher
+- Removal of all waste from previous hire
+- Visual inspection to ensure the unit is in a clean and ready-to-use condition
+
+During the hire period, the Hirer is responsible for maintaining a reasonable level of cleanliness and hygiene within the unit.
+
+At the end of the hire period, the unit should be returned in a generally clean and tidy condition. A reasonable cleaning charge may be applied if the unit is returned in an excessively dirty condition.
+
+The Hirer is responsible for ensuring safe and hygienic use of the kitchen during the hire period, including proper food handling and waste disposal.
+
+## 10. Privacy
 We process personal data in accordance with our Privacy Policy available at ${BUSINESS.website}/privacy-policy.html.
 
-## 10. Governing law
+## 11. Governing law
 These terms are governed by the laws of England and Wales and disputes are subject to the courts of England and Wales.
 
-## 11. Contact
+## 12. Contact
 If you have any concerns or disputes regarding charges, damage, or refunds, please contact us immediately:
 - **Email:** ${BUSINESS.supportEmail}
 - **Phone:** ${BUSINESS.phone}
