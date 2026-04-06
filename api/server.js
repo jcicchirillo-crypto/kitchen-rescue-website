@@ -1222,11 +1222,9 @@ function generateQuoteEmailHTML(data) {
     const collNum = Number(data.collectionCost);
     const delivColl = (!isNaN(delivNum) ? delivNum : 0) + (!isNaN(collNum) ? collNum : 0);
     const delivCollIsTBC = (data.deliveryCost === 'TBC' || data.collectionCost === 'TBC' || (isNaN(delivNum) && data.deliveryCost) || (isNaN(collNum) && data.collectionCost));
-    const totalExVat = Number(data.totalCost);
-    const hasNumericTotal = !isNaN(totalExVat) && totalExVat > 0;
-    const vatAmt = hasNumericTotal ? totalExVat * 0.2 : 0;
-    const totalIncVat = hasNumericTotal ? totalExVat * 1.2 : 0;
-    const dailyEquivalent = hasNumericTotal && days > 0 ? totalIncVat / days : 0;
+    const quoteTotal = Number(data.totalCost);
+    const hasNumericTotal = !isNaN(quoteTotal) && quoteTotal > 0;
+    const dailyEquivalent = hasNumericTotal && days > 0 ? quoteTotal / days : 0;
 
     const ctaParts = [];
     if (dailyRate !== 70) ctaParts.push('rate=' + dailyRate);
@@ -1365,9 +1363,8 @@ function generateQuoteEmailHTML(data) {
     <div class="price-section">
       <div class="section-eyebrow">Your investment</div>
       <div class="price-reveal">
-        <div class="price-context">Total (exc. VAT)</div>
-        <div class="price-main">${hasNumericTotal ? '£' + totalExVat.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
-        ${hasNumericTotal ? `<div class="price-vat-line">+ VAT (20%) = <strong style="color:#fff">${money(totalIncVat)} total</strong></div>` : ''}
+        <div class="price-context">Total</div>
+        <div class="price-main">${hasNumericTotal ? '£' + quoteTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
         ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
         <div class="price-breakdown">
           <div class="pb-row">
@@ -1378,18 +1375,10 @@ function generateQuoteEmailHTML(data) {
             <span>Delivery, set up &amp; collection</span>
             <span>${delivCollIsTBC ? 'TBC' : money(delivColl)}</span>
           </div>
-          <div class="pb-row subtotal">
-            <span>Subtotal (exc. VAT)</span>
-            <span>${money(totalExVat)}</span>
-          </div>
           ${hasNumericTotal ? `
-          <div class="pb-row vat-row">
-            <span>VAT (20%)</span>
-            <span>${money(vatAmt)}</span>
-          </div>
           <div class="pb-row grand">
-            <span>Total inc. VAT</span>
-            <span>${money(totalIncVat)}</span>
+            <span>Total</span>
+            <span>${money(quoteTotal)}</span>
           </div>` : ''}
         </div>
       </div>
@@ -1415,8 +1404,8 @@ function generateQuoteEmailHTML(data) {
     <p>
       <a href="mailto:hello@thekitchenrescue.co.uk">hello@thekitchenrescue.co.uk</a><br>
       <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a><br><br>
-      The Kitchen Rescue · Woodpeckers Hertfordshire Ltd<br>
-      Company No. 14316407 · VAT Registered
+      The Kitchen Rescue · Woodpeckers Hertfordshire<br>
+      Company No. 14316407
     </p>
   </div>
 
@@ -1427,7 +1416,6 @@ function generateQuoteEmailHTML(data) {
 
 function generateBusinessNotificationHTML(data) {
     const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
-    const totalWithVAT = money(Number(data.totalCost) * 1.2);
     const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
 
     return `<!DOCTYPE html>
@@ -1516,16 +1504,8 @@ function generateBusinessNotificationHTML(data) {
               </tr>
               <tr><td colspan="2" style="border-top:2px solid #e5e7eb;margin-top:4px;"></td></tr>
               <tr>
-                <td style="padding:8px 0 2px;color:#374151;font-size:15px;font-weight:700;">Subtotal (exc. VAT)</td>
-                <td align="right" style="padding:8px 0 2px;color:#111827;font-size:15px;font-weight:700;">${money(data.totalCost)}</td>
-              </tr>
-              <tr>
-                <td style="padding:2px 0;color:#6b7280;font-size:13px;">VAT (20%)</td>
-                <td align="right" style="padding:2px 0;color:#6b7280;font-size:13px;">${money(Number(data.totalCost) * 0.2)}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0 0;color:#dc2626;font-size:16px;font-weight:700;">Total (inc. VAT)</td>
-                <td align="right" style="padding:6px 0 0;color:#dc2626;font-size:20px;font-weight:700;">${totalWithVAT}</td>
+                <td style="padding:8px 0 0;color:#dc2626;font-size:16px;font-weight:700;">Total</td>
+                <td align="right" style="padding:8px 0 0;color:#dc2626;font-size:20px;font-weight:700;">${money(data.totalCost)}</td>
               </tr>
             </table>
           </td></tr>
@@ -1598,7 +1578,7 @@ function generateBookingReceivedEmailHTML(data) {
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #d1fae5;border-radius:8px;margin-bottom:12px;">
               <tr><td style="padding:14px 18px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;width:140px;">Account name</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">Woodpeckers Hertfordshire Ltd</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;width:140px;">Account name</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">Woodpeckers Hertfordshire</td></tr>
                   <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Sort code</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">09-01-29</td></tr>
                   <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Account number</td><td style="padding:4px 0;color:#111827;font-size:13px;font-weight:700;">72136964</td></tr>
                   <tr><td style="padding:4px 0;color:#6b7280;font-size:13px;">Amount to pay</td><td style="padding:4px 0;color:#dc2626;font-size:15px;font-weight:700;">${amountDue}</td></tr>
@@ -1705,7 +1685,7 @@ function generateBookingConfirmedEmailHTML(data) {
           </td></tr>
         </table>
         <p style="margin:0 0 14px;color:#374151;font-size:14px;">We will contact you 2–3 days before delivery to confirm your arrival time. Please ensure someone over 18 is present to sign for the delivery.</p>
-        <p style="margin:0 0 14px;color:#374151;font-size:14px;">Please note: the full balance (hire + delivery + VAT) is due 7 days before the start of your hire. If you have only paid the deposit so far, we will be in touch with the remaining amount and payment details.</p>
+        <p style="margin:0 0 14px;color:#374151;font-size:14px;">Please note: the full balance (hire + delivery and collection) is due 7 days before the start of your hire. If you have only paid the deposit so far, we will be in touch with the remaining amount and payment details.</p>
         <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
         <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
       </td></tr>

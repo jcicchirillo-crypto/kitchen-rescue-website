@@ -227,7 +227,7 @@ function updatePricingCalculator() {
     `;
     
     const total = dailyCost + deliveryCost;
-    totalCost.textContent = `Total: £${total} + VAT`;
+    totalCost.textContent = `Total: £${total}`;
 }
 
 function getDeliveryCost() {

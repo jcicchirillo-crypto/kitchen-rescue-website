@@ -3,7 +3,7 @@
 
 export const BUSINESS = {
   tradingName: "The Kitchen Rescue",
-  legalEntityName: "Woodpeckers Hertfordshire Ltd",
+  legalEntityName: "Woodpeckers Hertfordshire",
   companyNumber: "14316407",
   vatNumber: "503 3722 28",
   registeredOffice: "Based in Hertfordshire, United Kingdom",

@@ -242,11 +242,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('sb-dur').textContent  = `${days} day${days>1?'s':''}`;
                 const hasSeparateCosts = deliveryCost != null && !isNaN(deliveryCost) && collectionCost != null && !isNaN(collectionCost);
                 const totalDeliveryCollection = hasSeparateCosts ? (deliveryCost + collectionCost) : null;
-                const subtotalExVat = totalDeliveryCollection === null ? (days * dailyRate) : (days * dailyRate + totalDeliveryCollection);
-                const totalIncVat = subtotalExVat * 1.2;
+                const subtotal = totalDeliveryCollection === null ? (days * dailyRate) : (days * dailyRate + totalDeliveryCollection);
                 const deposit = 250;
-                const totalWithDeposit = totalIncVat + deposit;
-                document.getElementById('sb-tot').textContent  = totalDeliveryCollection === null ? `£${totalIncVat.toFixed(2)} inc VAT (hire only; delivery TBC)` : `£${totalWithDeposit.toFixed(2)} total (inc. VAT + £250 deposit)`;
+                const totalWithDeposit = subtotal + deposit;
+                document.getElementById('sb-tot').textContent  = totalDeliveryCollection === null ? `£${subtotal.toFixed(2)} (hire only; delivery TBC)` : `£${totalWithDeposit.toFixed(2)} total (including £250 deposit)`;
                 document.getElementById('deliveryDate').value  = fd(start);
                 document.getElementById('hireLength').value    = `${days} days`;
                 document.getElementById('postcode').value      = postcode || '';

@@ -371,7 +371,7 @@ export function SendCustomQuoteModal({ open, onClose }) {
             {/* Total */}
             <div className="bg-red-50 border border-red-100 rounded-xl px-5 py-4 flex justify-between items-center">
               <div>
-                <div className="text-sm font-semibold text-red-800">Total (ex VAT)</div>
+                <div className="text-sm font-semibold text-red-800">Total</div>
                 <div className="text-xs text-red-400 mt-0.5">What the customer will see</div>
               </div>
               <div className="text-2xl font-bold text-red-600">£{totalCost.toFixed(2)}</div>

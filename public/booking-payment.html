@@ -95,7 +95,7 @@
             </p>
             <p class="amount-due" id="amountDue">—</p>
             <div class="bank-details">
-                <p><strong>Account name:</strong> Woodpeckers Hertfordshire Ltd</p>
+                <p><strong>Account name:</strong> Woodpeckers Hertfordshire</p>
                 <p><strong>Sort code:</strong> 09-01-29</p>
                 <p><strong>Account number:</strong> 72136964</p>
             </div>
@@ -148,16 +148,16 @@
 
             const bookingData = JSON.parse(sessionStorage.getItem('bookingData'));
 
-            // quoteTotal is ex-VAT; add VAT for amount to pay
-            let quoteTotalExVat = parseFloat(sessionStorage.getItem('quoteTotal'));
+            // quoteTotal = hire + delivery + collection (final quoted amount)
+            let quoteHireDelivery = parseFloat(sessionStorage.getItem('quoteTotal'));
             const quoteStartDateStr = sessionStorage.getItem('quoteStartDate') || bookingData.deliveryDate;
-            if (isNaN(quoteTotalExVat) || quoteTotalExVat <= 0) {
+            if (isNaN(quoteHireDelivery) || quoteHireDelivery <= 0) {
                 const days = parseInt(bookingData.hireLength, 10) || 0;
                 const rate = bookingData.dailyRate || 70;
                 const dCost = bookingData.deliveryCost != null ? Number(bookingData.deliveryCost) : (sessionStorage.getItem('deliveryCost') ? parseFloat(sessionStorage.getItem('deliveryCost')) : null);
                 const cCost = bookingData.collectionCost != null ? Number(bookingData.collectionCost) : (sessionStorage.getItem('collectionCost') ? parseFloat(sessionStorage.getItem('collectionCost')) : null);
                 const totalDeliveryCollection = (dCost != null && !isNaN(dCost) && cCost != null && !isNaN(cCost)) ? (dCost + cCost) : (bookingData.fixedDelivery != null ? Number(bookingData.fixedDelivery) : 0);
-                quoteTotalExVat = days * rate + totalDeliveryCollection;
+                quoteHireDelivery = days * rate + totalDeliveryCollection;
             }
             const startDate = quoteStartDateStr ? new Date(quoteStartDateStr + 'T12:00:00') : new Date(bookingData.deliveryDate + 'T12:00:00');
             const today = new Date();
@@ -165,27 +165,23 @@
             startDate.setHours(0, 0, 0, 0);
             const daysUntilDelivery = Math.ceil((startDate - today) / (24 * 60 * 60 * 1000));
             const isFullBalance = daysUntilDelivery <= 7;
-            const depositAmount = 250; // Security deposit is not subject to VAT, refundable after collection
-            const hireDeliveryVat = quoteTotalExVat * 1.2; // hire + delivery inc. VAT
-            const amountExVat = isFullBalance ? quoteTotalExVat : depositAmount;
-            const vatAmount = isFullBalance ? quoteTotalExVat * 0.2 : 0;
-            // Full balance = hire + delivery + VAT + £250 refundable deposit (deposit shown in total)
-            const amountIncVat = isFullBalance ? hireDeliveryVat + depositAmount : depositAmount;
-            const amountFormatted = '£' + amountIncVat.toFixed(2);
+            const depositAmount = 250;
+            const amountToPay = isFullBalance ? quoteHireDelivery + depositAmount : depositAmount;
+            const amountFormatted = '£' + amountToPay.toFixed(2);
 
             document.getElementById('amountDue').textContent = amountFormatted;
             document.getElementById('paymentSubtitle').textContent = isFullBalance
-                ? 'Pay the full balance (inc. VAT) plus £250 refundable deposit by bank transfer.'
+                ? 'Pay the full balance plus £250 refundable deposit by bank transfer.'
                 : 'Pay your £250 refundable security deposit by bank transfer to secure your booking.';
 
             const paymentInfo = document.getElementById('paymentInfo');
             if (isFullBalance) {
-                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above. This includes hire + delivery (inc. VAT) and a <strong>£250 refundable security deposit</strong> — the deposit is returned within 5 working days of collection once the pod is inspected. We will confirm your booking once payment is received.</p>';
+                paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above. This includes hire, delivery and collection, plus a <strong>£250 refundable security deposit</strong> — the deposit is returned within 5 working days of collection once the pod is inspected. We will confirm your booking once payment is received.</p>';
             } else {
-                paymentInfo.innerHTML = '<h3>Refundable security deposit</h3><p>Pay <strong>£250</strong> now to secure your booking (no VAT on deposit). This deposit is <strong>refundable</strong> and will be returned within 5 working days after the pod is collected and inspected (provided it is undamaged). The remaining balance (hire + delivery + VAT) is due 5 days before delivery.</p>';
+                paymentInfo.innerHTML = '<h3>Refundable security deposit</h3><p>Pay <strong>£250</strong> now to secure your booking. This deposit is <strong>refundable</strong> and will be returned within 5 working days after the pod is collected and inspected (provided it is undamaged). The remaining balance (hire + delivery and collection) is due 5 days before delivery.</p>';
             }
 
-            displayBookingSummary(bookingData, amountFormatted, isFullBalance, amountExVat, vatAmount, hireDeliveryVat, depositAmount, amountIncVat);
+            displayBookingSummary(bookingData, amountFormatted, isFullBalance, quoteHireDelivery, depositAmount);
 
             document.getElementById('payment-form').addEventListener('submit', async function(event) {
                 event.preventDefault();
@@ -253,7 +249,7 @@
                 window.location.href = 'booking-confirmation.html';
             });
 
-            function displayBookingSummary(data, amountLabel, isFullBalance, amountExVat, vatAmount, hireDeliveryVat, depositAmount, amountIncVat) {
+            function displayBookingSummary(data, amountLabel, isFullBalance, quoteHireDelivery, depositAmount) {
                 const summaryContent = document.getElementById('summaryContent');
                 const startDate = new Date(data.deliveryDate + 'T12:00:00');
                 summaryContent.innerHTML = `
@@ -283,19 +279,19 @@
                     </div>
                     ${isFullBalance ? `
                     <div class="summary-price-reveal">
-                        <div class="main">£${amountExVat.toFixed(2)}</div>
-                        <div class="vat-line">+ VAT (20%) = £${(hireDeliveryVat || 0).toFixed(2)} total</div>
+                        <div class="main">£${quoteHireDelivery.toFixed(2)}</div>
+                        <div class="vat-line">Hire + delivery &amp; collection</div>
                     </div>
                     <div class="summary-row">
                         <span>Refundable security deposit:</span>
-                        <span>£250.00</span>
+                        <span>£${depositAmount.toFixed(2)}</span>
                     </div>
                     <div class="summary-row total">
                         <span>Amount to pay:</span>
                         <span>${amountLabel}</span>
                     </div>` : `
                     <div class="summary-row total">
-                        <span>Deposit to pay (no VAT):</span>
+                        <span>Deposit to pay:</span>
                         <span>${amountLabel}</span>
                     </div>`}
                 `;
