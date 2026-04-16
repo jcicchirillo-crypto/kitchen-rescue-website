@@ -67,6 +67,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increased for delivery checklist photo uploads
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/locations', express.static(path.join(__dirname, '..', 'locations')));
 
 // Email transporter setup
 let transporter = null;
@@ -398,6 +399,11 @@ app.get('/api/availability', async (req, res) => {
 // Delivery checklist page (kitchenrescue.co.uk/delivery-check)
 app.get('/delivery-check', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'delivery-check.html'));
+});
+
+// Public GET requests to action endpoints should resolve to a real page.
+app.get('/send-quote-email', (req, res) => {
+    res.redirect(301, '/availability.html');
 });
 
 // Serve all HTML files
