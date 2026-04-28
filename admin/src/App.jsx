@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -21,6 +21,7 @@ import { CookieBanner } from "./components/CookieBanner";
 import { BUSINESS } from "./config/business";
 import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
 import { CreateBookingModal } from "./components/CreateBookingModal";
+import { EditBookingModal } from "./components/EditBookingModal";
 import "./App.css";
 
 const STATUS_MAP = {
@@ -28,6 +29,7 @@ const STATUS_MAP = {
   "Awaiting deposit": { color: "bg-amber-100 text-amber-700" },
   Cancelled: { color: "bg-rose-100 text-rose-700" },
 };
+const HIRE_TURNAROUND_DAYS_AFTER = 1;
 
 async function sendBookingConfirmation(bookingId, token) {
   const res = await fetch("/api/booking/send-confirmation", {
@@ -55,6 +57,12 @@ function toDateOnly(val) {
   }
 }
 
+function isoAddDays(iso, n) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return format(d, "yyyy-MM-dd");
+}
+
 function MonthCalendar({
   month,
   bookings,
@@ -62,11 +70,10 @@ function MonthCalendar({
 }) {
   const days = useMemo(() => eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) }), [month]);
 
-  // Resolve start/end date strings (yyyy-MM-dd) for a confirmed booking so calendar can show it
+  // Resolve start/end date strings (yyyy-MM-dd) for a confirmed booking so calendar can show hire plus cleaning buffer.
   const getBookingRange = (b) => {
     let startStr = toDateOnly(b.startDate);
     let endStr = toDateOnly(b.endDate);
-    if (startStr && endStr) return { startStr, endStr };
     if (Array.isArray(b.selectedDates) && b.selectedDates.length > 0) {
       const first = b.selectedDates[0];
       const last = b.selectedDates[b.selectedDates.length - 1];
@@ -84,7 +91,11 @@ function MonthCalendar({
       endDate.setDate(endDate.getDate() + daysCount - 1);
       endStr = format(endDate, "yyyy-MM-dd");
     }
-    return { startStr: startStr || null, endStr: endStr || null };
+    return {
+      startStr: startStr || null,
+      endStr: endStr || null,
+      blockedEndStr: endStr ? isoAddDays(endStr, HIRE_TURNAROUND_DAYS_AFTER) : null,
+    };
   };
 
   const isConfirmedStatus = (s) => {
@@ -93,10 +104,16 @@ function MonthCalendar({
   };
   const bookingInRange = (b, day) => {
     if (!isConfirmedStatus(b.status)) return false;
-    const { startStr, endStr } = getBookingRange(b);
-    if (!startStr || !endStr) return false;
+    const { startStr, blockedEndStr } = getBookingRange(b);
+    if (!startStr || !blockedEndStr) return false;
     const dayStr = format(startOfDay(day), "yyyy-MM-dd");
-    return dayStr >= startStr && dayStr <= endStr;
+    return dayStr >= startStr && dayStr <= blockedEndStr;
+  };
+  const isCleaningDay = (b, day) => {
+    const { endStr, blockedEndStr } = getBookingRange(b);
+    if (!endStr || !blockedEndStr) return false;
+    const dayStr = format(startOfDay(day), "yyyy-MM-dd");
+    return dayStr > endStr && dayStr <= blockedEndStr;
   };
 
   const firstDay = startOfMonth(month);
@@ -118,10 +135,10 @@ function MonthCalendar({
                 <button
                   key={b.id}
                   onClick={() => onSelectBooking(b.id)}
-                  className={`w-full text-left text-[11px] px-2 py-1 rounded-md truncate ${STATUS_MAP[b.status]?.color || "bg-slate-100 text-slate-700"}`}
+                  className={`w-full text-left text-[11px] px-2 py-1 rounded-md truncate ${isCleaningDay(b, day) ? "bg-orange-100 text-orange-700" : (STATUS_MAP[b.status]?.color || "bg-slate-100 text-slate-700")}`}
                   title={`${b.id} • ${b.name}`}
                 >
-                  {b.pod} — {b.name.split(" ")[0]}
+                  {isCleaningDay(b, day) ? "Clean/prep" : b.pod} — {b.name.split(" ")[0]}
                 </button>
               ))}
           </div>
@@ -206,6 +223,7 @@ function KitchenRescueAdmin() {
   const [bookings, setBookings] = useState([]);
   const [showCustomQuote, setShowCustomQuote] = useState(false);
   const [showCreateBooking, setShowCreateBooking] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
   const [sendingConfirmationId, setSendingConfirmationId] = useState(null);
   const [confirmationMessage, setConfirmationMessage] = useState(null);
   const [selectedToDelete, setSelectedToDelete] = useState([]);
@@ -620,7 +638,17 @@ function KitchenRescueAdmin() {
                       {b.createdAt || b.timestamp ? format(new Date(b.createdAt || b.timestamp), "d MMM yyyy") : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      {b.email ? (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setEditingBooking(b)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </Button>
+                        {b.email ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -644,9 +672,10 @@ function KitchenRescueAdmin() {
                           {sendingConfirmationId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
                           {sendingConfirmationId === b.id ? "Sending…" : "Confirm"}
                         </Button>
-                      ) : (
-                        <span className="text-slate-400 text-xs">—</span>
-                      )}
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -661,6 +690,15 @@ function KitchenRescueAdmin() {
           onCreated={() => {
             fetchBookings();
             setConfirmationMessage({ type: "success", text: "Booking created successfully" });
+          }}
+        />
+        <EditBookingModal
+          open={!!editingBooking}
+          booking={editingBooking}
+          onClose={() => setEditingBooking(null)}
+          onUpdated={() => {
+            fetchBookings();
+            setConfirmationMessage({ type: "success", text: "Booking updated successfully" });
           }}
         />
         {selectedBooking && (
@@ -683,6 +721,7 @@ function KitchenRescueAdmin() {
                   <span className="text-slate-500">Pod</span><span>{selectedBooking.pod || '—'}</span>
                   <span className="text-slate-500">Delivery</span><span>{selectedBooking.startDate ? format(new Date(selectedBooking.startDate), "d MMM yyyy") : '—'}</span>
                   <span className="text-slate-500">Collection</span><span>{selectedBooking.endDate ? format(new Date(selectedBooking.endDate), "d MMM yyyy") : '—'}</span>
+                  <span className="text-slate-500">Clean/prep blocked</span><span>{selectedBooking.endDate ? format(new Date(isoAddDays(toDateOnly(selectedBooking.endDate), HIRE_TURNAROUND_DAYS_AFTER) + "T12:00:00"), "d MMM yyyy") : '—'}</span>
                   <span className="text-slate-500">Hire length</span><span>{selectedBooking.days ?? selectedBooking.hireLength ?? '—'} days</span>
                   <span className="text-slate-500">Daily cost</span><span>£{selectedBooking.dailyCost != null ? Number(selectedBooking.dailyCost).toFixed(2) : '—'}</span>
                   <span className="text-slate-500">Delivery cost</span><span>£{selectedBooking.deliveryCost != null ? Number(selectedBooking.deliveryCost).toFixed(2) : '—'}</span>
@@ -694,6 +733,14 @@ function KitchenRescueAdmin() {
                   {selectedBooking.notes && (<><span className="text-slate-500">Notes</span><span className="break-words">{selectedBooking.notes}</span></>)}
                 </div>
                 <div className="pt-3 border-t flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingBooking(selectedBooking)}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit booking
+                  </button>
                   <a
                     href={`/delivery-check?name=${encodeURIComponent(selectedBooking.name || '')}&address=${encodeURIComponent(selectedBooking.deliveryAddress || '')}`}
                     target="_blank"
@@ -731,14 +778,6 @@ function KitchenRescueAdmin() {
       <SendCustomQuoteModal
         open={showCustomQuote}
         onClose={() => setShowCustomQuote(false)}
-      />
-      <CreateBookingModal
-        open={showCreateBooking}
-        onClose={() => setShowCreateBooking(false)}
-        onSuccess={() => {
-          setShowCreateBooking(false);
-          fetchBookings();
-        }}
       />
     </div>
   );

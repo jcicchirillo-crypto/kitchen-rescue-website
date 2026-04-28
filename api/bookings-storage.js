@@ -363,44 +363,40 @@ async function updateBooking(bookingId, updates) {
     if (useSupabase && supabase) {
         try {
             console.log('[updateBooking] Matching by booking_reference or id:', JSON.stringify(bookingId), '(format: e.g. KR-1772922362001)');
-            // Try booking_reference first (snake_case schema), then id (camelCase schema)
-            let { data, error } = await supabase
-                .from('bookings')
-                .update(updates)
-                .eq('booking_reference', bookingId)
-                .select();
-            console.log('[updateBooking] 1st attempt eq(booking_reference):', {
-                rowsMatched: data?.length ?? 0,
-                error: error ? { message: error.message, code: error.code, details: error.details } : null,
-                returnedIds: data?.map(r => r.booking_reference || r.id) ?? []
-            });
-            if (error) {
-                console.error('[updateBooking] Supabase error (booking_reference):', error.message);
-                // Fall through to try id in case booking_reference column doesn't exist
-            } else if (data && data.length > 0) {
-                console.log('[updateBooking] SUCCESS via booking_reference');
-                return true;
+            const updateAttempts = Array.isArray(updates)
+                ? updates
+                : [{ label: 'default', updates }];
+
+            for (const attempt of updateAttempts) {
+                const updateData = attempt.updates || {};
+                if (Object.keys(updateData).length === 0) continue;
+
+                for (const column of ['booking_reference', 'id']) {
+                    const { data, error } = await supabase
+                        .from('bookings')
+                        .update(updateData)
+                        .eq(column, bookingId)
+                        .select();
+
+                    console.log(`[updateBooking] attempt=${attempt.label || 'default'} eq(${column}):`, {
+                        rowsMatched: data?.length ?? 0,
+                        error: error ? { message: error.message, code: error.code, details: error.details } : null,
+                        returnedIds: data?.map(r => r.booking_reference || r.id) ?? []
+                    });
+
+                    if (error) {
+                        console.error(`[updateBooking] Supabase error (${attempt.label || 'default'} / ${column}):`, error.message);
+                        continue;
+                    }
+
+                    if (data && data.length > 0) {
+                        console.log(`[updateBooking] SUCCESS via ${attempt.label || 'default'} / ${column}`);
+                        return true;
+                    }
+                }
             }
-            // No match on booking_reference - try id (e.g. tables without booking_reference or id holds the ref)
-            const res2 = await supabase
-                .from('bookings')
-                .update(updates)
-                .eq('id', bookingId)
-                .select();
-            console.log('[updateBooking] 2nd attempt eq(id):', {
-                rowsMatched: res2.data?.length ?? 0,
-                error: res2.error ? { message: res2.error.message, code: res2.error.code } : null,
-                returnedIds: res2.data?.map(r => r.booking_reference || r.id) ?? []
-            });
-            if (res2.error) {
-                console.error('[updateBooking] Supabase error (id):', res2.error.message);
-                return false;
-            }
-            if (res2.data && res2.data.length > 0) {
-                console.log('[updateBooking] SUCCESS via id');
-                return true;
-            }
-            console.error('[updateBooking] No rows matched for bookingId:', bookingId, '| Tried both booking_reference and id');
+
+            console.error('[updateBooking] No rows matched for bookingId:', bookingId, '| Tried all schema and id column attempts');
             return false;
         } catch (error) {
             console.error('Error updating to Supabase:', error);

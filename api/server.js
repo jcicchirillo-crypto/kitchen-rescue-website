@@ -356,7 +356,8 @@ function expandUnavailableRangeWithTurnaround(range) {
     if (!range || !range.start || !range.end) return null;
     return {
         start: range.start,
-        end: isoYmdAddDays(range.end, HIRE_TURNAROUND_DAYS_AFTER)
+        end: isoYmdAddDays(range.end, HIRE_TURNAROUND_DAYS_AFTER),
+        turnaroundIncluded: true
     };
 }
 
@@ -599,7 +600,8 @@ async function blockAvailabilityDates(bookingData, bookingStatus = 'confirmed') 
             // Add new unavailable range
             availability.unavailable.push({
                 start: startDateStr,
-                end: endDateStr
+                end: endDateStr,
+                turnaroundIncluded: true
             });
             
             // Write back to file
@@ -2051,27 +2053,48 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         const oldStatus = existing.status;
         const newStatus = body.status;
 
-        // Map admin field names to Supabase column names for updateBooking
-        const updates = {};
-        if (body.name !== undefined) updates.customer_name = body.name;
-        if (body.email !== undefined) updates.customer_email = body.email;
-        if (body.phone !== undefined) updates.customer_phone = body.phone;
-        if (body.deliveryAddress !== undefined) updates.delivery_address = body.deliveryAddress;
-        if (body.postcode !== undefined) updates.postcode = body.postcode;
-        if (body.startDate !== undefined) updates.delivery_date = body.startDate ? new Date(body.startDate).toISOString().split('T')[0] : null;
-        if (body.days !== undefined) updates.hire_length = body.days;
-        if (body.selectedDates !== undefined) updates.selected_dates = body.selectedDates;
-        if (body.notes !== undefined) updates.notes = body.notes;
-        if (body.status !== undefined) updates.status = body.status;
-        if (body.source !== undefined) updates.source = body.source;
-        if (body.totalCost !== undefined) updates.total_cost = body.totalCost;
-        if (body.dailyCost !== undefined) updates.daily_cost = body.dailyCost;
-        if (body.deliveryCost !== undefined) updates.delivery_cost = body.deliveryCost;
-        if (body.collectionCost !== undefined) updates.collection_cost = body.collectionCost;
+        // Map admin field names to both Supabase schemas this project has used.
+        const updatesSnake = {};
+        if (body.name !== undefined) updatesSnake.customer_name = body.name;
+        if (body.email !== undefined) updatesSnake.customer_email = body.email;
+        if (body.phone !== undefined) updatesSnake.customer_phone = body.phone;
+        if (body.deliveryAddress !== undefined) updatesSnake.delivery_address = body.deliveryAddress;
+        if (body.postcode !== undefined) updatesSnake.postcode = body.postcode;
+        if (body.startDate !== undefined) updatesSnake.delivery_date = body.startDate ? new Date(body.startDate).toISOString().split('T')[0] : null;
+        if (body.days !== undefined) updatesSnake.hire_length = body.days;
+        if (body.selectedDates !== undefined) updatesSnake.selected_dates = body.selectedDates;
+        if (body.notes !== undefined) updatesSnake.notes = body.notes;
+        if (body.status !== undefined) updatesSnake.status = body.status;
+        if (body.source !== undefined) updatesSnake.source = body.source;
+        if (body.totalCost !== undefined) updatesSnake.total_cost = body.totalCost;
+        if (body.dailyCost !== undefined) updatesSnake.daily_cost = body.dailyCost;
+        if (body.deliveryCost !== undefined) updatesSnake.delivery_cost = body.deliveryCost;
+        if (body.collectionCost !== undefined) updatesSnake.collection_cost = body.collectionCost;
 
-        const hasUpdates = Object.keys(updates).length > 0;
+        const updatesCamel = {};
+        if (body.name !== undefined) updatesCamel.name = body.name;
+        if (body.email !== undefined) updatesCamel.email = body.email;
+        if (body.phone !== undefined) updatesCamel.phone = body.phone;
+        if (body.postcode !== undefined) updatesCamel.postcode = body.postcode;
+        if (body.startDate !== undefined) updatesCamel.startDate = body.startDate;
+        if (body.endDate !== undefined) updatesCamel.endDate = body.endDate;
+        if (body.days !== undefined) updatesCamel.days = body.days;
+        if (body.selectedDates !== undefined) updatesCamel.selectedDates = body.selectedDates;
+        if (body.notes !== undefined) updatesCamel.notes = body.notes;
+        if (body.status !== undefined) updatesCamel.status = body.status;
+        if (body.source !== undefined) updatesCamel.source = body.source;
+        if (body.totalCost !== undefined) updatesCamel.totalCost = body.totalCost;
+        if (body.dailyCost !== undefined) updatesCamel.dailyCost = body.dailyCost;
+        if (body.deliveryCost !== undefined) updatesCamel.deliveryCost = body.deliveryCost;
+        if (body.collectionCost !== undefined) updatesCamel.collectionCost = body.collectionCost;
+
+        const updateAttempts = [
+            { label: 'snake_case', updates: updatesSnake },
+            { label: 'camelCase', updates: updatesCamel }
+        ];
+        const hasUpdates = updateAttempts.some(({ updates }) => Object.keys(updates).length > 0);
         if (hasUpdates) {
-            const ok = await updateBooking(bookingId, updates);
+            const ok = await updateBooking(bookingId, updateAttempts);
             if (!ok) {
                 console.error('PUT /api/bookings/:id: updateBooking failed');
                 return res.status(500).json({ error: 'Failed to update booking in database.' });

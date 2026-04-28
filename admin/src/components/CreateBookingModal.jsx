@@ -25,6 +25,9 @@ export function CreateBookingModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | saving | success | error
   const [error, setError] = useState("");
+  const days = Number(form.days) || 14;
+  const collectionDate = form.startDate ? isoAddDays(form.startDate, Math.max(days, 1) - 1) : "";
+  const cleaningDate = collectionDate ? isoAddDays(collectionDate, 1) : "";
 
   useEffect(() => {
     if (open) {
@@ -49,7 +52,6 @@ export function CreateBookingModal({ open, onClose, onCreated }) {
       setError("Start date is required.");
       return;
     }
-    const days = Number(form.days) || 14;
     if (days < 1) {
       setError("Days must be at least 1.");
       return;
@@ -147,6 +149,11 @@ export function CreateBookingModal({ open, onClose, onCreated }) {
             <Label htmlFor="cb-days">Days</Label>
             <Input id="cb-days" type="number" min={1} value={form.days} onChange={set("days")} className="mt-1" />
           </div>
+          {form.startDate && (
+            <div className="rounded-lg bg-orange-50 px-3 py-2 text-sm text-orange-800">
+              Collection: <strong>{collectionDate}</strong>. Clean/prep day blocked: <strong>{cleaningDate}</strong>.
+            </div>
+          )}
           <div>
             <Label htmlFor="cb-status">Status</Label>
             <select
