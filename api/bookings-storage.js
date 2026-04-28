@@ -229,86 +229,117 @@ async function addBooking(newBooking) {
     
     if (useSupabase && supabase) {
         try {
-            // Prepare booking data for Supabase
-            // Map to match ACTUAL Supabase schema (customer_name, customer_email, etc.)
-            const bookingData = {
-                // id is UUID in Supabase, but we're using text ID - let Supabase generate UUID or convert
-                // For now, we'll let Supabase generate the UUID and use booking_reference for our ID
-                booking_reference: newBooking.id,
-                customer_name: newBooking.name,
-                customer_email: newBooking.email,
-                customer_phone: newBooking.phone || null,
-                delivery_address: newBooking.deliveryAddress || newBooking.delivery_address || null,
-                postcode: newBooking.postcode || null,
-                delivery_date: newBooking.startDate ? new Date(newBooking.startDate).toISOString().split('T')[0] : null,
-                hire_length: newBooking.days ? Number(newBooking.days) : null,
-                selected_dates: Array.isArray(newBooking.selectedDates) ? newBooking.selectedDates : [],
-                notes: newBooking.notes || null,
-                daily_cost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
-                delivery_cost: newBooking.deliveryCost ? Number(newBooking.deliveryCost) : null,
-                collection_cost: newBooking.collectionCost ? Number(newBooking.collectionCost) : null,
-                total_cost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
-                status: newBooking.status || 'Awaiting deposit',
-                deposit_paid: false,
-                // created_at will be set automatically by Supabase
-                // updated_at will be set automatically by Supabase
-            };
-            
-            // Only send non-null, defined values so Supabase doesn't reject (e.g. NOT NULL columns)
-            const cleanData = {};
-            for (const key of Object.keys(bookingData)) {
-                const v = bookingData[key];
-                if (v !== undefined && v !== null && v !== '') {
-                    cleanData[key] = v;
+            const selectedDates = Array.isArray(newBooking.selectedDates) ? newBooking.selectedDates : [];
+            const deliveryDate = newBooking.startDate ? new Date(newBooking.startDate).toISOString().split('T')[0] : null;
+            const source = newBooking.source || 'admin';
+
+            const cleanPayload = (payload) => {
+                const cleanData = {};
+                for (const key of Object.keys(payload)) {
+                    const v = payload[key];
+                    if (v !== undefined && v !== null && v !== '') {
+                        cleanData[key] = v;
+                    }
                 }
-            }
-            // Ensure required identifiers are always present
-            if (!cleanData.booking_reference) cleanData.booking_reference = newBooking.id;
-            if (!cleanData.customer_name) cleanData.customer_name = newBooking.name || 'Enquiry';
-            if (!cleanData.customer_email) cleanData.customer_email = newBooking.email || '';
-            if (!cleanData.status) cleanData.status = newBooking.status || 'Awaiting deposit';
-            // selected_dates: allow empty array
-            if (!('selected_dates' in cleanData) && Array.isArray(newBooking.selectedDates)) {
-                cleanData.selected_dates = newBooking.selectedDates;
-            } else if (!('selected_dates' in cleanData)) {
-                cleanData.selected_dates = [];
-            }
-            
-            console.log('💾 Attempting to save booking to Supabase (admin client):', cleanData.booking_reference);
-            console.log('📋 Booking data keys:', Object.keys(cleanData));
-            console.log('📋 Full booking data:', JSON.stringify(cleanData, null, 2));
-            
-            // Try the insert
-            console.log('🔍 Calling supabase.from("bookings").insert()...');
-            const { data, error } = await supabase
-                .from('bookings')
-                .insert([cleanData])
-                .select()
-                .single();
-            
-            console.log('🔍 Insert response received');
-            console.log('  data:', data ? 'Present' : 'null');
-            console.log('  error:', error ? 'Present' : 'null');
-            
-            if (error) {
-                console.error('========================================');
-                console.error('❌❌❌ SUPABASE INSERT ERROR ❌❌❌');
-                console.error('========================================');
+                return cleanData;
+            };
+
+            // The live project has used both schemas over time. Try the newer snake_case
+            // table first, then fall back to the original camelCase setup documented in the repo.
+            const insertAttempts = [
+                {
+                    label: 'snake_case',
+                    payload: cleanPayload({
+                        booking_reference: newBooking.id,
+                        customer_name: newBooking.name || 'Enquiry',
+                        customer_email: newBooking.email || '',
+                        customer_phone: newBooking.phone || null,
+                        delivery_address: newBooking.deliveryAddress || newBooking.delivery_address || null,
+                        postcode: newBooking.postcode || null,
+                        delivery_date: deliveryDate,
+                        hire_length: newBooking.days ? Number(newBooking.days) : null,
+                        selected_dates: selectedDates,
+                        notes: newBooking.notes || null,
+                        daily_cost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
+                        delivery_cost: newBooking.deliveryCost ? Number(newBooking.deliveryCost) : null,
+                        collection_cost: newBooking.collectionCost ? Number(newBooking.collectionCost) : null,
+                        total_cost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
+                        status: newBooking.status || 'Awaiting deposit',
+                        source,
+                        deposit_paid: false,
+                    }),
+                },
+                {
+                    label: 'snake_case_core',
+                    payload: cleanPayload({
+                        booking_reference: newBooking.id,
+                        customer_name: newBooking.name || 'Enquiry',
+                        customer_email: newBooking.email || '',
+                        customer_phone: newBooking.phone || null,
+                        postcode: newBooking.postcode || null,
+                        delivery_date: deliveryDate,
+                        hire_length: newBooking.days ? Number(newBooking.days) : null,
+                        selected_dates: selectedDates,
+                        notes: newBooking.notes || null,
+                        status: newBooking.status || 'Awaiting deposit',
+                    }),
+                },
+                {
+                    label: 'camelCase',
+                    payload: cleanPayload({
+                        id: newBooking.id,
+                        name: newBooking.name || 'Enquiry',
+                        email: newBooking.email || '',
+                        phone: newBooking.phone || null,
+                        postcode: newBooking.postcode || null,
+                        selectedDates,
+                        startDate: newBooking.startDate || null,
+                        endDate: newBooking.endDate || null,
+                        days: newBooking.days ? Number(newBooking.days) : null,
+                        dailyCost: newBooking.dailyCost ? Number(newBooking.dailyCost) : null,
+                        deliveryCost: newBooking.deliveryCost ? Number(newBooking.deliveryCost) : null,
+                        collectionCost: newBooking.collectionCost ? Number(newBooking.collectionCost) : null,
+                        totalCost: newBooking.totalCost ? Number(newBooking.totalCost) : null,
+                        notes: newBooking.notes || null,
+                        status: newBooking.status || 'Awaiting deposit',
+                        source,
+                        createdAt: newBooking.createdAt || new Date().toISOString(),
+                    }),
+                },
+            ];
+
+            let lastError = null;
+            for (const attempt of insertAttempts) {
+                console.log(`💾 Attempting to save booking to Supabase (${attempt.label}):`, newBooking.id);
+                console.log('📋 Booking data keys:', Object.keys(attempt.payload));
+                console.log('📋 Full booking data:', JSON.stringify(attempt.payload, null, 2));
+
+                const { data, error } = await supabase
+                    .from('bookings')
+                    .insert([attempt.payload])
+                    .select()
+                    .single();
+
+                if (!error) {
+                    console.log(`✅✅✅ Booking saved to Supabase successfully via ${attempt.label}:`, data?.id || data?.booking_reference);
+                    console.log('Saved booking data:', JSON.stringify(data, null, 2));
+                    return true;
+                }
+
+                lastError = error;
+                console.error(`❌ Supabase insert attempt failed (${attempt.label})`);
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
                 console.error('Error details:', error.details);
                 console.error('Error hint:', error.hint);
-                console.error('Full error object:', JSON.stringify(error, null, 2));
-                console.error('========================================');
-                console.error('Data we tried to insert:');
-                console.error(JSON.stringify(cleanData, null, 2));
-                console.error('========================================');
-                return false;
             }
-            
-            console.log('✅✅✅ Booking saved to Supabase successfully:', data?.id);
-            console.log('Saved booking data:', JSON.stringify(data, null, 2));
-            return true;
+
+            console.error('========================================');
+            console.error('❌❌❌ ALL SUPABASE INSERT ATTEMPTS FAILED ❌❌❌');
+            console.error('========================================');
+            console.error('Last error object:', JSON.stringify(lastError, null, 2));
+            console.error('========================================');
+            return false;
         } catch (error) {
             console.error('❌ Exception saving to Supabase:', error);
             console.error('Error message:', error.message);

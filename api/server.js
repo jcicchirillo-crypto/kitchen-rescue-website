@@ -229,12 +229,14 @@ app.get('/api/test-save-retrieve', async (req, res) => {
 // Simple test endpoint to check Supabase connection (no auth required for testing)
 app.get('/api/test-supabase', async (req, res) => {
     const { supabaseAdmin } = require('./lib/supabaseAdmin');
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
     const result = {
         timestamp: new Date().toISOString(),
         supabaseUrl: process.env.SUPABASE_URL || 'MISSING',
         supabaseUrlSet: !!process.env.SUPABASE_URL,
-        supabaseKeySet: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        supabaseKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0,
+        supabaseKeySet: !!supabaseKey,
+        supabaseKeySource: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SUPABASE_SERVICE_ROLE_KEY' : (process.env.SUPABASE_KEY ? 'SUPABASE_KEY' : 'MISSING'),
+        supabaseKeyLength: supabaseKey ? supabaseKey.length : 0,
         supabaseConnected: !!supabaseAdmin,
         test: null,
         error: null,
@@ -250,7 +252,8 @@ app.get('/api/test-supabase', async (req, res) => {
     try {
         console.log('🔍 Test endpoint: Attempting Supabase query...');
         console.log('   URL:', process.env.SUPABASE_URL);
-        console.log('   Key length:', process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY.length : 0);
+        console.log('   Key source:', result.supabaseKeySource);
+        console.log('   Key length:', supabaseKey ? supabaseKey.length : 0);
         
         // Get total count with better error handling
         const { count, error: countError } = await supabaseAdmin
@@ -1724,7 +1727,7 @@ app.get('/api/bookings', authenticateAdmin, async (req, res) => {
         
         console.log('📥 Admin requesting bookings...');
         console.log('🔍 Supabase URL set:', !!process.env.SUPABASE_URL);
-        console.log('🔍 Supabase key set:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+        console.log('🔍 Supabase key set:', !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY));
         
         const { supabaseAdmin } = require('./lib/supabaseAdmin');
         const diagnostics = {
@@ -1732,6 +1735,7 @@ app.get('/api/bookings', authenticateAdmin, async (req, res) => {
                 connected: !!supabaseAdmin,
                 url: process.env.SUPABASE_URL ? 'Set' : 'MISSING',
                 serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'MISSING',
+                fallbackKey: process.env.SUPABASE_KEY ? 'Set' : 'MISSING',
             }
         };
         
