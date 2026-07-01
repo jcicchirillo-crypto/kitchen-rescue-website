@@ -6,6 +6,7 @@ import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
+import { Textarea } from "./components/ui/textarea";
 import { Badge } from "./components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/table";
 import Planner from "./Planner";
@@ -229,6 +230,8 @@ function KitchenRescueAdmin() {
   const [selectedToDelete, setSelectedToDelete] = useState([]);
   const [deletingIds, setDeletingIds] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [leadNotesDraft, setLeadNotesDraft] = useState({});
+  const [savingLeadId, setSavingLeadId] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const toggleDelete = (id) => {
@@ -273,10 +276,64 @@ function KitchenRescueAdmin() {
     if (res.ok) {
       const data = await res.json();
       setLeads(data);
+      setLeadNotesDraft((prev) => {
+        const next = { ...prev };
+        for (const lead of data) {
+          if (next[lead.id] === undefined) next[lead.id] = lead.notes || "";
+        }
+        return next;
+      });
     } else {
       setLeads([]);
     }
   };
+
+  const saveLeadUpdate = async (id, updates) => {
+    const token = localStorage.getItem("adminToken");
+    setSavingLeadId(id);
+    try {
+      const res = await fetch(`/api/leads/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save");
+      }
+      const updated = await res.json();
+      setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...updated } : l)));
+      return updated;
+    } catch (err) {
+      setConfirmationMessage({ type: "error", text: err.message || "Failed to save lead update" });
+      return null;
+    } finally {
+      setSavingLeadId(null);
+    }
+  };
+
+  const toggleLeadFollowedUp = async (lead) => {
+    const next = !lead.followed_up;
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, followed_up: next } : l)));
+    const result = await saveLeadUpdate(lead.id, { followed_up: next });
+    if (!result) {
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, followed_up: lead.followed_up } : l)));
+    }
+  };
+
+  const saveLeadNotes = async (lead) => {
+    const notes = leadNotesDraft[lead.id] ?? "";
+    if (notes === (lead.notes || "")) return;
+    const result = await saveLeadUpdate(lead.id, { notes });
+    if (result) {
+      setLeadNotesDraft((prev) => ({ ...prev, [lead.id]: result.notes || "" }));
+    }
+  };
+
+  const unfollowedLeadsCount = useMemo(() => leads.filter((l) => !l.followed_up).length, [leads]);
 
   const fetchBookings = async () => {
     const res = await fetch("/api/bookings", {
@@ -415,8 +472,13 @@ function KitchenRescueAdmin() {
             <CardTitle className="flex items-center gap-2 text-amber-800">
               <MessageSquare className="h-5 w-5" />
               New Enquiries ({leads.length})
+              {unfollowedLeadsCount > 0 && (
+                <Badge className="bg-amber-200 text-amber-900 hover:bg-amber-200">
+                  {unfollowedLeadsCount} awaiting follow-up
+                </Badge>
+              )}
             </CardTitle>
-            <CardDescription>Leads from availability gate, trade quotes, etc. Follow up to convert to bookings.</CardDescription>
+            <CardDescription>Leads from availability gate, trade quotes, etc. Tick &quot;Followed up&quot; when your colleague has contacted them, and add notes below.</CardDescription>
           </CardHeader>
           <CardContent>
             {leads.length === 0 ? (
@@ -425,17 +487,32 @@ function KitchenRescueAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-24 text-center">Followed up</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead className="min-w-[220px]">Notes</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leads.map((l) => (
-                    <TableRow key={l.id}>
+                    <TableRow key={l.id} className={l.followed_up ? "bg-emerald-50/40" : ""}>
+                      <TableCell className="text-center">
+                        <label className="inline-flex items-center justify-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                            checked={!!l.followed_up}
+                            disabled={savingLeadId === l.id}
+                            onChange={() => toggleLeadFollowedUp(l)}
+                            aria-label={`Mark ${l.name || "lead"} as followed up`}
+                          />
+                          {savingLeadId === l.id ? <Loader2 className="h-3 w-3 animate-spin text-slate-400" /> : null}
+                        </label>
+                      </TableCell>
                       <TableCell className="font-medium">{l.name || '—'}</TableCell>
                       <TableCell>
                         {l.email ? (
@@ -458,8 +535,18 @@ function KitchenRescueAdmin() {
                           {l.source || 'website'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-slate-500 text-sm">
+                      <TableCell className="text-slate-500 text-sm whitespace-nowrap">
                         {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Textarea
+                          value={leadNotesDraft[l.id] ?? l.notes ?? ""}
+                          onChange={(e) => setLeadNotesDraft((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                          onBlur={() => saveLeadNotes(l)}
+                          placeholder="Add follow-up notes…"
+                          className="min-h-[60px] text-xs resize-y"
+                          disabled={savingLeadId === l.id}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -468,7 +555,6 @@ function KitchenRescueAdmin() {
                           className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
                           onClick={() => {
                             setShowCreateBooking(true);
-                            // Could prefill from lead in future
                           }}
                         >
                           <Plus className="h-3 w-3" />

@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead, getAllLeads } = require('./leads-storage');
+const { addLead, getAllLeads, updateLead } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
@@ -2221,6 +2221,27 @@ app.get('/api/leads', authenticateAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error fetching leads:', error);
         res.status(500).json([]);
+    }
+});
+
+// Update lead follow-up status and/or notes
+app.patch('/api/leads/:id', authenticateAdmin, async (req, res) => {
+    try {
+        const { followed_up, notes } = req.body || {};
+        const updates = {};
+        if (typeof followed_up === 'boolean') updates.followed_up = followed_up;
+        if (typeof notes === 'string') updates.notes = notes;
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'Provide followed_up (boolean) and/or notes (string)' });
+        }
+        const result = await updateLead(req.params.id, updates);
+        if (!result.ok) {
+            return res.status(500).json({ error: result.error || 'Failed to update lead' });
+        }
+        res.json(result.lead);
+    } catch (error) {
+        console.error('Error updating lead:', error);
+        res.status(500).json({ error: 'Failed to update lead' });
     }
 });
 
