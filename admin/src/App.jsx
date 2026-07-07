@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -232,7 +232,7 @@ function KitchenRescueAdmin() {
   const [leads, setLeads] = useState([]);
   const [leadNotesDraft, setLeadNotesDraft] = useState({});
   const [savingLeadId, setSavingLeadId] = useState(null);
-  const [showArchivedLeads, setShowArchivedLeads] = useState(false);
+  const [leadsTab, setLeadsTab] = useState("new");
   const [linkCopied, setLinkCopied] = useState(false);
 
   const toggleDelete = (id) => {
@@ -553,18 +553,37 @@ function KitchenRescueAdmin() {
           <Stat icon={Wallet} label="This month revenue" value={`£${bookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
         </div>
 
-        <Card className="mb-4 border-amber-200 bg-amber-50/50">
+        <Card className={`mb-4 ${leadsTab === "new" ? "border-amber-200 bg-amber-50/50" : "border-slate-200 bg-slate-50/80"}`}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-800">
-              <MessageSquare className="h-5 w-5" />
-              New Enquiries ({activeLeads.length})
-              {activeLeads.length > 0 && (
-                <Badge className="bg-amber-200 text-amber-900 hover:bg-amber-200">
-                  {activeLeads.length} awaiting follow-up
+            <div className="flex items-center gap-1 border-b border-slate-200 -mt-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setLeadsTab("new")}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "new" ? "border-amber-500 text-amber-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                New Enquiries
+                <Badge className={`${leadsTab === "new" ? "bg-amber-200 text-amber-900 hover:bg-amber-200" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
+                  {activeLeads.length}
                 </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>Tick &quot;Followed up&quot; when your colleague has contacted them — they&apos;ll move to the archive below. Add notes before archiving if needed.</CardDescription>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeadsTab("archived")}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "archived" ? "border-slate-500 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <Archive className="h-4 w-4" />
+                Archive
+                <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200">
+                  {archivedLeads.length}
+                </Badge>
+              </button>
+            </div>
+            <CardDescription>
+              {leadsTab === "new"
+                ? 'Tick "Followed up" when your colleague has contacted them — they\'ll move to the Archive tab. Add notes before archiving if needed.'
+                : "Followed-up leads. Uncheck to move them back to New Enquiries."}
+            </CardDescription>
             {confirmationMessage && (
               <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
                 {confirmationMessage.text}
@@ -572,53 +591,29 @@ function KitchenRescueAdmin() {
             )}
           </CardHeader>
           <CardContent>
-            {activeLeads.length === 0 ? (
-              <p className="text-slate-500 text-sm py-4">
-                {leads.length === 0
-                  ? "No enquiries yet. Click Refresh to check for new leads."
-                  : "No enquiries awaiting follow-up. All caught up!"}
-              </p>
+            {leadsTab === "new" ? (
+              activeLeads.length === 0 ? (
+                <p className="text-slate-500 text-sm py-4">
+                  {leads.length === 0
+                    ? "No enquiries yet. Click Refresh to check for new leads."
+                    : "No enquiries awaiting follow-up. All caught up!"}
+                </p>
+              ) : (
+                <Table>
+                  {leadsTableHeader}
+                  <TableBody>{renderLeadRows(activeLeads)}</TableBody>
+                </Table>
+              )
+            ) : archivedLeads.length === 0 ? (
+              <p className="text-slate-500 text-sm py-4">No archived enquiries yet.</p>
             ) : (
               <Table>
                 {leadsTableHeader}
-                <TableBody>{renderLeadRows(activeLeads)}</TableBody>
+                <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
               </Table>
             )}
           </CardContent>
         </Card>
-
-        {archivedLeads.length > 0 && (
-          <Card className="mb-4 border-slate-200 bg-slate-50/80">
-            <CardHeader className="pb-3">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-left"
-                onClick={() => setShowArchivedLeads((open) => !open)}
-              >
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-slate-700">
-                    <Archive className="h-5 w-5" />
-                    Archived enquiries ({archivedLeads.length})
-                  </CardTitle>
-                  <CardDescription className="mt-1">Followed-up leads. Uncheck to move back to new enquiries.</CardDescription>
-                </div>
-                {showArchivedLeads ? (
-                  <ChevronUp className="h-5 w-5 text-slate-500 shrink-0" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-slate-500 shrink-0" />
-                )}
-              </button>
-            </CardHeader>
-            {showArchivedLeads && (
-              <CardContent>
-                <Table>
-                  {leadsTableHeader}
-                  <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
-                </Table>
-              </CardContent>
-            )}
-          </Card>
-        )}
 
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
           <div className="relative w-full md:w-72">
