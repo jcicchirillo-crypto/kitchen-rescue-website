@@ -4,6 +4,10 @@
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS collectionCost DECIMAL;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS confirmation_email_sent_at TIMESTAMPTZ;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS source TEXT;
+-- Tracks when the "balance due" reminder email was sent, so the daily cron
+-- (/api/cron/send-balance-reminders) never emails the same customer twice.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS balance_reminder_sent_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_paid BOOLEAN DEFAULT FALSE;
 
 -- If table doesn't exist yet, use this full schema:
 

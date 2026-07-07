@@ -23,19 +23,19 @@
 </head>
 <body>
     <div class="header">
-        <h1>⏰ Payment Reminder - Delivery in 5 Days</h1>
+        <h1>⏰ Payment Reminder - Balance Due Soon</h1>
         <p>Booking Reference: <span class="booking-ref">#[Booking Ref]</span></p>
     </div>
     
     <div class="content">
         <h2>Hello <strong>[Customer Name]</strong>,</h2>
         
-        <p>Your Kitchen Pod delivery is scheduled for <strong>[Delivery Date]</strong> - just 5 days away!</p>
+        <p>Your Kitchen Pod delivery is scheduled for <strong>[Delivery Date]</strong>. Your hire balance is due <strong>7 days before delivery</strong>, so it's time to complete your payment.</p>
         
         <div class="payment-due">
-            <h3>💳 Payment Due Now</h3>
-            <p>Your balance payment is now due to secure your delivery.</p>
-            <p class="amount-due">Amount Due: £[Balance Amount]</p>
+            <h3>💳 Balance Now Due</h3>
+            <p>Please pay your hire balance by <strong>[Balance Due Date]</strong> (7 days before delivery) to secure your delivery.</p>
+            <p class="amount-due">Balance Due: £[Balance Amount]</p>
             <a href="[Payment Link]" class="payment-button">Pay Now Securely</a>
             <p><small>Payment is processed securely via Stripe</small></p>
         </div>
@@ -47,7 +47,8 @@
                 <li><strong>Delivery Date:</strong> [dd/mm/yyyy]</li>
                 <li><strong>Hire Length:</strong> [xx days]</li>
                 <li><strong>Delivery Address:</strong> [full address]</li>
-                <li><strong>Deposit Paid:</strong> £250.00</li>
+                <li><strong>Hire balance due:</strong> £[Balance Amount]</li>
+                <li><strong>Refundable security deposit:</strong> £250.00 (already paid — returned within 5 working days after collection)</li>
             </ul>
         </div>
         
@@ -66,7 +67,7 @@
         <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
             <h3>⚠️ Important Reminders</h3>
             <ul>
-                <li>Payment must be completed <span class="urgent">before delivery day</span></li>
+                <li>Balance must be paid <span class="urgent">7 days before delivery</span></li>
                 <li>Our team will contact you 2-3 days before delivery to confirm arrival time</li>
                 <li>Installation takes approximately 1 hour</li>
                 <li>Please have your site requirements checklist ready for our team</li>

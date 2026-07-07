@@ -178,7 +178,7 @@
             if (isFullBalance) {
                 paymentInfo.innerHTML = '<h3>Full payment due</h3><p>Your delivery is within 7 days, so please pay the full amount above. This includes hire, delivery and collection, plus a <strong>£250 refundable security deposit</strong> — the deposit is returned within 5 working days of collection once the pod is inspected. We will confirm your booking once payment is received.</p>';
             } else {
-                paymentInfo.innerHTML = '<h3>Refundable security deposit</h3><p>Pay <strong>£250</strong> now to secure your booking. This deposit is <strong>refundable</strong> and will be returned within 5 working days after the pod is collected and inspected (provided it is undamaged). The remaining balance (hire + delivery and collection) is due 5 days before delivery.</p>';
+                paymentInfo.innerHTML = '<h3>Refundable security deposit</h3><p>Pay <strong>£250</strong> now to secure your booking. This deposit is <strong>refundable</strong> and will be returned within 5 working days after the pod is collected and inspected (provided it is undamaged). The remaining balance (hire + delivery and collection) is due 7 days before delivery.</p>';
             }
 
             displayBookingSummary(bookingData, amountFormatted, isFullBalance, quoteHireDelivery, depositAmount);

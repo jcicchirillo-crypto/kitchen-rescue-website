@@ -64,6 +64,62 @@ console.log('Brevo config — BREVO_API_KEY:', !!process.env.BREVO_API_KEY, '| B
 
 // Middleware
 app.use(cors());
+
+// Stripe webhook — MUST be registered before express.json() so we receive the raw
+// body needed for signature verification. When a deposit payment succeeds, this
+// automatically marks the matching booking as Confirmed and blocks the dates on
+// the calendar/availability (no manual "Confirm" click needed).
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    if (!stripe) {
+        console.warn('[stripe-webhook] Stripe not configured — ignoring event');
+        return res.status(200).json({ received: true, note: 'stripe-not-configured' });
+    }
+
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    let event;
+    try {
+        if (webhookSecret) {
+            event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        } else {
+            // No secret set: parse without verification so it still works, but warn loudly.
+            console.warn('[stripe-webhook] STRIPE_WEBHOOK_SECRET not set — skipping signature verification (set it in env to secure this endpoint)');
+            event = JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString('utf8') : req.body);
+        }
+    } catch (err) {
+        console.error('[stripe-webhook] Signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    console.log('[stripe-webhook] Received event:', event.type, '| id:', event.id);
+
+    try {
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data.object;
+            const paid = session.payment_status === 'paid' || session.status === 'complete';
+            const reference = session.metadata?.reference || session.client_reference_id || null;
+            if (paid) {
+                const result = await confirmPaidBooking(reference, { source: `stripe:${event.type}` });
+                console.log('[stripe-webhook] checkout.session.completed →', reference, '| result:', result.reason || 'confirmed');
+            } else {
+                console.log('[stripe-webhook] checkout.session.completed but not paid (payment_status:', session.payment_status, ')');
+            }
+        } else if (event.type === 'payment_intent.succeeded') {
+            const pi = event.data.object;
+            const reference = pi.metadata?.reference || pi.metadata?.booking_reference || null;
+            const result = await confirmPaidBooking(reference, { source: `stripe:${event.type}` });
+            console.log('[stripe-webhook] payment_intent.succeeded →', reference, '| result:', result.reason || 'confirmed');
+        } else {
+            console.log('[stripe-webhook] Unhandled event type:', event.type);
+        }
+    } catch (err) {
+        console.error('[stripe-webhook] Error handling event:', err);
+    }
+
+    // Always acknowledge receipt so Stripe doesn't keep retrying on our internal issues.
+    res.json({ received: true });
+});
+
 app.use(express.json({ limit: '10mb' })); // Increased for delivery checklist photo uploads
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -616,6 +672,104 @@ async function blockAvailabilityDates(bookingData, bookingStatus = 'confirmed') 
     }
 }
 
+// Confirm a booking after its deposit has been paid.
+// Sets status to Confirmed, marks deposit_paid, emails the customer (once),
+// and blocks the hire dates on the calendar/availability. Safe to call more than
+// once for the same booking (idempotent — won't re-send the confirmation email).
+// Used by the Stripe webhook so paid deposits appear on the calendar automatically.
+async function confirmPaidBooking(reference, opts = {}) {
+    const source = opts.source || 'unknown';
+    if (!reference) {
+        console.warn(`[confirmPaidBooking] No booking reference in payment (${source}) — cannot match a booking`);
+        return { ok: false, reason: 'no-reference' };
+    }
+
+    let booking = null;
+    try {
+        const bookings = await getAllBookings();
+        booking = bookings.find(b => {
+            const id = String(b.id || '').toUpperCase();
+            const ref = String(b.booking_reference || '').toUpperCase();
+            const q = String(reference).toUpperCase();
+            return id === q || ref === q;
+        });
+    } catch (e) {
+        console.error('[confirmPaidBooking] Failed to load bookings:', e.message);
+        return { ok: false, reason: 'lookup-failed' };
+    }
+
+    if (!booking) {
+        console.warn(`[confirmPaidBooking] No booking found for reference "${reference}" (${source})`);
+        return { ok: false, reason: 'not-found' };
+    }
+
+    const bookingKey = booking.id || reference;
+    const alreadyConfirmed = String(booking.status || '').toLowerCase() === 'confirmed';
+    const alreadySent = !!(booking.confirmation_email_sent_at || booking.confirmationEmailSentAt);
+    const nowIso = new Date().toISOString();
+
+    // Try richer update first, fall back to fewer columns if a column doesn't exist
+    // in this table's schema variant. updateBooking returns true on first success.
+    const updated = await updateBooking(bookingKey, [
+        { label: 'full', updates: alreadySent
+            ? { status: 'Confirmed', deposit_paid: true }
+            : { status: 'Confirmed', deposit_paid: true, confirmation_email_sent_at: nowIso } },
+        { label: 'status+deposit', updates: { status: 'Confirmed', deposit_paid: true } },
+        { label: 'status-only', updates: { status: 'Confirmed' } },
+    ]);
+
+    if (!updated) {
+        console.error(`[confirmPaidBooking] Failed to update booking ${bookingKey} to Confirmed (${source})`);
+        return { ok: false, reason: 'update-failed', booking };
+    }
+    console.log(`[confirmPaidBooking] Booking ${bookingKey} marked Confirmed via ${source}`);
+
+    // Email the customer their confirmation (only once, and only if not previously sent)
+    if (!alreadySent && booking.email) {
+        if (!transporter) {
+            console.warn('[confirmPaidBooking] Status updated but email not configured — customer not notified');
+        } else {
+            try {
+                const html = generateBookingConfirmedEmailHTML({
+                    name: booking.name,
+                    fullName: booking.name,
+                    email: booking.email,
+                    bookingReference: booking.id,
+                    id: booking.id,
+                    deliveryDate: booking.startDate || booking.delivery_date,
+                    startDate: booking.startDate,
+                    hireLength: booking.days || booking.hire_length,
+                    days: booking.days,
+                    totalCost: booking.totalCost ?? booking.total_cost,
+                    deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
+                });
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: booking.email,
+                    subject: `Booking confirmed – payment received (Ref: ${booking.id})`,
+                    html
+                });
+                console.log('[confirmPaidBooking] Confirmation email sent to:', booking.email);
+            } catch (e) {
+                console.error('[confirmPaidBooking] Failed to send confirmation email:', e.message);
+            }
+        }
+    }
+
+    // Block the hire dates (incl. cleaning turnaround) so no one else can book them
+    const startOrDelivery = booking.startDate || booking.delivery_date || booking.deliveryDate;
+    const daysOrHire = booking.days ?? booking.hire_length ?? booking.hireLength;
+    if (startOrDelivery && daysOrHire) {
+        try {
+            await blockAvailabilityDates({ deliveryDate: startOrDelivery, hireLength: daysOrHire }, 'Confirmed');
+        } catch (e) {
+            console.error('[confirmPaidBooking] Failed to block availability dates:', e.message);
+        }
+    }
+
+    return { ok: true, booking, alreadyConfirmed, emailSent: !alreadySent && !!booking.email };
+}
+
 // Generate booking reference
 function generateBookingReference() {
     return 'KR' + Date.now().toString().slice(-6);
@@ -626,9 +780,10 @@ app.post('/schedule-reminder', async (req, res) => {
     try {
         const { booking_reference, delivery_date } = req.body;
         
-        // Calculate 5 days before delivery
+        // Balance is due 7 days before delivery — send the reminder 10 days before
+        // so customers get ~3 days' notice to pay before the deadline.
         const reminderDate = new Date(delivery_date);
-        reminderDate.setDate(reminderDate.getDate() - 5);
+        reminderDate.setDate(reminderDate.getDate() - 10);
         
         // Schedule email (you would use a service like Bull Queue, Agenda, or similar)
         console.log(`Scheduling reminder email for ${reminderDate} for booking ${booking_reference}`);
@@ -639,6 +794,124 @@ app.post('/schedule-reminder', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// ── Automatic balance reminders ─────────────────────────────────────────────
+// Run daily by Vercel Cron (see vercel.json). Finds confirmed bookings whose
+// delivery is within the reminder window and emails the customer their balance,
+// with a "Pay balance" link. Idempotent: records balance_reminder_sent_at and
+// records it BEFORE sending so a booking is never emailed twice (and, if the DB
+// column is missing, it safely skips rather than spamming daily).
+const BALANCE_DUE_DAYS_BEFORE = 7;   // balance is due 7 days before delivery
+const REMINDER_WINDOW_DAYS = 10;     // start reminding 10 days before delivery
+
+function isConfirmedBookingStatus(s) {
+    const v = String(s || '').toLowerCase();
+    return v === 'confirmed' || v === 'deposit paid';
+}
+
+async function runBalanceReminders({ dryRun = false } = {}) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayMs = Date.parse(todayStr + 'T00:00:00Z');
+    const bookings = await getAllBookings();
+    const result = { checked: bookings.length, eligible: 0, sent: 0, skipped: 0, errors: 0, details: [] };
+
+    for (const b of bookings) {
+        if (!isConfirmedBookingStatus(b.status)) continue;
+        if (b.balance_reminder_sent_at) continue; // already reminded
+
+        const deliverySrc = b.startDate || b.delivery_date || b.deliveryDate;
+        if (!deliverySrc) continue;
+        const deliveryStr = String(deliverySrc).replace(/Z$/, '').replace(/T.*/, '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(deliveryStr)) continue;
+
+        const daysUntil = Math.round((Date.parse(deliveryStr + 'T00:00:00Z') - todayMs) / 86400000);
+        if (daysUntil < 0 || daysUntil > REMINDER_WINDOW_DAYS) continue;
+
+        const balance = (b.totalCost != null && !isNaN(Number(b.totalCost))) ? Number(b.totalCost) : null;
+        if (!b.email) { result.skipped++; result.details.push({ id: b.id, reason: 'no-email' }); continue; }
+
+        result.eligible++;
+
+        if (dryRun) {
+            result.details.push({ id: b.id, daysUntil, balance, wouldSend: true });
+            continue;
+        }
+
+        // Record the send FIRST so we never double-send. If this fails (e.g. the
+        // balance_reminder_sent_at column doesn't exist yet), skip sending.
+        const nowIso = new Date().toISOString();
+        const marked = await updateBooking(b.id, { balance_reminder_sent_at: nowIso });
+        if (!marked) {
+            result.skipped++;
+            result.details.push({ id: b.id, reason: 'could-not-mark-sent (add balance_reminder_sent_at column?)' });
+            console.warn('[balance-reminders] Could not record balance_reminder_sent_at for', b.id, '- skipping to avoid repeat sends');
+            continue;
+        }
+
+        if (!transporter) {
+            result.skipped++;
+            result.details.push({ id: b.id, reason: 'email-not-configured' });
+            continue;
+        }
+
+        try {
+            const dueDate = new Date(deliveryStr + 'T12:00:00');
+            dueDate.setDate(dueDate.getDate() - BALANCE_DUE_DAYS_BEFORE);
+            const dueStr = dueDate.toISOString().slice(0, 10);
+            const html = generateBalanceReminderEmailHTML({
+                name: b.name,
+                id: b.id,
+                bookingReference: b.id,
+                deliveryDate: deliveryStr,
+                startDate: deliveryStr,
+                hireLength: b.days || b.hire_length,
+                days: b.days,
+                balance,
+                dueDate: dueStr,
+            });
+            await transporter.sendMail({
+                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                to: b.email,
+                subject: `Balance due for your Kitchen Pod hire (Ref: ${b.id})`,
+                html,
+            });
+            result.sent++;
+            result.details.push({ id: b.id, daysUntil, balance, sentTo: b.email });
+            console.log('[balance-reminders] Sent balance reminder to', b.email, 'for', b.id);
+        } catch (e) {
+            result.errors++;
+            result.details.push({ id: b.id, reason: 'send-failed', error: e.message });
+            console.error('[balance-reminders] Failed to send for', b.id, e.message);
+        }
+    }
+
+    console.log('[balance-reminders] Run complete:', JSON.stringify({ checked: result.checked, eligible: result.eligible, sent: result.sent, skipped: result.skipped, errors: result.errors }));
+    return result;
+}
+
+function isAuthorizedCron(req) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return true; // not configured — allow so it works out of the box (set CRON_SECRET to lock down)
+    const auth = req.headers['authorization'] || '';
+    if (auth === `Bearer ${secret}`) return true;                 // Vercel Cron sends this automatically
+    if ((req.query.secret || '') === secret) return true;          // manual trigger for testing
+    return false;
+}
+
+// Daily cron entry point (Vercel Cron uses GET). Pass ?dryRun=1 to preview without sending.
+const handleBalanceRemindersCron = async (req, res) => {
+    if (!isAuthorizedCron(req)) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
+        const result = await runBalanceReminders({ dryRun });
+        res.json({ success: true, dryRun, ...result });
+    } catch (error) {
+        console.error('[balance-reminders] Cron error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+app.get('/api/cron/send-balance-reminders', handleBalanceRemindersCron);
+app.post('/api/cron/send-balance-reminders', handleBalanceRemindersCron);
 
 // Availability lead gate — save lead + add to Brevo (replaces direct client Supabase insert)
 app.post('/api/lead-gate', async (req, res) => {
@@ -1664,9 +1937,40 @@ function generateAdminBookingNotificationHTML(data) {
 
 function generateBookingConfirmedEmailHTML(data) {
     const baseUrl = 'https://www.thekitchenrescue.co.uk';
-    const fd = (d) => { if (!d) return '—'; const dt = new Date((d + '').replace(/Z$/, '').replace(/T.*/, '') + 'T12:00:00'); return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+    const fd = (d) => { if (!d) return '—'; const dt = new Date((d + '').replace(/Z$/, '').replace(/T.*/, '') + 'T12:00:00'); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
     const name = (data.name || data.fullName || '').replace(/</g, '&lt;');
     const ref = (data.bookingReference || data.id || '').replace(/</g, '');
+
+    // Deposit is a separate, refundable security deposit — the hire balance is the full totalCost.
+    const SECURITY_DEPOSIT = 250;
+    const money = (n) => `£${Number(n).toFixed(2)}`;
+    const totalRaw = data.totalCost;
+    const total = (totalRaw != null && totalRaw !== '' && !isNaN(Number(totalRaw))) ? Number(totalRaw) : null;
+
+    // Hire length (number of days) and derived collection date
+    const days = Number(data.hireLength || data.days || 0) || null;
+    const startStr = (() => {
+        const src = data.deliveryDate || data.startDate;
+        if (!src) return null;
+        const s = (src + '').replace(/Z$/, '').replace(/T.*/, '');
+        return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+    })();
+    let collectionStr = null;
+    if (startStr && days) {
+        const c = new Date(startStr + 'T12:00:00');
+        if (!isNaN(c.getTime())) { c.setDate(c.getDate() + days - 1); collectionStr = c.toISOString().slice(0, 10); }
+    }
+
+    const paymentRows = total != null
+        ? `<tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire, delivery &amp; collection</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(total)}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Refundable security deposit</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(SECURITY_DEPOSIT)}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:8px 0;color:#991b1b;font-size:14px;font-weight:700;">Balance remaining (due 7 days before delivery)</td><td align="right" style="padding:8px 0;color:#991b1b;font-size:15px;font-weight:700;">${money(total)}</td></tr>`
+        : `<tr><td style="padding:6px 0;color:#374151;font-size:14px;">Refundable security deposit</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(SECURITY_DEPOSIT)}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:8px 0;color:#991b1b;font-size:14px;font-weight:700;">Balance remaining</td><td align="right" style="padding:8px 0;color:#991b1b;font-size:14px;font-weight:700;">Due 7 days before delivery</td></tr>`;
+
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Booking confirmed</title></head>
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
@@ -1680,8 +1984,9 @@ function generateBookingConfirmedEmailHTML(data) {
       </td></tr>
       <tr><td style="background:#ffffff;padding:36px 40px;">
         <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
-        <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6;">We have received your payment. Your Kitchen Pod hire is now <strong>confirmed</strong>.</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:24px;">
+        <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">Thank you — we've received your payment and your Kitchen Pod hire is now <strong>confirmed</strong>. Here are your details and what happens next.</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:20px;">
           <tr><td style="padding:20px 24px;">
             <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;">Your booking</p>
             <table width="100%" cellpadding="0" cellspacing="0">
@@ -1689,14 +1994,110 @@ function generateBookingConfirmedEmailHTML(data) {
               <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
               <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${fd(data.deliveryDate || data.startDate)}</td></tr>
               <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${data.hireLength || data.days || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Collection date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${collectionStr ? fd(collectionStr) : '—'}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${days ? `${days} days` : '—'}</td></tr>
               <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
               <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery address</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${(data.deliveryAddress || data.delivery_address || '—').replace(/</g, '&lt;')}</td></tr>
             </table>
           </td></tr>
         </table>
-        <p style="margin:0 0 14px;color:#374151;font-size:14px;">We will contact you 2–3 days before delivery to confirm your arrival time. Please ensure someone over 18 is present to sign for the delivery.</p>
-        <p style="margin:0 0 14px;color:#374151;font-size:14px;">Please note: the full balance (hire + delivery and collection) is due 7 days before the start of your hire. If you have only paid the deposit so far, we will be in touch with the remaining amount and payment details.</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;">Payment summary</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              ${paymentRows}
+            </table>
+            <p style="margin:14px 0 0;color:#92400e;font-size:13px;line-height:1.5;">Your <strong>£${SECURITY_DEPOSIT}</strong> security deposit is fully refundable — it's returned within 5 working days after the pod is collected and inspected (provided it's undamaged). If you've already paid your balance in full, please disregard the balance above.</p>
+          </td></tr>
+        </table>
+
+        <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;">What happens next</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+          <tr><td style="padding:0 0 12px;color:#374151;font-size:14px;line-height:1.5;"><strong>1.</strong> We'll send your invoice for the remaining balance, which is due <strong>7 days before delivery</strong>.</td></tr>
+          <tr><td style="padding:0 0 12px;color:#374151;font-size:14px;line-height:1.5;"><strong>2.</strong> Please prepare a firm, level, accessible space for the pod and keep the driveway/access route clear for our delivery vehicle.</td></tr>
+          <tr><td style="padding:0 0 12px;color:#374151;font-size:14px;line-height:1.5;"><strong>3.</strong> We'll contact you <strong>2–3 days before delivery</strong> to confirm your arrival time. Please make sure someone over 18 is present to sign for the pod.</td></tr>
+          <tr><td style="padding:0;color:#374151;font-size:14px;line-height:1.5;"><strong>4.</strong> After your hire ends we'll collect the pod on your collection date and refund your £${SECURITY_DEPOSIT} deposit within 5 working days.</td></tr>
+        </table>
+
+        <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
+        <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
+      </td></tr>
+      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;"><a href="${baseUrl}/terms-conditions.html" style="color:rgba(255,255,255,0.7);text-decoration:none;">Terms &amp; Conditions</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// "Balance due" reminder email — sent automatically 10 days before delivery
+// (balance is due 7 days before). The £250 deposit is separate and refundable,
+// so the balance shown is the full hire + delivery + collection total.
+function generateBalanceReminderEmailHTML(data) {
+    const baseUrl = 'https://www.thekitchenrescue.co.uk';
+    const fd = (d) => { if (!d) return '—'; const dt = new Date((d + '').replace(/Z$/, '').replace(/T.*/, '') + 'T12:00:00'); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+    const name = (data.name || data.fullName || '').replace(/</g, '&lt;');
+    const ref = (data.bookingReference || data.id || '').replace(/</g, '');
+    const money = (n) => `£${Number(n).toFixed(2)}`;
+    const balance = (data.balance != null && !isNaN(Number(data.balance))) ? Number(data.balance) : null;
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Balance due</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <tr><td style="background:#b45309;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
+        <img src="${baseUrl}/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Your balance is due soon</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.9);font-size:14px;">Ref: ${ref}</p>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:36px 40px;">
+        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
+        <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">Your Kitchen Pod delivery is coming up on <strong>${fd(data.deliveryDate || data.startDate)}</strong>. Your hire balance is due <strong>7 days before delivery</strong>${data.dueDate ? ` — by <strong>${fd(data.dueDate)}</strong>` : ''}, so it's time to complete your payment.</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:24px;text-align:center;">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#991b1b;text-transform:uppercase;">Balance due</p>
+            <p style="margin:0;font-size:30px;font-weight:800;color:#dc2626;">${balance != null ? money(balance) : 'See your invoice'}</p>
+          </td></tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;">Pay by bank transfer</p>
+            <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.5;">Please transfer the balance to the account below, using your booking reference <strong>${ref}</strong> as the payment reference.</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Account name</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">Woodpeckers Hertfordshire</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Sort code</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">09-01-29</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Account number</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">72136964</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Payment reference</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${ref}</td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
+          <tr><td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;">Your booking</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Reference</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${ref}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${fd(data.deliveryDate || data.startDate)}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${data.hireLength || data.days ? `${data.hireLength || data.days} days` : '—'}</td></tr>
+              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
+              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Refundable deposit</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">£250.00 (paid)</td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.5;">Your £250 security deposit is separate and fully refundable — it's returned within 5 working days after collection, once the pod is inspected. If you've already paid your balance in full, please disregard this reminder.</p>
         <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
         <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
       </td></tr>
@@ -2168,6 +2569,7 @@ app.post('/api/booking/send-confirmation', authenticateAdmin, async (req, res) =
                     startDate: booking.startDate,
                     hireLength: booking.days || booking.hire_length,
                     days: booking.days,
+                    totalCost: booking.totalCost ?? booking.total_cost,
                     deliveryAddress: booking.deliveryAddress || booking.delivery_address || ''
                 });
                 await transporter.sendMail({

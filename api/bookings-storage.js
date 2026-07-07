@@ -169,6 +169,8 @@ async function getAllBookings() {
                     source: booking.source || 'quote',
                     pod: booking.pod || '16ft Pod',
                     confirmation_email_sent_at: booking.confirmation_email_sent_at || booking.confirmationEmailSentAt || null,
+                    balance_reminder_sent_at: booking.balance_reminder_sent_at || booking.balanceReminderSentAt || null,
+                    deposit_paid: booking.deposit_paid ?? booking.depositPaid ?? null,
                     createdAt: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString(),
                     timestamp: booking.created_at || booking.createdAt || booking.timestamp || new Date().toISOString()
                 };

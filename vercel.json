@@ -9,5 +9,8 @@
       "memory": 1024,
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/cron/send-balance-reminders", "schedule": "0 9 * * *" }
+  ]
 }

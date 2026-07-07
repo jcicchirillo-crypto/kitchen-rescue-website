@@ -818,7 +818,7 @@ async function updateQuotePanel() {
         const payNowLabel = fullPaymentRequired ? 'Total to pay (full payment required)' : 'Pay now to secure';
         const vatNote = fullPaymentRequired
             ? 'Subject to site check · Deposit refunded after collection'
-            : `Subject to site check · Balance £${(totalWithDeposit - deposit).toFixed(2)} due 5 days before delivery · Deposit refunded after collection`;
+            : `Subject to site check · Balance £${(totalWithDeposit - deposit).toFixed(2)} due 7 days before delivery · Deposit refunded after collection`;
         deliveryRows = `
             <div class="quote-row"><span class="ql">Delivery &amp; set up</span><span class="qv">£${deliveryCost.toFixed(2)}</span></div>
             <div class="quote-row"><span class="ql">Collection</span><span class="qv">£${collectionCost.toFixed(2)}</span></div>
