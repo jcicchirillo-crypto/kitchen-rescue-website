@@ -1961,71 +1961,75 @@ function generateBookingConfirmedEmailHTML(data) {
         if (!isNaN(c.getTime())) { c.setDate(c.getDate() + days - 1); collectionStr = c.toISOString().slice(0, 10); }
     }
 
+    const cellL = 'padding:11px 16px;font-size:14px;color:#333333;';
+    const cellR = 'padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;';
+    const bb = 'border-bottom:1px solid #f0e0e0;';
+    const bbLight = 'border-bottom:1px solid #f0f0f0;';
     const paymentRows = total != null
-        ? `<tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire, delivery &amp; collection</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(total)}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Refundable security deposit</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(SECURITY_DEPOSIT)}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:8px 0;color:#991b1b;font-size:14px;font-weight:700;">Balance remaining (due 7 days before delivery)</td><td align="right" style="padding:8px 0;color:#991b1b;font-size:15px;font-weight:700;">${money(total)}</td></tr>`
-        : `<tr><td style="padding:6px 0;color:#374151;font-size:14px;">Refundable security deposit</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${money(SECURITY_DEPOSIT)}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:8px 0;color:#991b1b;font-size:14px;font-weight:700;">Balance remaining</td><td align="right" style="padding:8px 0;color:#991b1b;font-size:14px;font-weight:700;">Due 7 days before delivery</td></tr>`;
+        ? `<tr><td style="${cellL}${bb}">Hire, delivery &amp; collection</td><td style="${cellR}${bb}">${money(total)}</td></tr>
+              <tr><td style="${cellL}${bb}">Refundable security deposit</td><td style="${cellR}${bb}">${money(SECURITY_DEPOSIT)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#C41E1E;font-weight:700;">Balance remaining (due 7 days before delivery)</td><td style="padding:11px 16px;font-size:14px;color:#C41E1E;font-weight:700;text-align:right;">${money(total)}</td></tr>`
+        : `<tr><td style="${cellL}${bb}">Refundable security deposit</td><td style="${cellR}${bb}">${money(SECURITY_DEPOSIT)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#C41E1E;font-weight:700;">Balance remaining</td><td style="padding:11px 16px;font-size:14px;color:#C41E1E;font-weight:700;text-align:right;">Due 7 days before delivery</td></tr>`;
+
+    const step = (num, html) => `<tr>
+            <td width="34" valign="top" style="padding:0 0 14px;">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr><td width="22" height="22" align="center" valign="middle" style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;border-radius:11px;line-height:22px;mso-line-height-rule:exactly;">${num}</td></tr></table>
+            </td>
+            <td valign="top" style="padding:1px 0 14px;color:#333333;font-size:14px;line-height:1.6;">${html}</td>
+          </tr>`;
 
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Booking confirmed</title></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#333333;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
   <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-      <tr><td style="background:#166534;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
-        <img src="${baseUrl}/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
-        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Booking confirmed</h1>
-        <p style="margin:8px 0 0;color:rgba(255,255,255,0.9);font-size:14px;">Payment received · Ref: ${ref}</p>
+    <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+      <tr><td style="background:#000000;padding:20px 24px;text-align:center;">
+        <img src="${baseUrl}/assets/logo-email.png" alt="Kitchen Rescue" width="150" style="width:150px;max-width:60%;height:auto;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:0.3px;">Booking Confirmed</h1>
+        <p style="margin:0;color:rgba(255,255,255,0.85);font-size:14px;">Payment received &middot; Ref: ${ref}</p>
       </td></tr>
-      <tr><td style="background:#ffffff;padding:36px 40px;">
-        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
-        <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">Thank you — we've received your payment and your Kitchen Pod hire is now <strong>confirmed</strong>. Here are your details and what happens next.</p>
+      <tr><td style="padding:32px 32px 24px;">
+        <p style="margin:0 0 18px;line-height:1.65;">Hi <strong>${name}</strong>,</p>
+        <p style="margin:0 0 24px;line-height:1.65;">Thank you — we've received your payment and your Kitchen Pod hire is now <strong>confirmed</strong>. Here are your details and what happens next.</p>
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:20px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;">Your booking</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Reference</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${ref}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${fd(data.deliveryDate || data.startDate)}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Collection date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${collectionStr ? fd(collectionStr) : '—'}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${days ? `${days} days` : '—'}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery address</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${(data.deliveryAddress || data.delivery_address || '—').replace(/</g, '&lt;')}</td></tr>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:24px;overflow:hidden;">
+          <tr><td style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Your Booking</td></tr>
+          <tr><td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="${cellL}${bbLight}">Reference</td><td style="${cellR}${bbLight}">${ref}</td></tr>
+              <tr><td style="${cellL}${bbLight}">Delivery date</td><td style="${cellR}${bbLight}">${fd(data.deliveryDate || data.startDate)}</td></tr>
+              <tr><td style="${cellL}${bbLight}">Collection date</td><td style="${cellR}${bbLight}">${collectionStr ? fd(collectionStr) : '—'}</td></tr>
+              <tr><td style="${cellL}${bbLight}">Hire length</td><td style="${cellR}${bbLight}">${days ? `${days} days` : '—'}</td></tr>
+              <tr><td style="${cellL}">Delivery address</td><td style="${cellR}">${(data.deliveryAddress || data.delivery_address || '—').replace(/</g, '&lt;')}</td></tr>
             </table>
           </td></tr>
         </table>
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin-bottom:24px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#92400e;text-transform:uppercase;">Payment summary</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8c8c8;border-radius:6px;margin-bottom:24px;overflow:hidden;background:#fff8f8;">
+          <tr><td style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Payment Summary</td></tr>
+          <tr><td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               ${paymentRows}
             </table>
-            <p style="margin:14px 0 0;color:#92400e;font-size:13px;line-height:1.5;">Your <strong>£${SECURITY_DEPOSIT}</strong> security deposit is fully refundable — it's returned within 5 working days after the pod is collected and inspected (provided it's undamaged). If you've already paid your balance in full, please disregard the balance above.</p>
           </td></tr>
+          <tr><td style="padding:12px 16px 14px;font-size:13px;color:#8b2020;line-height:1.55;border-top:1px solid #f0e0e0;">Your <strong>£${SECURITY_DEPOSIT}</strong> security deposit is fully refundable — it's returned within 5 working days after the pod is collected and inspected (provided it's undamaged). If you've already paid your balance in full, please disregard the balance above.</td></tr>
         </table>
 
-        <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;">What happens next</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-          <tr><td style="padding:0 0 12px;color:#374151;font-size:14px;line-height:1.5;"><strong>1.</strong> We'll send your invoice for the remaining balance, which is due <strong>7 days before delivery</strong>.</td></tr>
-          <tr><td style="padding:0 0 12px;color:#374151;font-size:14px;line-height:1.5;"><strong>2.</strong> Please prepare a firm, level, accessible space for the pod and keep the driveway/access route clear for our delivery vehicle.</td></tr>
-          <tr><td style="padding:0 0 12px;color:#374151;font-size:14px;line-height:1.5;"><strong>3.</strong> We'll contact you <strong>2–3 days before delivery</strong> to confirm your arrival time. Please make sure someone over 18 is present to sign for the pod.</td></tr>
-          <tr><td style="padding:0;color:#374151;font-size:14px;line-height:1.5;"><strong>4.</strong> After your hire ends we'll collect the pod on your collection date and refund your £${SECURITY_DEPOSIT} deposit within 5 working days.</td></tr>
+        <p style="margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:#999999;">What Happens Next</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+          ${step(1, `We'll send your invoice for the remaining balance, which is due <strong style="color:#C41E1E;">7 days before delivery</strong>.`)}
+          ${step(2, `Please prepare a firm, level, accessible space for the pod and keep the driveway/access route clear for our delivery vehicle.`)}
+          ${step(3, `We'll contact you <strong style="color:#C41E1E;">2–3 days before delivery</strong> to confirm the time we'll arrive. Please make sure someone over 18 is present to sign for the pod.`)}
+          ${step(4, `After your hire ends we'll collect the pod on your collection date and refund your £${SECURITY_DEPOSIT} deposit within 5 working days.`)}
         </table>
 
-        <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
-        <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
+        <p style="margin:16px 0 0;line-height:1.65;color:#555555;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#C41E1E;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#C41E1E;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
+        <p style="margin:20px 0 0;line-height:1.65;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
       </td></tr>
-      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
-        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;"><a href="${baseUrl}/terms-conditions.html" style="color:rgba(255,255,255,0.7);text-decoration:none;">Terms &amp; Conditions</a></p>
+      <tr><td style="background:#1a1a1a;padding:20px 24px;text-align:center;">
+        <p style="margin:0;color:#888888;font-size:12px;line-height:1.6;">Questions? Email us at <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#e07070;text-decoration:none;">hello@thekitchenrescue.co.uk</a><br><a href="${baseUrl}/terms-conditions.html" style="color:#e07070;text-decoration:none;">Terms &amp; Conditions</a> &middot; &copy; ${new Date().getFullYear()} Kitchen Rescue</p>
       </td></tr>
     </table>
   </td></tr>
@@ -2044,65 +2048,63 @@ function generateBalanceReminderEmailHTML(data) {
     const ref = (data.bookingReference || data.id || '').replace(/</g, '');
     const money = (n) => `£${Number(n).toFixed(2)}`;
     const balance = (data.balance != null && !isNaN(Number(data.balance))) ? Number(data.balance) : null;
+    const cellL = 'padding:11px 16px;font-size:14px;color:#333333;';
+    const cellR = 'padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;';
+    const bb = 'border-bottom:1px solid #f0e0e0;';
+    const bbLight = 'border-bottom:1px solid #f0f0f0;';
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Balance due</title></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#333333;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
   <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-      <tr><td style="background:#b45309;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
-        <img src="${baseUrl}/assets/logo-lockup-final.png" alt="Kitchen Rescue" style="height:48px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;">
-        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Your balance is due soon</h1>
-        <p style="margin:8px 0 0;color:rgba(255,255,255,0.9);font-size:14px;">Ref: ${ref}</p>
+    <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+      <tr><td style="background:#000000;padding:20px 24px;text-align:center;">
+        <img src="${baseUrl}/assets/logo-email.png" alt="Kitchen Rescue" width="150" style="width:150px;max-width:60%;height:auto;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:0.3px;">Your Balance Is Due Soon</h1>
+        <p style="margin:0;color:rgba(255,255,255,0.85);font-size:14px;">Ref: ${ref}</p>
       </td></tr>
-      <tr><td style="background:#ffffff;padding:36px 40px;">
-        <p style="margin:0 0 20px;color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
-        <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">Your Kitchen Pod delivery is coming up on <strong>${fd(data.deliveryDate || data.startDate)}</strong>. Your hire balance is due <strong>7 days before delivery</strong>${data.dueDate ? ` — by <strong>${fd(data.dueDate)}</strong>` : ''}, so it's time to complete your payment.</p>
+      <tr><td style="padding:32px 32px 24px;">
+        <p style="margin:0 0 18px;line-height:1.65;">Hi <strong>${name}</strong>,</p>
+        <p style="margin:0 0 24px;line-height:1.65;">Your Kitchen Pod delivery is coming up on <strong>${fd(data.deliveryDate || data.startDate)}</strong>. Your hire balance is due <strong style="color:#C41E1E;">7 days before delivery</strong>${data.dueDate ? ` — by <strong style="color:#C41E1E;">${fd(data.dueDate)}</strong>` : ''}, so it's time to complete your payment.</p>
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:24px;">
-          <tr><td style="padding:24px;text-align:center;">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#991b1b;text-transform:uppercase;">Balance due</p>
-            <p style="margin:0;font-size:30px;font-weight:800;color:#dc2626;">${balance != null ? money(balance) : 'See your invoice'}</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8c8c8;background:#fff8f8;border-radius:6px;margin-bottom:24px;">
+          <tr><td style="padding:22px 24px;text-align:center;">
+            <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.8px;color:#C41E1E;text-transform:uppercase;">Balance Due</p>
+            <p style="margin:0;font-size:32px;font-weight:800;color:#C41E1E;">${balance != null ? money(balance) : 'See your invoice'}</p>
           </td></tr>
         </table>
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:24px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;">Pay by bank transfer</p>
-            <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.5;">Please transfer the balance to the account below, using your booking reference <strong>${ref}</strong> as the payment reference.</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Account name</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">Woodpeckers Hertfordshire</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Sort code</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">09-01-29</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Account number</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">72136964</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:5px 0;color:#374151;font-size:14px;">Payment reference</td><td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${ref}</td></tr>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:24px;overflow:hidden;">
+          <tr><td style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Pay by Bank Transfer</td></tr>
+          <tr><td style="padding:14px 16px 4px;font-size:14px;color:#333333;line-height:1.5;">Please transfer the balance to the account below, using your booking reference <strong>${ref}</strong> as the payment reference.</td></tr>
+          <tr><td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="${cellL}${bbLight}">Account name</td><td style="${cellR}${bbLight}">Woodpeckers Hertfordshire</td></tr>
+              <tr><td style="${cellL}${bbLight}">Sort code</td><td style="${cellR}${bbLight}">09-01-29</td></tr>
+              <tr><td style="${cellL}${bbLight}">Account number</td><td style="${cellR}${bbLight}">72136964</td></tr>
+              <tr><td style="${cellL}">Payment reference</td><td style="${cellR}">${ref}</td></tr>
             </table>
           </td></tr>
         </table>
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
-          <tr><td style="padding:20px 24px;">
-            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;">Your booking</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Reference</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${ref}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Delivery date</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${fd(data.deliveryDate || data.startDate)}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Hire length</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${data.hireLength || data.days ? `${data.hireLength || data.days} days` : '—'}</td></tr>
-              <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
-              <tr><td style="padding:6px 0;color:#374151;font-size:14px;">Refundable deposit</td><td align="right" style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">£250.00 (paid)</td></tr>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:24px;overflow:hidden;">
+          <tr><td style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Your Booking</td></tr>
+          <tr><td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="${cellL}${bb}">Reference</td><td style="${cellR}${bb}">${ref}</td></tr>
+              <tr><td style="${cellL}${bb}">Delivery date</td><td style="${cellR}${bb}">${fd(data.deliveryDate || data.startDate)}</td></tr>
+              <tr><td style="${cellL}${bb}">Hire length</td><td style="${cellR}${bb}">${data.hireLength || data.days ? `${data.hireLength || data.days} days` : '—'}</td></tr>
+              <tr><td style="${cellL}">Refundable deposit</td><td style="${cellR}">£250.00 (paid)</td></tr>
             </table>
           </td></tr>
         </table>
 
-        <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.5;">Your £250 security deposit is separate and fully refundable — it's returned within 5 working days after collection, once the pod is inspected. If you've already paid your balance in full, please disregard this reminder.</p>
-        <p style="margin:0;color:#6b7280;font-size:14px;">Questions? Call <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#dc2626;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
-        <p style="margin:24px 0 0;color:#374151;font-size:15px;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
+        <p style="margin:0 0 14px;color:#8b2020;font-size:13px;line-height:1.55;">Your £250 security deposit is separate and fully refundable — it's returned within 5 working days after collection, once the pod is inspected. If you've already paid your balance in full, please disregard this reminder.</p>
+        <p style="margin:0;color:#555555;font-size:14px;line-height:1.65;">Questions? Call <a href="tel:+447342606655" style="color:#C41E1E;text-decoration:none;">07342 606655</a> or email <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#C41E1E;text-decoration:none;">hello@thekitchenrescue.co.uk</a>.</p>
+        <p style="margin:20px 0 0;line-height:1.65;">Warm regards,<br><strong>Janine &amp; the Kitchen Rescue Team</strong></p>
       </td></tr>
-      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
-        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;"><a href="${baseUrl}/terms-conditions.html" style="color:rgba(255,255,255,0.7);text-decoration:none;">Terms &amp; Conditions</a></p>
+      <tr><td style="background:#1a1a1a;padding:20px 24px;text-align:center;">
+        <p style="margin:0;color:#888888;font-size:12px;line-height:1.6;">Questions? Email us at <a href="mailto:hello@thekitchenrescue.co.uk" style="color:#e07070;text-decoration:none;">hello@thekitchenrescue.co.uk</a><br><a href="${baseUrl}/terms-conditions.html" style="color:#e07070;text-decoration:none;">Terms &amp; Conditions</a> &middot; &copy; ${new Date().getFullYear()} Kitchen Rescue</p>
       </td></tr>
     </table>
   </td></tr>
@@ -4208,3 +4210,6 @@ app.post('/api/pay/checkout', async (req, res) => {
 });
 
 module.exports = app;
+// Exposed for local email previews / tests (see scripts/preview-emails.js)
+module.exports.generateBookingConfirmedEmailHTML = generateBookingConfirmedEmailHTML;
+module.exports.generateBalanceReminderEmailHTML = generateBalanceReminderEmailHTML;
