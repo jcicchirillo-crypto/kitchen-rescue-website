@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment received · Kitchen Rescue</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, sans-serif;
+            background: #f0fdf4;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .card {
+            max-width: 400px;
+            width: 100%;
+            background: #fff;
+            border-radius: 1rem;
+            border: 1px solid #bbf7d0;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+        .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+        h1 { font-size: 1.5rem; margin: 0 0 0.5rem; color: #14532d; }
+        p { color: #4b5563; line-height: 1.6; margin: 0 0 1rem; font-size: 0.95rem; }
+        .ref { font-weight: 600; color: #111827; }
+        a { color: #dc2626; text-decoration: none; font-weight: 600; }
+        .home { display: inline-block; margin-top: 1rem; padding: 0.75rem 1.25rem; background: #dc2626; color: #fff !important; border-radius: 0.65rem; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">✅</div>
+        <h1>Thank you!</h1>
+        <p>Your payment has been received.</p>
+        <p id="refLine" class="ref"></p>
+        <p>We'll confirm by email shortly. If you have any questions, call <a href="tel:+447342606655">07342 606655</a>.</p>
+        <a href="/" class="home">Back to website</a>
+    </div>
+    <script>
+        const ref = new URLSearchParams(location.search).get('ref');
+        if (ref) document.getElementById('refLine').textContent = 'Reference: ' + ref;
+    </script>
+</body>
+</html>

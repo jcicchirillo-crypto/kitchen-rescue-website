@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay Kitchen Rescue</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="/assets/logo-lockup-final.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.25rem;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+            padding: 1.75rem 1.5rem;
+            margin-top: 1rem;
+        }
+        .logo { display: block; height: 48px; margin: 0 auto 1.25rem; }
+        h1 { font-size: 1.35rem; font-weight: 700; text-align: center; margin: 0 0 0.35rem; }
+        .sub { text-align: center; color: #64748b; font-size: 0.9rem; margin: 0 0 1.5rem; line-height: 1.5; }
+        label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem; }
+        input {
+            width: 100%;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.65rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        input:focus { outline: 2px solid #fecaca; border-color: #dc2626; }
+        .amount-display {
+            text-align: center;
+            padding: 1.25rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .amount-display .label { font-size: 0.8rem; color: #991b1b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .amount-display .value { font-size: 2.25rem; font-weight: 700; color: #dc2626; margin-top: 0.25rem; }
+        .amount-display .ref { font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; }
+        .btn {
+            width: 100%;
+            padding: 0.95rem 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-primary { background: #dc2626; color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: #b91c1c; }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn-secondary { background: #f1f5f9; color: #334155; margin-top: 0.75rem; }
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .notice {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .secure {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        .divider { text-align: center; color: #94a3b8; font-size: 0.8rem; margin: 1rem 0; }
+        #lookupSection { display: none; }
+        footer { margin-top: auto; padding: 1.5rem 0; text-align: center; font-size: 0.8rem; color: #94a3b8; }
+        footer a { color: #dc2626; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="logo">
+        <h1>Pay securely</h1>
+        <p class="sub">Card payment via Stripe. You'll be taken to a secure checkout page.</p>
+
+        <div id="notice" class="notice"></div>
+        <div id="error" class="error"></div>
+
+        <!-- Mode A: pre-filled link (QR with amount in URL) -->
+        <div id="paySection">
+            <div class="amount-display">
+                <div class="label">Amount to pay</div>
+                <div class="value" id="amountDisplay">—</div>
+                <div class="ref" id="refDisplay"></div>
+            </div>
+            <button type="button" class="btn btn-primary" id="payBtn">Pay now</button>
+        </div>
+
+        <!-- Mode B: enter booking reference (generic QR) -->
+        <div id="lookupSection">
+            <label for="bookingRef">Booking reference</label>
+            <input type="text" id="bookingRef" placeholder="e.g. KR123456" autocomplete="off" inputmode="text">
+            <button type="button" class="btn btn-secondary" id="lookupBtn">Find my booking</button>
+            <div class="divider">or enter amount manually</div>
+            <label for="manualAmount">Amount (£)</label>
+            <input type="number" id="manualAmount" min="1" step="0.01" placeholder="250.00" inputmode="decimal">
+            <label for="manualName">Your name (optional)</label>
+            <input type="text" id="manualName" placeholder="Jane Smith" autocomplete="name">
+            <label for="manualRef">Reference (optional)</label>
+            <input type="text" id="manualRef" placeholder="Invoice or booking ref" autocomplete="off">
+        </div>
+
+        <div class="secure">🔒 Secured by Stripe</div>
+    </div>
+
+    <footer>
+        Questions? <a href="tel:+447342606655">07342 606655</a> · <a href="mailto:hello@thekitchenrescue.co.uk">hello@thekitchenrescue.co.uk</a>
+    </footer>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const state = {
+            amount: parseFloat(params.get('amount')) || 0,
+            reference: params.get('ref') || params.get('reference') || '',
+            name: params.get('name') || '',
+            description: params.get('desc') || '',
+        };
+
+        const paySection = document.getElementById('paySection');
+        const lookupSection = document.getElementById('lookupSection');
+        const amountDisplay = document.getElementById('amountDisplay');
+        const refDisplay = document.getElementById('refDisplay');
+        const errorEl = document.getElementById('error');
+        const noticeEl = document.getElementById('notice');
+        const payBtn = document.getElementById('payBtn');
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        }
+        function hideError() {
+            errorEl.style.display = 'none';
+        }
+        function formatMoney(n) {
+            return '£' + Number(n).toFixed(2);
+        }
+        function updateDisplay() {
+            amountDisplay.textContent = state.amount > 0 ? formatMoney(state.amount) : '—';
+            let refLine = '';
+            if (state.name) refLine += state.name;
+            if (state.reference) refLine += (refLine ? ' · ' : '') + 'Ref: ' + state.reference;
+            refDisplay.textContent = refLine;
+        }
+
+        if (params.get('cancelled')) {
+            noticeEl.textContent = 'Payment cancelled. You can try again when ready.';
+            noticeEl.style.display = 'block';
+        }
+
+        if (state.amount > 0) {
+            paySection.style.display = 'block';
+            lookupSection.style.display = 'none';
+            updateDisplay();
+        } else {
+            paySection.style.display = 'none';
+            lookupSection.style.display = 'block';
+        }
+
+        async function startCheckout() {
+            hideError();
+            const amount = state.amount;
+            if (!amount || amount < 1) {
+                showError('Please enter a valid amount.');
+                return;
+            }
+            payBtn.disabled = true;
+            payBtn.textContent = 'Opening secure checkout…';
+            try {
+                const res = await fetch('/api/pay/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount,
+                        reference: state.reference || 'Payment',
+                        name: state.name,
+                        description: state.description || (state.reference ? `Kitchen Rescue — ${state.reference}` : 'Kitchen Rescue payment'),
+                    }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.url) {
+                    throw new Error(data.error || 'Could not start payment');
+                }
+                window.location.href = data.url;
+            } catch (e) {
+                showError(e.message || 'Something went wrong. Please call 07342 606655.');
+                payBtn.disabled = false;
+                payBtn.textContent = 'Pay now';
+            }
+        }
+
+        payBtn.addEventListener('click', startCheckout);
+
+        document.getElementById('lookupBtn').addEventListener('click', async () => {
+            hideError();
+            const ref = document.getElementById('bookingRef').value.trim();
+            if (!ref) {
+                showError('Enter your booking reference.');
+                return;
+            }
+            const btn = document.getElementById('lookupBtn');
+            btn.disabled = true;
+            btn.textContent = 'Looking up…';
+            try {
+                const res = await fetch('/api/pay/lookup/' + encodeURIComponent(ref));
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Booking not found');
+                state.amount = data.amount;
+                state.reference = data.reference;
+                state.name = data.name || '';
+                state.description = data.description || '';
+                lookupSection.style.display = 'none';
+                paySection.style.display = 'block';
+                updateDisplay();
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Find my booking';
+            }
+        });
+
+        document.getElementById('manualAmount').addEventListener('change', function () {
+            const v = parseFloat(this.value);
+            if (v > 0) {
+                state.amount = v;
+                state.name = document.getElementById('manualName').value.trim();
+                state.reference = document.getElementById('manualRef').value.trim() || 'Payment';
+                lookupSection.style.display = 'none';
+                paySection.style.display = 'block';
+                updateDisplay();
+            }
+        });
+    </script>
+</body>
+</html>

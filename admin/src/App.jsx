@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -232,6 +232,7 @@ function KitchenRescueAdmin() {
   const [leads, setLeads] = useState([]);
   const [leadNotesDraft, setLeadNotesDraft] = useState({});
   const [savingLeadId, setSavingLeadId] = useState(null);
+  const [showArchivedLeads, setShowArchivedLeads] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const toggleDelete = (id) => {
@@ -321,6 +322,10 @@ function KitchenRescueAdmin() {
     const result = await saveLeadUpdate(lead.id, { followed_up: next });
     if (!result) {
       setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, followed_up: lead.followed_up } : l)));
+      return;
+    }
+    if (next) {
+      setConfirmationMessage({ type: "success", text: `${lead.name || "Enquiry"} moved to archive` });
     }
   };
 
@@ -333,7 +338,88 @@ function KitchenRescueAdmin() {
     }
   };
 
-  const unfollowedLeadsCount = useMemo(() => leads.filter((l) => !l.followed_up).length, [leads]);
+  const activeLeads = useMemo(() => leads.filter((l) => !l.followed_up), [leads]);
+  const archivedLeads = useMemo(() => leads.filter((l) => l.followed_up), [leads]);
+
+  const renderLeadRows = (items) =>
+    items.map((l) => (
+      <TableRow key={l.id}>
+        <TableCell className="text-center">
+          <label className="inline-flex items-center justify-center gap-2 cursor-pointer" title={l.followed_up ? "Uncheck to restore to new enquiries" : "Mark as followed up and archive"}>
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              checked={!!l.followed_up}
+              disabled={savingLeadId === l.id}
+              onChange={() => toggleLeadFollowedUp(l)}
+              aria-label={l.followed_up ? `Restore ${l.name || "lead"} to new enquiries` : `Mark ${l.name || "lead"} as followed up`}
+            />
+            {savingLeadId === l.id ? <Loader2 className="h-3 w-3 animate-spin text-slate-400" /> : null}
+          </label>
+        </TableCell>
+        <TableCell className="font-medium">{l.name || "—"}</TableCell>
+        <TableCell>
+          {l.email ? (
+            <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1">
+              <Mail className="h-3 w-3" />
+              {l.email}
+            </a>
+          ) : "—"}
+        </TableCell>
+        <TableCell>
+          {l.phone ? (
+            <a href={`tel:${l.phone}`} className="text-slate-700 hover:underline flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              {l.phone}
+            </a>
+          ) : "—"}
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className="text-xs">
+            {l.source || "website"}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-slate-500 text-sm whitespace-nowrap">
+          {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : "—"}
+        </TableCell>
+        <TableCell>
+          <Textarea
+            value={leadNotesDraft[l.id] ?? l.notes ?? ""}
+            onChange={(e) => setLeadNotesDraft((prev) => ({ ...prev, [l.id]: e.target.value }))}
+            onBlur={() => saveLeadNotes(l)}
+            placeholder="Add follow-up notes…"
+            className="min-h-[60px] text-xs resize-y"
+            disabled={savingLeadId === l.id}
+          />
+        </TableCell>
+        <TableCell className="text-right">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+            onClick={() => setShowCreateBooking(true)}
+          >
+            <Plus className="h-3 w-3" />
+            Convert to booking
+          </Button>
+        </TableCell>
+      </TableRow>
+    ));
+
+  const leadsTableHeader = (
+    <TableHeader>
+      <TableRow>
+        <TableHead className="w-24 text-center">Followed up</TableHead>
+        <TableHead>Name</TableHead>
+        <TableHead>Email</TableHead>
+        <TableHead>Phone</TableHead>
+        <TableHead>Source</TableHead>
+        <TableHead>Created</TableHead>
+        <TableHead className="min-w-[220px]">Notes</TableHead>
+        <TableHead className="text-right">Actions</TableHead>
+      </TableRow>
+    </TableHeader>
+  );
 
   const fetchBookings = async () => {
     const res = await fetch("/api/bookings", {
@@ -471,103 +557,68 @@ function KitchenRescueAdmin() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-800">
               <MessageSquare className="h-5 w-5" />
-              New Enquiries ({leads.length})
-              {unfollowedLeadsCount > 0 && (
+              New Enquiries ({activeLeads.length})
+              {activeLeads.length > 0 && (
                 <Badge className="bg-amber-200 text-amber-900 hover:bg-amber-200">
-                  {unfollowedLeadsCount} awaiting follow-up
+                  {activeLeads.length} awaiting follow-up
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription>Leads from availability gate, trade quotes, etc. Tick &quot;Followed up&quot; when your colleague has contacted them, and add notes below.</CardDescription>
+            <CardDescription>Tick &quot;Followed up&quot; when your colleague has contacted them — they&apos;ll move to the archive below. Add notes before archiving if needed.</CardDescription>
+            {confirmationMessage && (
+              <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
+                {confirmationMessage.text}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
-            {leads.length === 0 ? (
-              <p className="text-slate-500 text-sm py-4">No enquiries yet. Click Refresh to check for new leads.</p>
+            {activeLeads.length === 0 ? (
+              <p className="text-slate-500 text-sm py-4">
+                {leads.length === 0
+                  ? "No enquiries yet. Click Refresh to check for new leads."
+                  : "No enquiries awaiting follow-up. All caught up!"}
+              </p>
             ) : (
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-24 text-center">Followed up</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="min-w-[220px]">Notes</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leads.map((l) => (
-                    <TableRow key={l.id} className={l.followed_up ? "bg-emerald-50/40" : ""}>
-                      <TableCell className="text-center">
-                        <label className="inline-flex items-center justify-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                            checked={!!l.followed_up}
-                            disabled={savingLeadId === l.id}
-                            onChange={() => toggleLeadFollowedUp(l)}
-                            aria-label={`Mark ${l.name || "lead"} as followed up`}
-                          />
-                          {savingLeadId === l.id ? <Loader2 className="h-3 w-3 animate-spin text-slate-400" /> : null}
-                        </label>
-                      </TableCell>
-                      <TableCell className="font-medium">{l.name || '—'}</TableCell>
-                      <TableCell>
-                        {l.email ? (
-                          <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {l.email}
-                          </a>
-                        ) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        {l.phone ? (
-                          <a href={`tel:${l.phone}`} className="text-slate-700 hover:underline flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {l.phone}
-                          </a>
-                        ) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {l.source || 'website'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-500 text-sm whitespace-nowrap">
-                        {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Textarea
-                          value={leadNotesDraft[l.id] ?? l.notes ?? ""}
-                          onChange={(e) => setLeadNotesDraft((prev) => ({ ...prev, [l.id]: e.target.value }))}
-                          onBlur={() => saveLeadNotes(l)}
-                          placeholder="Add follow-up notes…"
-                          className="min-h-[60px] text-xs resize-y"
-                          disabled={savingLeadId === l.id}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                          onClick={() => {
-                            setShowCreateBooking(true);
-                          }}
-                        >
-                          <Plus className="h-3 w-3" />
-                          Convert to booking
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                {leadsTableHeader}
+                <TableBody>{renderLeadRows(activeLeads)}</TableBody>
               </Table>
             )}
           </CardContent>
         </Card>
+
+        {archivedLeads.length > 0 && (
+          <Card className="mb-4 border-slate-200 bg-slate-50/80">
+            <CardHeader className="pb-3">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-left"
+                onClick={() => setShowArchivedLeads((open) => !open)}
+              >
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-slate-700">
+                    <Archive className="h-5 w-5" />
+                    Archived enquiries ({archivedLeads.length})
+                  </CardTitle>
+                  <CardDescription className="mt-1">Followed-up leads. Uncheck to move back to new enquiries.</CardDescription>
+                </div>
+                {showArchivedLeads ? (
+                  <ChevronUp className="h-5 w-5 text-slate-500 shrink-0" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-slate-500 shrink-0" />
+                )}
+              </button>
+            </CardHeader>
+            {showArchivedLeads && (
+              <CardContent>
+                <Table>
+                  {leadsTableHeader}
+                  <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
+                </Table>
+              </CardContent>
+            )}
+          </Card>
+        )}
 
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
           <div className="relative w-full md:w-72">

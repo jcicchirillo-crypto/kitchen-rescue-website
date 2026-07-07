@@ -3709,4 +3709,100 @@ app.post('/api/insurance-claims-enquiry', async (req, res) => {
     }
 });
 
+// ── Simple QR / link payments (Stripe Checkout) ─────────────────────────────
+
+function getSiteBaseUrl(req) {
+    if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, '');
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'www.thekitchenrescue.co.uk';
+    return `${proto}://${host}`;
+}
+
+// Look up booking by reference (for generic QR → enter ref flow)
+app.get('/api/pay/lookup/:ref', async (req, res) => {
+    try {
+        const q = String(req.params.ref || '').trim().toUpperCase();
+        if (!q) return res.status(400).json({ error: 'Booking reference required' });
+
+        const bookings = await getAllBookings();
+        const booking = bookings.find((b) => {
+            const id = String(b.id || '').toUpperCase();
+            const ref = String(b.booking_reference || '').toUpperCase();
+            return id === q || ref === q || id.includes(q) || ref.includes(q);
+        });
+
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found. Check your reference and try again.' });
+        }
+
+        const name = booking.name || booking.customer_name || '';
+        const reference = booking.booking_reference || booking.id || q;
+        const deposit = 250;
+
+        res.json({
+            reference,
+            name,
+            amount: deposit,
+            description: `Kitchen Rescue deposit — ${reference}`,
+        });
+    } catch (error) {
+        console.error('Pay lookup error:', error);
+        res.status(500).json({ error: 'Could not look up booking' });
+    }
+});
+
+// Create Stripe Checkout session and return redirect URL
+app.post('/api/pay/checkout', async (req, res) => {
+    try {
+        const { amount, reference, name, description } = req.body || {};
+        const amountNum = parseFloat(amount);
+        if (!amountNum || amountNum < 1 || amountNum > 50000) {
+            return res.status(400).json({ error: 'Enter a valid amount between £1 and £50,000' });
+        }
+
+        const amountPence = Math.round(amountNum * 100);
+        const ref = String(reference || 'Payment').trim().slice(0, 80);
+        const customerName = String(name || '').trim().slice(0, 100);
+        const desc = String(description || `Kitchen Rescue — ${ref}`).trim().slice(0, 200);
+        const baseUrl = getSiteBaseUrl(req);
+
+        if (!stripe) {
+            console.warn('Stripe not configured — simulating checkout redirect');
+            return res.json({
+                url: `${baseUrl}/pay-success.html?ref=${encodeURIComponent(ref)}&simulated=1`,
+                simulated: true,
+            });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'gbp',
+                        product_data: {
+                            name: desc,
+                            description: customerName ? `Customer: ${customerName}` : (ref ? `Ref: ${ref}` : undefined),
+                        },
+                        unit_amount: amountPence,
+                    },
+                    quantity: 1,
+                },
+            ],
+            metadata: {
+                reference: ref,
+                customer_name: customerName,
+            },
+            success_url: `${baseUrl}/pay-success.html?ref=${encodeURIComponent(ref)}&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${baseUrl}/pay.html?ref=${encodeURIComponent(ref)}&amount=${amountNum}&name=${encodeURIComponent(customerName)}&cancelled=1`,
+        });
+
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error('Checkout session error:', error);
+        res.status(500).json({ error: error.message || 'Could not start payment' });
+    }
+});
+
 module.exports = app;
