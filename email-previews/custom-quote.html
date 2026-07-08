@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your quotation — Sarah Thompson</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #e8e8e8; font-family: 'DM Sans', sans-serif; color: #1e293b; padding: 40px 20px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 560px; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.18); }
+  .header { background: #000; padding: 24px 40px 18px; text-align: center; }
+  .header-logo { width: 150px; max-width: 60%; height: auto; display: block; margin: 0 auto 10px; }
+  .header-tag { display: inline-block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.22); padding: 6px 12px; border-radius: 20px; }
+  .intro { background: #ffffff; padding: 32px 40px 12px; }
+  .intro-name { font-size: 15px; color: #333333; margin-bottom: 12px; font-weight: 500; }
+  .intro-headline { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; color: #111111; line-height: 1.25; margin-bottom: 14px; }
+  .intro-sub { font-size: 15px; color: #444444; line-height: 1.7; font-weight: 400; }
+  .body { background: #fff; padding: 36px 40px; }
+  .section-eyebrow { font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: #dc2626; font-weight: 500; margin-bottom: 14px; }
+  .included-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
+  .included-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin-top: 14px; }
+  .inc-row { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #333; line-height: 1.6; }
+  .inc-row::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+  .why-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
+  .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; margin-top: 14px; }
+  .why-item { padding: 0; }
+  .why-title { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 6px; }
+  .why-copy { font-size: 15px; line-height: 1.7; color: #444; }
+  .booking-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid #f0f0f0; }
+  .booking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; margin-top: 14px; }
+  .b-box { padding: 0; border-left: none; }
+  .b-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #999; margin-bottom: 3px; }
+  .b-value { font-size: 15px; font-weight: 500; color: #1e293b; }
+  .price-section { margin-bottom: 28px; }
+  .price-reveal { background: transparent; border: 1px solid #e7e7e7; border-radius: 12px; padding: 28px 28px 24px; text-align: center; margin-top: 14px; }
+  .price-context { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #777; margin-bottom: 10px; }
+  .price-main { font-family: 'Playfair Display', serif; font-size: 54px; font-weight: 600; color: #111; line-height: 1; letter-spacing: -0.02em; }
+  .price-vat-line { font-size: 13px; color: #666; margin-top: 6px; }
+  .price-daily { font-size: 12px; color: #666; margin-top: 6px; font-style: italic; }
+  .price-breakdown { margin-top: 20px; padding-top: 18px; border-top: 1px solid #dfdfdf; display: flex; flex-direction: column; gap: 7px; }
+  .pb-row { display: flex; justify-content: space-between; font-size: 13px; color: #444; }
+  .pb-row.subtotal { padding-top: 10px; margin-top: 4px; border-top: 1px solid #dfdfdf; color: #222; }
+  .pb-row.vat-row { color: #666; }
+  .pb-row.grand { font-size: 14px; font-weight: 700; color: #111; padding-top: 10px; margin-top: 4px; border-top: 1px solid #dfdfdf; }
+  .deposit-note { margin-top: 14px; font-size: 12.5px; color: #666; text-align: center; font-style: italic; line-height: 1.6; }
+  .deposit-note strong { color: #333; font-style: normal; }
+  .cta-section { text-align: center; margin-bottom: 28px; }
+  .cta-btn { display: inline-block; background: #dc2626; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 18px 52px; border-radius: 50px; text-decoration: none; margin-bottom: 10px; }
+  .cta-urgency { font-size: 12px; color: #999; font-style: italic; }
+  .trust { border-top: 1px solid #e7e7e7; padding: 18px 0 0; font-size: 15px; color: #555; line-height: 1.7; text-align: center; }
+  .trust strong { color: #1e293b; }
+  .footer { background: #000; padding: 22px 40px; text-align: center; }
+  .footer p { font-size: 11.5px; color: #888; line-height: 1.8; }
+  .footer a { color: #dc2626; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKMAAAA6CAYAAADcBekLAAAbgElEQVR4Ae3BCbydZ0Eg/P/zvO85596btDR335Km6ZoyjCKI2/gpMyLgICOfIosw+ikCAgXZZG+BIrLJ7jAfDooLMIrI4AgybPqTYbUgW5uWUtrc5K7JTbPn3nPe93m+W06Z26Q3aZKmfkXy/4ecs7POujeIzjrrXiI666x7ieiss+4lorPOupeIzjrrXiL63jbkrH81Sqfv0r8fnbh+OfKwmenN2O5f0JVDI/mKnl5vOrzXqxf3Bmd9z4tOw0uGh/PBTRPX3z92/KTK7OZNt2CzfyEvGR7Ov9NqSZ39XtS3ztP7h7OzvudFp+h5QyP5hb3R3rrjoGAxZ432spvO33QzRt3DXjk8ml/Q27BUHbbcaDjUiV7TV1ixxVnf06JT8OyBwfyyddHh5aiZo94iWl+UlkOhv1ry1cmNs+5BV40M5xc2CwerSqdo6K2jquwIsr+anLjJWd/TopN336vX9TqynFWxUpXJwI7ZS/p3zlzaLAtHJOfL/tfGyewe8KLRsfyCVstirhS5VGRSyOQs5mhH1XGSLsNlT9uwIWPE2i58Wv9gxtYrBoayVcPP6O/PT94wkLHVqgufvmEg43JcjsuxFZdjK7ZiK7b+1ob+jEnHd8lrBzfkt4wM5DcND+cXD/ZnbLa2C5+y4dz8lP7zMiYc3+CT+wfyU+6zIeNiR+vHVlyGy3AZLsNl2IrLcNlT+zdkDFo1+Fv998m49KmDg9mJjT/9vPPykzcMZGx0HCHn7CRcvGfT5m922h1VTM6tk73Npo07dkxiGpft2XT+tuXqsL5inY+mgx4zvTs4Q144PJRf0tPSbi9bbpbKKqhDjSDmWl32GJ/aMY5Zd+G68yfyZF1bX2RPPZC8c8+u4GiX7du4aVsnHzaYe72l6njW/FzQdfnyBZuutbRsthls3j4XrPi7seH88BAshqAQBEGUfVcty5kk2FBEr+8secHcYnAHrxgcyI/qWWdzynI4IoUg56hIpXaRTaXaA2bm74dvuN1nJify/WOtLzW9ur3kxQsLwdouPrx50zdzteSW0HDfHdPBqs2Hzt94c9WpCVGSZV0hINUy+hpNPdunLsGNui7cv2Xzt+ojbec0eF+n8sTZhWANLx3uz69sNS3H0rsOtz1j10KwhuiuXbSwadM3c+egHJeFHN1Utpyncv3k2E6M4PqXHTist1jnQHXIfywb3jw0lJ0BLxoeylc1Gw5UHUtloaiypCaTsD6W/qHdtmLWSThccaRT219F79yza6ujbd69cWLbgfYhjdT01s6SZ83PBavqQ53arZnDlVW5UCkUOSlzIlX21ZV9dW1fXZOSMicx10JOyrp0R58cncjP6yv110sO5sOkQsgNUSQknbrt/NAxtWnz1zHgdvtT5UCnsj9VDuTKCdRLnWyxjg62s2Pk/XWyv247UC+LqVLmWpFrsa6UOSlTrUi1Y6RqueNAXjbTWfKoomHFVmtIncKtKTrQ4aCO44lObOP0pokbG8tH7A0NfUXD248s+8HpqfChKrgsRv+wcWzOij+4dVf43eXDNjQb9i0Hv9Hb9Mz+wexueOHIaH5Zq2V3rpS5UKYg5yyLUqwVOVsWPX5ufrOTVKilWGil6Bij3zp/7ObUDtY1Gz4WeObCruBouVATC40cfNcnU+Wv644Ppsq7O7WP5FojFkKkKKL/mfiTOnt/VfvLquO5u+Yvd7uPTQzlH4nJfDtYH6J9jab3pOzq5crV7cqf1h0LoUd/cY73Hj5kxaLblUpFKIQQtFJwIqGotHKtiJVjFaESQ6kQ/a/Mn1XZe6vkvXX253X253X2x53aikPuIMUshkKRexzMR9ywceI69DtWyEodrVyJOTie0vH1b9s0OTXRbjtQtIzkRK6N9ZRu84TZmfC+scn8uEbh4xMD+SHTi+H1CwvhZcNj+SWtZFeVvHxdjxVb8G2n6KqR4XxVs2VvWtLMhRStSDJy6Ciqhp4G/1h3PJLtTlJSiLlWl7UVwe2+Mjk5O1k35NYB11V9Hj0zHawhK8RcaUf/xxsWdgVHG5vfuHEmVEcIhSfOLwxht2O8dHgov6zRNJWDobLj76rocVOzA1vZ4xhXjo7nV+7eNeQOsttkMSchJCeSBUQExwgpNJSprdOIfnl6bhCLTkp2mxgqVdU0WgbvHR9ZfPzMfHAHOQRBVIeA4Hii43jd4MjiJpW9MRBq/8OyOQ1Pb7S8dmwsW/G42Z3hA53aQ8oeHxwfzVZcvTAb3tQJBkOP2O749saxmzDsFFw9PJJf2GzYnZcVuRCQQhIEIQRBIWTk6JEzC5udghAIIShEK5IVn5oYy+fnJIVlu6t1fmJmOlhbCMF3BMEJlGQ5k3K2orSGx7YKi7ltQ6j9c930uLnZgD3W8Mq5mYDd7iiQdXUEJxAcXy5S1o5RUFtROgUBORQaZWFvvewXFVZsdQcBObtL0XH0leQUrYu1r9Q8YXYxXLRz54Xbi2XPbwRvHB3KVvzi7Gz4izaPKkvvGR/OVrxobi68r66FRmkoRX83NjnvJF05PJqf3VvaW1d66lIdgipkZZ2lnOWcqVlXlj5Wta3Y7hQkQZR0YrIivGVsJP+44FDKDjYats7sHHdCgewu5ZAJQek7oju7ZFOik4JWqD14dscWpyEgiDo5OoGUFKKE4Fg5BIUOdY8V2UnK6AvBl3LyhdTWH0u3puD6zePXYcDt6liJghACwXGVjuMZc/Ob9mzaONXpFO7XrKzYim0X3DJ3/k0bJ7Zf0dvy5pGh/Nvzu8JjZqfD+8dG8q+UPf7b+HB+0sxC+PW5mfCJyfH8wFR7UFlaMYmdTuD3Rofyi1q9DiwflouGLCMJmTr4jowyJgtF7Zend404RUEWQnagKm0bG9/2S2VhsV1rNguT23dejFknkGVd2QkEd+FlQ0M3PL9VaIm+rfAD3Ow0RBzMlUeV0R8NT+Se0BZyRBZkVSgMlNn9BUWIgjurIwJBxz+Mj893UuU2QZZSwzll9qdVxzsWdgfHKJBSx3+a3zO8Y3J0ociV0U7hb0ZGdj9yfj5Y0axJzeyuRMe34zVHDmk1+/S2m3ZtGrvuKQP9GVMX7pieuL4TPLPV8tax4WzFo2fnwwfrtieVLX86MZpx8QaF5ZiRrGg4gVcPjeRnNxtuTUvqslBmkkz2fwTUOVtfNPzB4WUrFpyqnMWc1SG7ICwL7Y4UglJw1dDwje5C0JWdUA7BdwRrG4yFnGtFDBZydjpyJmIJW2L06KLyH8vSz5XRwxrBz5bRI4vaD4dKqpOYoxyyY0VEDVVMfiAv++EQPTBEDwjR/YuOHwuVjaFwJ5la1lc0rdj12uXKhqJ0a1V7cA9P7x/MVhQhCjm7TRAcT3QCr9u1J7zm4AFFq5Y7yWvX9XjGwGjGzP127hj9Sq48s6f0zrGhbMWjZubCxzuVx4Rs/8bRb27KbbGmrbDiiON41fBoflZfYU9VKXKprAt1yFLICG4TcrQUOS+W/rFKfn/3YnAagihFityRckNf2dCILFW157YaVlzopAQnlp1ICkEOmZw1c+10BFkWRBnZ4bLUCUG7oA5BHYN2LBR1UyqoA3JwrJCznApFLtxarrNYFm4to1vLwoHYtLdo6hTWEBAUObrN23ftDh+t2dDgwFLDc9f1us1hFCH4juC4SnfhtYuL4cn9A/kNfb0O1m2vXhc8d2g4//6uhfBDO+ZGvjw2Pv/kZulPxifzr87sDJ+uOx7QajnQPqKVSr0x2JaCMeas4dWjQ/m5rT7724fkoknK6pgFBIFAzlkVk/5OttgKHjY9N+I05UCdo1bKFsqmy3dO3fdrGzddO5KWtFPl6xOT37rf9M7gOLIVgeCEQs6+I1vbrnYtlkFK2XCjdDqyIMnWx+gvO7Unz05vRAMZGQHpdwaHt7+oVeioUThWClkOSYEtO6YuwgEEq8JVtB0t+I7sUE6+61Gz08M3TW5c6A3LRuvCHw1N5iTJguzEopPwzj2L4dydO7c2ix7LnejKvtKLhkYzFn5odmbwf6fgcUXHNeOT+TfKUjiclKGpDpQx+uiRtrW8aWQ4P6vVdGt9RCqiZsqyJMuOEqKQMq0em6emt2LBaQqykLJWI/qTpSNWXPdvd0xd3hf6HAjZllD7o9GxbG3ZSQoh+I5sTa/es3DhcujRURsTrLjcaUiyRo6+mZIVO3EzbsF23IKp1+1euCBoqGKwliIFOdZS4TYHsIB5zGMec9jjaNntcnBHu952uO28srRb7aGt5LFFn32pVliRHVd08q4fnJq6LBel5eXai3t56fBgxuK/2zETduTswpz1qCwVhBzETCfy6j3zFzrGW4aH8281ObichNBQ1qU6ZMmKjEwOWchRlaPB2PKOziErrnc3hJzlQMT+5Lu2vadaNhybFuraL5Vuc6m15OwkZN8VHM+3b8xJqygsdyrbJiavxbjjG3eMgJCDFLJzc3ICRVXUGjVCdqwqZkUKYopWZCcr+I6Wo715z3z4UJ2dFxty3bGp7KgDwYlFp+aG4Z07ttSxz5E6eV6zxxsHR/NzhobzutRwBFUI6pBkSQ5RrJMPjE3e5A7eNTqWn9ws7KmaYiSESh2T2wS3y1mRgnaoDeXgI5IXzC4Gd1MSEEjBO/bsutztnjo3G65LwTmBpapy7caN12PA0YIQnISQc3CbEILj+fGd05f3FKXDxZLhVLt+cmL6hUNDGeMYwADOf8vQRN6z+fxpbHUHwYpAQAjRCaSYsxQC2Z1EVOjIVgxgDBMYxwQmMOlowe3OC9GxHjc7O7SARgyWcxZTlmUnUjp1N4/N3Lx5euOmW1rVkv+nWShDYX/uaBesr2kWkZwdEOzPlYcVDW8dHM3P3D0XrNhSBO2yVueozElG0BVCkHOWIhUGc3Bt0fConbcEZ0BCnZIUgxXZHfzw9MzGhckLdnTSARNp2fuGh3c/bmEhWJUT6pTV0YnkOpNkKTuRbX96uOM3e9bZXUfnOuwlrcLM+ObpXWWtzB2jKfq1Mmq3D/jK5MbrfnDnjuB2CQk1lnJyIgkJOQTHyHXOkqDZieYnRraF7HbZbZJsfaNl/fadl+EGXTkhoZatYfdFO6fve3hy/NrFFNSxrZYlxxednu0TO6Ymp0NLo8xqDGBMoS7W+XzKPl9nfUVQ5oY9acmTWk1XDg9mKx48PRM+224aDm1VDkIu5JBkgRwUqHOwTjITmx6w85YRZ0hPpC9E60OwIjjaztct77eh1dJJ/HKr4dmDA9mqYl0I1gvWO6HQF4J1IeiLwYroOJ6+uBBevNRWNzvOKUrtmsIhk+0jRqqkoya0lfEcN8lW9LtdTwzWxWB9CHpEJxDXh2B9oE92jGJ9KN1HrWzUGokCEVEQRTEHRXKbYFVYH6K+GDVzdhzXfbCq9bc6WjFZH1iXg+OJTt/05TM7Bv/gSO2vE++tg1e1k9Gdt2x66MxceOjcfHjZcluzGbXqYDEf9vxmnysHR7IVD5/ZET4bms4r6egoUhAkISRVoEftUOx14c6pjVhwhnwlcU2K/j5kK9qO8YZdi+GP28k3YvDxqvLTPYUV/bqWP1cHnwnRF0JyAtUX6+SaFHwuZSvaTuANi7vCxh1zo69v86Vc2BVKu4qGhVC6OZf+uips2Ln9kl/cuTNgj9tdW2dfrPlcCnbk6ATq/50Kn08NXxEco/PFFHxe9KWUXZO5JnFNyq6psy+l7MuZL+RsxbJVnS/WlS/U0adD7Xh+ZW5+4DPLpa/VpU9ruilHxxNyzu5Jzx4cyL/bW9iTSmVack7R9HvL2at2zQcr/mZ0PP+HRrQ7JX25owqEXFI2jU5tvxjfctb3hege9qbdi+GqI8GGIqpjaX9d+53e4HVDQ9mKR87NhPfW2XjIlkIQUlSWpdGp7ZfgW876vhHdg/7LyPkZA6/fPR/efLh2TtmUQ3Swk13RaviTsaFsxW/OTIe3tisbyoZW2TI4tWMrbnTW95XoHvKXY6P5ab1tnxyb2G3FS3bPhncdSTYUUVDYW7c9tii9a3Q8W/HchV3hykMdLzp8yIrrnfV9J+ScnWnvG53Iv1BW5hLDkc+n0n+YmR7AnneOjuXHNQv76raijgZi9pFQ+IXpmeCs72vRGfaO8fH8CzHanVkXkl0penCsvG1kfNGKJ8/Nhg+3KxtCqVO0zWceEpNPjk9mZ31fi86gt40O5ycp7E0dIWY5RRt03BBarpifGXO7x87NhU/VDYMagmhflT2wqH1ufGNGv3/dJvEA/AgudOouwoPwQGz2r0jIOTsTXjc6mp/WCPbkSlMUEylkjdgysGPHFtzsGB+b2Jx/zJL9OQs4N3CThh+Y3jmKeWfej+MzSLoiEiJqXI9v4ip83dGGMW9V0hV1JV0Rb8WzHO1X8VJsQtaVsYhP4vlYsLZNeBUejHPQoytgDh/D7+IWXT+Dj6Ch60H4J3c2ii9jTNfT8A5dF+BGFEi6orU9Ah92N0VnwNUj4/mKomFvlZS50KiD5cC5RdPV7SNW3GwNPzt9S9gWCucIpMLezJbcccPkBXOYcOadi4RoVdRV4L54FD6MX3C0BmpdCRHRqoha10ZHex3ejYsQ0UILLYziP+Maa3sGrsETMYYeRERdk3gSPoNNuvrR0FWh19pqZKt6rQo4qCsgICMjIyPr6nEGRHfTVUPD+TnN4GDnMDFrVYVDRWUgRu9abnvz/O7gBB60c3ro5tjSG2tFzg7lYCgfMDWxZSe2OLMCIg7hMPagQhsHde3DRrwXFzhagTYO4zCWUCEhWdWx6ko8F4ewhIO4BTdhF4KuP3RnL8bbsAH7USDjAJYQEXXtxZSujq5DiEjWlhCxpKtjVULEERzEESTU6KBGheQMKd0NLxwazlc1m3anjtAolTk4VFT6c+lTddMV89uDu7b7B3ZuH79x4/kzg51lh2PWTlFf3G9u09hNo1Ozl+KbzqyAJt6KP8QGDODX8YvYi/PwNDxfV6Uroxd/hf+JArWuhH581qrHIKLEPJ6DD+jaihfgAbja0R6Jl2AJHfThs3gHvo6IC/BzeCL+qzsLiI4vo4mgK1gVrerBu/AJ9CGgRoEmPusMKJ2m5w6P5KubDXtTR0+O6kBWWVcUbs7RI2a3Bydv9uId28+f2XTB9mZ1UDuUUiq0ahbPH71hYPvc/fANZ1YDn8MtuEXXJ3AzNun6N1ZFqwp8G+9x185DhRb+Fh/AABaxDb9mba9CH/bhHLwBL3C0f8Zf4424zqrk5LWxTle2tgY+iQ+4B0Wn4aUDQ/mVzYZb85KIFCs5F0KR1Llwv+mZCaduanzq5otS2asROkJIqpikduXgxomvv3BgKDvzglWDur6MiIymVcHpqXVV+FFdi07svrgMh3AffBIvwIC1Xef0BCQnJ7uHRafoBf0D+SU9Dbu1FbkU3KYkdjSKPsPT05dgxum5aWRq6tKiOEcISQqlI2XTvqrjyr7C60eGszMj69pj1W4M4f/CMgK2W5V0BdTYgqfgBXgOrsCv4icd7UaUOIgfxBTein/n+B6DBmpU+KCuRWdWdLRgbRUegV/CE/BE/AaehQc6Q0qn4LeHRvKr1/XYndvWdUqdglqWEkON7MrDR7yGG9093xyYuvm+ezdtvLbTOSKmKCntqytXNEpvHx3Lz5ibDU5P0BWwhKvxLazT9SO4D9oo8OfuLGAJP4+fRwMZGS28H5+26tH4BO6PQxjBFfg17MXr8HZHG9VV4iA+6tREJyehYVW2KiAgYhmPxa9Z1UED/4QHOQOik/TbA/35Fb299qRlRYrqmJGklPQ3kj/u8Jpdu4Mz47rfO7Ksp9GjDpVGSoLCrpz8all438hwdvfVeDB+E4/H47EZGevw3/Apa8tooQ8NNNHQFRxtDx6KTyCiiRoFJvE23IpLrLq/rojzcMQ9Jzg5LUcrdHWcIdFJeEb/UL66b7396YAyRUWOUhHkzPoy+IzoKXMLwRn02l0L4S2HO/qLdZbKSh2yVs2t6YifbxY+PDaanb6MjKyrg31o41Zchd9yfCVuwBdxLb6Gr+J6zLuzXXgIHop3YwEFMvbhPHzYqpt0JezFsNMTkFBbW3C0bFVG1hWxDV/FtbgWX8ON2OYMKd21C15+To/Dy0saoSmFLMrUrMeNRelntk8H94CX7p4PbxsZzU9qlW5tZ3VR66ua9uTgp8rko5vG88OmZoJTF1DgM/gKfhQ/hAoH8UrHl9CD9+PlTs2n8Wldj8YrcTH24SI8A2/HP+Ex6OBc/AS+5tRlRJxjbT1oWVW6s4RevBJ/4R4U3YX3jo19u1VVOoEcsiCrZQ3JYiN6wPbpCfegK+bnwnvaQX8RVTnpFEFLbbFOHtLO3j0+mZ28bFUPXoEr8CQcQYUL8ffu2qCuQafn/fhpVOhBxo/p+gQ6KHT9ulOzFxUyEn7c2v4NClRIOOBoGVlXqWvAPSS6C2OClCtCFDI1ihxo9LhganYLZtzDnjQ3G/4qRkNFSxUSIWgIFsvaD8faaci6LtH1VfwN+nAQP4qHObFK12537Q/ws+4so0JGwG5dX8U3sB4H8UB8BIPubAs+hCda9fe4FaWuX7e2N6APAYfxj44WEZBwRNeie0jpLvxTXfvJnpYD7Y4qRD25Epu9+rdPbcXN/oU8Ycd0+NvJsfyzCnOho6ijPsFScHfcatXj8e/RjxJvwEfdWUAbP4W/RQtHsIwpnIev4826/l88Gb+BL+Fj+Db+LX4JLSyjjQ9Z9VR8EuuxDw/H9fhnfBkt/BQuwH1wX/yZVV/Hv8c+jOMb+EPciC14LC7BfpyLz+BGq4KugDaehYejgQ1oIiPg3fgLd1Px8pe/3In8xPOf/4qPvfb1L7+kpCiTQ7HX6NSO+2Kbf2GXPOd5r/jUG9748ssahd4QHYkNF+3ceQn2ODkX4glYRgt/hhus2o3/G/sxgT34oq71eB5qtDGJS7EFl+Jy/Bjuj/vhjdiI/4IWlnEhfgqPwE9iHdpYh/+O37dqGrfi59CLA+jDxfgJ/ChGdSUM4Z9xg64P4+HYhMMYx0Pxy/g5nI9DOBf78AgsWjWApyCig4vxAPwgLsVFuBAX4xZ83N1UOgkPm5sNuACNDezBbv8/ecjsdMBlzx4e3PamhelxzDp5Qdc5us53tHfj+bhc10vwMXzTqiaa1pYQMa9rB/4Ij8OIroCmrgYS3ocnuLP/imvwDtwfha6MoKsHB/BpfMGqRTwEH8f9rGpadS6+gv+EKUcr0EITvdYWdA05A0LO2feRi/B0DCLhNdjmaJfiKnSwHu/AJ3S9B73oIOoKujIyDuIzeJejXYGfxiU4D9txPd6Or7hrP4NHYis2YhEL+Af8d8w7vofjV7AFG3ELduBD+AtrG8Gb0EKN4M4SevFO/K27KeScnXXWvUF01ln3EtFZZ91LRGeddS8RnXXWvUR01ln3Ev8fDEFoAxJHDOAAAAAASUVORK5CYII=" alt="Kitchen Rescue" class="header-logo">
+    <div class="header-tag">No obligation quote</div>
+  </div>
+
+  <div class="intro">
+    <div class="intro-name">Hi Sarah Thompson,</div>
+    <div class="intro-headline">See your quotation below.</div>
+    <div class="intro-sub">While the builders are in, your family keeps cooking, eating together, and living normally — right on your driveway. No takeaways every night. No stress.</div>
+  </div>
+
+  <div class="body">
+
+    <div class="included-section">
+      <div class="section-eyebrow">Everything in your pod</div>
+      <div class="included-grid">
+        <div class="inc-row">Full-size oven &amp; grill</div>
+        <div class="inc-row">4-ring induction hob</div>
+        <div class="inc-row">Large fridge-freezer</div>
+        <div class="inc-row">Dishwasher</div>
+        <div class="inc-row">Washing machine</div>
+        <div class="inc-row">Hot &amp; cold sink</div>
+        <div class="inc-row">Microwave</div>
+        <div class="inc-row">LED lighting &amp; sockets</div>
+        <div class="inc-row">Heating</div>
+      </div>
+    </div>
+
+    <div class="why-section">
+      <div class="section-eyebrow">Why choose Kitchen Rescue</div>
+      <div class="why-grid">
+        <div class="why-item">
+          <div class="why-title">Keep life normal</div>
+          <div class="why-copy">You can still cook proper meals, make packed lunches, wash up and keep family life running while the renovation happens.</div>
+        </div>
+        <div class="why-item">
+          <div class="why-title">Delivered and set up for you</div>
+          <div class="why-copy">We handle delivery, positioning, set up and collection, so you are not left trying to organise any of the practical side yourself.</div>
+        </div>
+        <div class="why-item">
+          <div class="why-title">Fully equipped</div>
+          <div class="why-copy">It is not just a basic sink and hob. You get the essentials you actually need day to day, including oven, fridge-freezer, dishwasher and washing machine.</div>
+        </div>
+        <div class="why-item">
+          <div class="why-title">A proven renovation solution</div>
+          <div class="why-copy">Temporary kitchen hire helps you avoid the expense and disruption of constant takeaways, washing up in the bathroom, or living out of one small appliance for weeks.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="booking-section">
+      <div class="section-eyebrow">Your booking</div>
+      <div class="booking-grid">
+        <div class="b-box">
+          <div class="b-label">We deliver</div>
+          <div class="b-value">19 July 2026</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">We collect</div>
+          <div class="b-value">1 August 2026</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Duration</div>
+          <div class="b-value">14 days</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Your location</div>
+          <div class="b-value">WD17 3AB</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="price-section">
+      <div class="section-eyebrow">Your quotation</div>
+      <div class="price-reveal">
+        <div class="price-context">Total</div>
+        <div class="price-main">£990.00</div>
+        <div class="price-daily">It's only £71 per day.</div>
+        <div class="price-breakdown">
+          <div class="pb-row">
+            <span>Hire — 14 days × <s style="color:#999">£70</s> <strong style="color:#111">£60</strong>/day</span>
+            <span>£840.00</span>
+          </div>
+          <div class="pb-row">
+            <span>Delivery, set up &amp; collection</span>
+            <span>£150.00</span>
+          </div>
+          
+          <div class="pb-row grand">
+            <span>Total</span>
+            <span>£990.00</span>
+          </div>
+        </div>
+      </div>
+      <div class="deposit-note">
+        A <strong>refundable £250 deposit</strong> is required to confirm your booking —
+        returned in full subject to checks.
+      </div>
+    </div>
+
+    <div class="cta-section">
+      <a href="https://www.thekitchenrescue.co.uk/availability.html?dates=2026-07-19,2026-07-20,2026-07-21,2026-07-22,2026-07-23,2026-07-24,2026-07-25,2026-07-26,2026-07-27,2026-07-28,2026-07-29,2026-07-30,2026-07-31,2026-08-01&postcode=WD17%203AB&skipgate=true&rate=60&deliveryCost=75&collectionCost=75" class="cta-btn">Confirm My Booking</a>
+      <div class="cta-urgency">Quote valid 7 days · No card needed to hold your dates</div>
+    </div>
+
+    <div class="trust">
+      <strong>Any questions? Just call or text us on <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a>.</strong><br>
+      We handle everything — delivery, set up and collection.<br>You just use the kitchen.
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <p>
+      <a href="mailto:hello@thekitchenrescue.co.uk">hello@thekitchenrescue.co.uk</a><br>
+      <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a><br><br>
+      The Kitchen Rescue · Woodpeckers Hertfordshire<br>
+      Company No. 14316407
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

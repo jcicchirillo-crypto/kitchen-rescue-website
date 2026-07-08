@@ -1614,54 +1614,52 @@ function generateQuoteEmailHTML(data) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Kitchen Rescue Quote — ${firstName}</title>
+<title>Your quotation — ${firstName}</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #e8e8e8; font-family: 'DM Sans', sans-serif; color: #1e293b; padding: 40px 20px; -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 560px; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.18); }
-  .header { background: #000; padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; }
-  .logo-the { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: #dc2626; margin-bottom: 3px; font-weight: 500; }
-  .logo-name { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 600; color: #fff; line-height: 1; }
-  .logo-tag { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #999; margin-top: 5px; }
-  .header-tag { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 20px; }
-  .hero { background: #dc2626; padding: 36px 40px 32px; }
-  .hero-name { font-size: 13px; color: #fff; margin-bottom: 10px; font-weight: 400; }
-  .hero-headline { font-family: 'Playfair Display', serif; font-size: 27px; font-weight: 600; color: #fff; line-height: 1.25; margin-bottom: 14px; }
-  .hero-sub { font-size: 15px; color: #fff; line-height: 1.65; font-weight: 400; }
+  .header { background: #000; padding: 24px 40px 18px; text-align: center; }
+  .header-logo { width: 150px; max-width: 60%; height: auto; display: block; margin: 0 auto 10px; }
+  .header-tag { display: inline-block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.22); padding: 6px 12px; border-radius: 20px; }
+  .intro { background: #ffffff; padding: 32px 40px 12px; }
+  .intro-name { font-size: 15px; color: #333333; margin-bottom: 12px; font-weight: 500; }
+  .intro-headline { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; color: #111111; line-height: 1.25; margin-bottom: 14px; }
+  .intro-sub { font-size: 15px; color: #444444; line-height: 1.7; font-weight: 400; }
   .body { background: #fff; padding: 36px 40px; }
   .section-eyebrow { font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: #dc2626; font-weight: 500; margin-bottom: 14px; }
-  .life-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
-  .life-intro { font-size: 15px; line-height: 1.7; color: #444; margin-bottom: 18px; }
-  .life-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .life-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: #f6f6f6; border-radius: 10px; font-size: 13px; color: #333; line-height: 1.4; }
-  .life-item .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
   .included-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
-  .included-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
-  .inc-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #333; }
+  .included-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin-top: 14px; }
+  .inc-row { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #333; line-height: 1.6; }
   .inc-row::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+  .why-section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #f0f0f0; }
+  .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; margin-top: 14px; }
+  .why-item { padding: 0; }
+  .why-title { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 6px; }
+  .why-copy { font-size: 15px; line-height: 1.7; color: #444; }
   .booking-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid #f0f0f0; }
-  .booking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-  .b-box { background: #f6f6f6; border-radius: 10px; padding: 12px 14px; border-left: 3px solid #dc2626; }
+  .booking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; margin-top: 14px; }
+  .b-box { padding: 0; border-left: none; }
   .b-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #999; margin-bottom: 3px; }
   .b-value { font-size: 15px; font-weight: 500; color: #1e293b; }
   .price-section { margin-bottom: 28px; }
-  .price-reveal { background: #111; border-radius: 12px; padding: 28px 28px 24px; text-align: center; margin-top: 14px; }
-  .price-context { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #aaa; margin-bottom: 10px; }
-  .price-main { font-family: 'Playfair Display', serif; font-size: 58px; font-weight: 600; color: #fff; line-height: 1; letter-spacing: -0.02em; }
-  .price-vat-line { font-size: 13px; color: #ccc; margin-top: 6px; }
-  .price-daily { font-size: 12px; color: #999; margin-top: 4px; font-style: italic; }
-  .price-breakdown { margin-top: 20px; padding-top: 18px; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 7px; }
-  .pb-row { display: flex; justify-content: space-between; font-size: 13px; color: #bbb; }
-  .pb-row.subtotal { padding-top: 10px; margin-top: 4px; border-top: 1px solid #2a2a2a; color: #ddd; }
-  .pb-row.vat-row { color: #999; }
-  .pb-row.grand { font-size: 14px; font-weight: 500; color: #fff; padding-top: 10px; margin-top: 4px; border-top: 1px solid #2a2a2a; }
-  .deposit-note { margin-top: 14px; font-size: 12.5px; color: #888; text-align: center; font-style: italic; line-height: 1.6; }
-  .deposit-note strong { color: #555; font-style: normal; }
+  .price-reveal { background: transparent; border: 1px solid #e7e7e7; border-radius: 12px; padding: 28px 28px 24px; text-align: center; margin-top: 14px; }
+  .price-context { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #777; margin-bottom: 10px; }
+  .price-main { font-family: 'Playfair Display', serif; font-size: 54px; font-weight: 600; color: #111; line-height: 1; letter-spacing: -0.02em; }
+  .price-vat-line { font-size: 13px; color: #666; margin-top: 6px; }
+  .price-daily { font-size: 12px; color: #666; margin-top: 6px; font-style: italic; }
+  .price-breakdown { margin-top: 20px; padding-top: 18px; border-top: 1px solid #dfdfdf; display: flex; flex-direction: column; gap: 7px; }
+  .pb-row { display: flex; justify-content: space-between; font-size: 13px; color: #444; }
+  .pb-row.subtotal { padding-top: 10px; margin-top: 4px; border-top: 1px solid #dfdfdf; color: #222; }
+  .pb-row.vat-row { color: #666; }
+  .pb-row.grand { font-size: 14px; font-weight: 700; color: #111; padding-top: 10px; margin-top: 4px; border-top: 1px solid #dfdfdf; }
+  .deposit-note { margin-top: 14px; font-size: 12.5px; color: #666; text-align: center; font-style: italic; line-height: 1.6; }
+  .deposit-note strong { color: #333; font-style: normal; }
   .cta-section { text-align: center; margin-bottom: 28px; }
   .cta-btn { display: inline-block; background: #dc2626; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 18px 52px; border-radius: 50px; text-decoration: none; margin-bottom: 10px; }
   .cta-urgency { font-size: 12px; color: #999; font-style: italic; }
-  .trust { background: #f6f6f6; border-radius: 10px; padding: 16px 20px; font-size: 13.5px; color: #555; line-height: 1.65; text-align: center; }
+  .trust { border-top: 1px solid #e7e7e7; padding: 18px 0 0; font-size: 15px; color: #555; line-height: 1.7; text-align: center; }
   .trust strong { color: #1e293b; }
   .footer { background: #000; padding: 22px 40px; text-align: center; }
   .footer p { font-size: 11.5px; color: #888; line-height: 1.8; }
@@ -1672,32 +1670,17 @@ function generateQuoteEmailHTML(data) {
 <div class="wrap">
 
   <div class="header">
-    <div>
-      <div class="logo-the">The</div>
-      <div class="logo-name">Kitchen Rescue</div>
-      <div class="logo-tag">Temporary Kitchen Hire</div>
-    </div>
+    <img src="${baseUrl}/assets/logo-email.png" alt="Kitchen Rescue" class="header-logo">
     <div class="header-tag">No obligation quote</div>
   </div>
 
-  <div class="hero">
-    <div class="hero-name">Hi ${firstName},</div>
-    <div class="hero-headline">Your kitchen renovation just got a whole lot easier.</div>
-    <div class="hero-sub">While the builders are in, your family keeps cooking, eating together, and living normally — right on your driveway. No takeaways every night. No stress.</div>
+  <div class="intro">
+    <div class="intro-name">Hi ${firstName},</div>
+    <div class="intro-headline">See your quotation below.</div>
+    <div class="intro-sub">While the builders are in, your family keeps cooking, eating together, and living normally — right on your driveway. No takeaways every night. No stress.</div>
   </div>
 
   <div class="body">
-
-    <div class="life-section">
-      <div class="section-eyebrow">What the next ${days} days looks like</div>
-      <div class="life-intro">From the morning your builders start, a fully-equipped kitchen is parked outside your front door. Everything works. You just walk out and use it.</div>
-      <div class="life-grid">
-        <div class="life-item"><span class="icon">☕</span>Proper breakfast every morning — not a petrol station coffee</div>
-        <div class="life-item"><span class="icon">🍳</span>Cook real meals for your family — oven, hob, everything</div>
-        <div class="life-item"><span class="icon">🫧</span>Dishwasher and washing machine still running as normal</div>
-        <div class="life-item"><span class="icon">🏠</span>Dust and noise stay outside — your home stays liveable</div>
-      </div>
-    </div>
 
     <div class="included-section">
       <div class="section-eyebrow">Everything in your pod</div>
@@ -1711,6 +1694,28 @@ function generateQuoteEmailHTML(data) {
         <div class="inc-row">Microwave</div>
         <div class="inc-row">LED lighting &amp; sockets</div>
         <div class="inc-row">Heating</div>
+      </div>
+    </div>
+
+    <div class="why-section">
+      <div class="section-eyebrow">Why choose Kitchen Rescue</div>
+      <div class="why-grid">
+        <div class="why-item">
+          <div class="why-title">Keep life normal</div>
+          <div class="why-copy">You can still cook proper meals, make packed lunches, wash up and keep family life running while the renovation happens.</div>
+        </div>
+        <div class="why-item">
+          <div class="why-title">Delivered and set up for you</div>
+          <div class="why-copy">We handle delivery, positioning, set up and collection, so you are not left trying to organise any of the practical side yourself.</div>
+        </div>
+        <div class="why-item">
+          <div class="why-title">Fully equipped</div>
+          <div class="why-copy">It is not just a basic sink and hob. You get the essentials you actually need day to day, including oven, fridge-freezer, dishwasher and washing machine.</div>
+        </div>
+        <div class="why-item">
+          <div class="why-title">A proven renovation solution</div>
+          <div class="why-copy">Temporary kitchen hire helps you avoid the expense and disruption of constant takeaways, washing up in the bathroom, or living out of one small appliance for weeks.</div>
+        </div>
       </div>
     </div>
 
@@ -1737,14 +1742,14 @@ function generateQuoteEmailHTML(data) {
     </div>
 
     <div class="price-section">
-      <div class="section-eyebrow">Your investment</div>
+      <div class="section-eyebrow">Your quotation</div>
       <div class="price-reveal">
         <div class="price-context">Total</div>
         <div class="price-main">${hasNumericTotal ? '£' + quoteTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
         ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
         <div class="price-breakdown">
           <div class="pb-row">
-            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 70 ? `<s style="color:#999">£70</s> <strong style="color:#86efac">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
+            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 70 ? `<s style="color:#999">£70</s> <strong style="color:#111">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
             <span>${money(hireCost)}</span>
           </div>
           <div class="pb-row">
@@ -1760,7 +1765,7 @@ function generateQuoteEmailHTML(data) {
       </div>
       <div class="deposit-note">
         A <strong>refundable £250 deposit</strong> is required to confirm your booking —
-        returned in full after collection. It is not a fee.
+        returned in full subject to checks.
       </div>
     </div>
 
@@ -3674,12 +3679,14 @@ function generateTradePackEmailHTML(data) {
     `;
 }
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Visit http://localhost:${PORT} to view the site`);
-    console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
-});
+// Start server only when run directly (not when required for previews/tests)
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`Visit http://localhost:${PORT} to view the site`);
+        console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
+    });
+}
 
 // Content Creator Organizer - Generate social media content
 // Track recent hooks to avoid repetition
@@ -4355,3 +4362,4 @@ module.exports = app;
 // Exposed for local email previews / tests (see scripts/preview-emails.js)
 module.exports.generateBookingConfirmedEmailHTML = generateBookingConfirmedEmailHTML;
 module.exports.generateBalanceReminderEmailHTML = generateBalanceReminderEmailHTML;
+module.exports.generateQuoteEmailHTML = generateQuoteEmailHTML;

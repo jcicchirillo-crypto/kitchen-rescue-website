@@ -37,4 +37,23 @@ const inlineLogo = (html) => logoDataUri
 fs.writeFileSync(path.join(outDir, 'booking-confirmed.html'), inlineLogo(app.generateBookingConfirmedEmailHTML(sample)));
 fs.writeFileSync(path.join(outDir, 'balance-reminder.html'), inlineLogo(app.generateBalanceReminderEmailHTML(sample)));
 
+const quoteSample = {
+    name: 'Sarah Thompson',
+    email: 'sarah@example.com',
+    phone: '07342 606655',
+    postcode: 'WD17 3AB',
+    selectedDates: ['2026-07-19', '2026-07-20', '2026-07-21', '2026-07-22', '2026-07-23', '2026-07-24', '2026-07-25', '2026-07-26', '2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31', '2026-08-01'],
+    startDate: '2026-07-19',
+    endDate: '2026-08-01',
+    days: 14,
+    dailyRate: 60,
+    dailyCost: 840,
+    deliveryCost: 75,
+    collectionCost: 75,
+    totalCost: 990,
+    notes: 'Driveway access from left side.',
+};
+
+fs.writeFileSync(path.join(outDir, 'custom-quote.html'), inlineLogo(app.generateQuoteEmailHTML(quoteSample)));
+
 console.log('Wrote previews to', outDir);
