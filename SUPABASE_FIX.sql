@@ -13,6 +13,10 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quote_sent_at TIMESTAMPTZ;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS follow_up_at TIMESTAMPTZ;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS follow_up_status TEXT DEFAULT 'open';
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS follow_up_reminder_sent_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS daily_cost DECIMAL;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS delivery_cost DECIMAL;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS collection_cost DECIMAL;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_cost DECIMAL;
 
 -- If table doesn't exist yet, use this full schema:
 

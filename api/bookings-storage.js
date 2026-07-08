@@ -148,6 +148,15 @@ async function getAllBookings() {
                     }
                 }
                 
+                const dailyCost = booking.daily_cost ?? booking.dailyCost ?? null;
+                const deliveryCost = booking.delivery_cost ?? booking.deliveryCost ?? null;
+                const collectionCost = booking.collection_cost ?? booking.collectionCost ?? null;
+                let totalCost = booking.total_cost ?? booking.totalCost ?? null;
+                if (totalCost == null || totalCost === "") {
+                    const computed = Number(dailyCost || 0) + Number(deliveryCost || 0) + Number(collectionCost || 0);
+                    if (computed > 0) totalCost = computed;
+                }
+
                 return {
                     id: bookingId,
                     name: customerName,
@@ -160,10 +169,10 @@ async function getAllBookings() {
                     startDate: startDate,
                     endDate: endDate,
                     days: hireLength,
-                    dailyCost: booking.daily_cost || booking.dailyCost || null,
-                    deliveryCost: booking.delivery_cost || booking.deliveryCost || null,
-                    collectionCost: booking.collection_cost || booking.collectionCost || null,
-                    totalCost: booking.total_cost || booking.totalCost || null,
+                    dailyCost,
+                    deliveryCost,
+                    collectionCost,
+                    totalCost,
                     notes: booking.notes || null,
                     status: booking.status || 'Awaiting deposit',
                     source: booking.source || 'quote',
@@ -291,7 +300,12 @@ async function addBooking(newBooking) {
                         hire_length: newBooking.days ? Number(newBooking.days) : null,
                         selected_dates: selectedDates,
                         notes: newBooking.notes || null,
+                        daily_cost: newBooking.dailyCost != null ? Number(newBooking.dailyCost) : null,
+                        delivery_cost: newBooking.deliveryCost != null ? Number(newBooking.deliveryCost) : null,
+                        collection_cost: newBooking.collectionCost != null ? Number(newBooking.collectionCost) : null,
+                        total_cost: newBooking.totalCost != null ? Number(newBooking.totalCost) : null,
                         status: newBooking.status || 'Awaiting deposit',
+                        source,
                         quote_sent_at: newBooking.quoteSentAt || newBooking.quote_sent_at || null,
                         follow_up_at: newBooking.followUpAt || newBooking.follow_up_at || null,
                         follow_up_status: newBooking.followUpStatus || newBooking.follow_up_status || null,

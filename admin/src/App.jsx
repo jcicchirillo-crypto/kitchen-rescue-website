@@ -72,6 +72,18 @@ function toDateTimeLocalValue(val) {
   return local.toISOString().slice(0, 16);
 }
 
+function getQuoteTotal(quote) {
+  const direct = quote?.totalCost ?? quote?.total_cost;
+  if (direct != null && direct !== "" && !Number.isNaN(Number(direct))) {
+    return Number(direct);
+  }
+  const daily = Number(quote?.dailyCost ?? quote?.daily_cost ?? 0);
+  const delivery = Number(quote?.deliveryCost ?? quote?.delivery_cost ?? 0);
+  const collection = Number(quote?.collectionCost ?? quote?.collection_cost ?? 0);
+  const computed = daily + delivery + collection;
+  return computed > 0 ? computed : null;
+}
+
 function MonthCalendar({
   month,
   bookings,
@@ -286,7 +298,7 @@ function KitchenRescueAdmin() {
     setQuoteFollowUpDrafts((prev) => {
       const next = { ...prev };
       for (const booking of bookings) {
-        if (booking.source !== "quote") continue;
+        if (booking.source !== "quote" && booking.source !== "admin-custom-quote") continue;
         if (!next[booking.id]) {
           next[booking.id] = {
             followUpAt: toDateTimeLocalValue(booking.follow_up_at),
@@ -369,7 +381,10 @@ function KitchenRescueAdmin() {
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.followed_up), [leads]);
   const archivedLeads = useMemo(() => leads.filter((l) => l.followed_up), [leads]);
-  const quoteBookings = useMemo(() => bookings.filter((b) => b.source === "quote"), [bookings]);
+  const quoteBookings = useMemo(
+    () => bookings.filter((b) => b.source === "quote" || b.source === "admin-custom-quote"),
+    [bookings]
+  );
   const openQuoteBookings = useMemo(
     () => quoteBookings.filter((b) => !["won", "lost", "closed"].includes((b.follow_up_status || "open").toLowerCase())),
     [quoteBookings]
@@ -448,7 +463,10 @@ function KitchenRescueAdmin() {
               : "—"}
           </TableCell>
           <TableCell className="whitespace-nowrap font-medium">
-            £{Number(quote.totalCost || 0).toFixed(2)}
+            {(() => {
+              const total = getQuoteTotal(quote);
+              return total != null ? `£${total.toFixed(2)}` : "—";
+            })()}
           </TableCell>
           <TableCell>
             <Input
@@ -499,11 +517,12 @@ function KitchenRescueAdmin() {
               size="sm"
               variant="outline"
               className="gap-1"
+              title="Save follow-up date, status and notes for this quote"
               onClick={() => saveQuoteFollowUp(quote)}
               disabled={savingQuoteId === quote.id}
             >
               {savingQuoteId === quote.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-              Save
+              Save follow-up
             </Button>
           </TableCell>
         </TableRow>
@@ -801,7 +820,7 @@ function KitchenRescueAdmin() {
               {leadsTab === "new"
                 ? 'Tick "Followed up" when your colleague has contacted them — they\'ll move to the Archive tab. Add notes before archiving if needed.'
                 : leadsTab === "follow-up"
-                  ? "Sent custom quotes. Set a follow-up date/time and we'll email you when it's due. Quotes also stay in Customers."
+                  ? "Sent custom quotes. Set a follow-up date/time and status, then click Save follow-up on each row. We'll email you when it's due. Quotes also stay in Customers."
                   : "Followed-up leads. Uncheck to move them back to New Enquiries."}
             </CardDescription>
             {confirmationMessage && (

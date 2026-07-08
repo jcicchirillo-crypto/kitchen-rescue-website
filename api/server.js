@@ -1185,7 +1185,7 @@ app.post('/request-quote', async (req, res) => {
 // Send quote email (or lead notification only)
 app.post('/send-quote-email', async (req, res) => {
     try {
-        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type } = req.body;
+        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type, source } = req.body;
         
         const isLeadOnly = type === 'new_lead' || !selectedDates?.length;
         
@@ -1293,7 +1293,7 @@ app.post('/send-quote-email', async (req, res) => {
                 totalCost: Number(totalCost) || 0,
                 notes: notes || '',
                 status: 'Awaiting deposit',
-                source: 'quote',
+                source: source || 'quote',
                 pod: '16ft Pod'
             };
             
@@ -1374,7 +1374,7 @@ app.post('/send-quote-email', async (req, res) => {
             totalCost: Number(totalCost) || 0,
             notes: notes || '',
             status: 'Awaiting deposit',
-            source: 'quote',
+            source: source || 'quote',
             pod: '16ft Pod'
         };
         
