@@ -38,7 +38,11 @@ function parseCreatedAt(value) {
   const ampm = m[6].toLowerCase();
   if (ampm === 'pm' && hour !== 12) hour += 12;
   if (ampm === 'am' && hour === 12) hour = 0;
-  const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), hour, minute, 0);
+  // Meta lead exports use US date format: MM/DD/YYYY
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  const year = Number(m[3]);
+  const d = new Date(year, month - 1, day, hour, minute, 0);
   return d.toISOString();
 }
 
@@ -52,6 +56,7 @@ function formatPhone(raw) {
 }
 
 async function main() {
+  const fixOnly = process.argv.includes('--fix-dates');
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
   if (!url || !key) {
@@ -77,6 +82,27 @@ async function main() {
 
   let inserted = 0;
   let skipped = 0;
+  let fixed = 0;
+
+  if (fixOnly) {
+    for (const lead of META_LEADS) {
+      const email = lead.email.trim().toLowerCase();
+      const created_at = parseCreatedAt(lead.created);
+      const { error } = await supabase
+        .from('leads')
+        .update({ created_at })
+        .eq('email', email)
+        .eq('source', 'meta');
+      if (error) {
+        console.error(`Fix failed: ${lead.name} — ${error.message}`);
+        continue;
+      }
+      fixed += 1;
+      console.log(`Fixed date: ${lead.name} -> ${created_at}`);
+    }
+    console.log(`\nDone. Fixed ${fixed} lead dates.`);
+    return;
+  }
 
   for (const lead of META_LEADS) {
     const email = lead.email.trim().toLowerCase();
