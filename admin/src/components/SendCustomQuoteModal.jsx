@@ -28,6 +28,8 @@ function getDailyRateForDays(days) {
   return 70;
 }
 
+const COMPARE_WEEK_OPTIONS = [3, 4, 5, 6];
+
 const EMPTY = {
   name: "",
   email: "",
@@ -39,7 +41,31 @@ const EMPTY = {
   deliveryCost: 75,
   collectionCost: 75,
   notes: "",
+  quoteMode: "single",
+  compareWeeks: [3, 4, 5, 6],
 };
+
+function buildDurationOption(startDate, weeks, deliveryCost, collectionCost) {
+  const days = weeks * 7;
+  const endDate = isoAddDays(startDate, days - 1);
+  const dates = buildDateRange(startDate, endDate);
+  const dailyRate = getDailyRateForDays(days);
+  const dailyCost = days * dailyRate;
+  const deliv = Number(deliveryCost) || 0;
+  const coll = Number(collectionCost) || 0;
+  return {
+    weeks,
+    days,
+    startDate,
+    endDate,
+    selectedDates: dates,
+    dailyRate,
+    dailyCost,
+    deliveryCost: deliv,
+    collectionCost: coll,
+    totalCost: dailyCost + deliv + coll,
+  };
+}
 
 export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
   const [form, setForm] = useState(EMPTY);
@@ -58,15 +84,15 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
     }
   }, [open, initialValues]);
 
-  // Auto-apply tiered rate when dates change
+  // Auto-apply tiered rate when dates change (single quote mode)
   useEffect(() => {
-    if (!form.startDate || !form.endDate) return;
+    if (form.quoteMode !== "single" || !form.startDate || !form.endDate) return;
     const dates = buildDateRange(form.startDate, form.endDate);
     if (dates.length >= 7) {
       const tiered = getDailyRateForDays(dates.length);
       setForm((f) => ({ ...f, dailyRate: tiered }));
     }
-  }, [form.startDate, form.endDate]);
+  }, [form.startDate, form.endDate, form.quoteMode]);
 
   // Auto-calculate delivery cost from postcode when postcode changes
   useEffect(() => {
@@ -103,14 +129,40 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
   const delivCost = Number(form.deliveryCost || 0);
   const collCost = Number(form.collectionCost || 0);
   const totalCost = dailyCost + delivCost + collCost;
+  const isCompareMode = form.quoteMode === "compare";
+  const selectedCompareWeeks = (form.compareWeeks || []).slice().sort((a, b) => a - b);
+  const durationOptions = isCompareMode && form.startDate
+    ? selectedCompareWeeks.map((weeks) => buildDurationOption(form.startDate, weeks, delivCost, collCost))
+    : [];
+  const availabilityDates = isCompareMode
+    ? (durationOptions[durationOptions.length - 1]?.selectedDates || [])
+    : dates;
+
+  const toggleCompareWeek = (weeks) => {
+    setForm((f) => {
+      const current = new Set(f.compareWeeks || []);
+      if (current.has(weeks)) current.delete(weeks);
+      else current.add(weeks);
+      return { ...f, compareWeeks: COMPARE_WEEK_OPTIONS.filter((w) => current.has(w)) };
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.startDate || !form.endDate) {
+    if (!form.name || !form.email || !form.startDate) {
+      setError("Please fill in name, email and start date.");
+      return;
+    }
+    if (isCompareMode) {
+      if (selectedCompareWeeks.length === 0) {
+        setError("Select at least one duration to compare.");
+        return;
+      }
+    } else if (!form.endDate) {
       setError("Please fill in name, email, start date and end date.");
       return;
     }
-    if (days < 7) {
+    if (!isCompareMode && days < 7) {
       setError("Minimum hire period is 7 days — please adjust the end date.");
       return;
     }
@@ -122,7 +174,7 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
       }
       const availData = await availRes.json();
       const ranges = availData.unavailable || [];
-      const overlaps = dates.some((d) =>
+      const overlaps = availabilityDates.some((d) =>
         ranges.some((r) => d >= r.start && d <= r.end)
       );
       if (overlaps) {
@@ -136,22 +188,39 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
     setStatus("sending");
     setError("");
     try {
+      const primaryOption = isCompareMode ? durationOptions[0] : null;
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
         notes: form.notes.trim(),
         postcode: form.postcode.toUpperCase().trim(),
-        selectedDates: dates,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        days,
-        dailyRate: effectiveRate,
-        dailyCost,
-        deliveryCost: delivCost,
-        collectionCost: collCost,
-        totalCost,
         source: "admin-custom-quote",
+        quoteMode: form.quoteMode,
+        ...(isCompareMode
+          ? {
+              durationOptions,
+              selectedDates: durationOptions[durationOptions.length - 1]?.selectedDates || [],
+              startDate: form.startDate,
+              endDate: primaryOption?.endDate,
+              days: primaryOption?.days,
+              dailyRate: primaryOption?.dailyRate,
+              dailyCost: primaryOption?.dailyCost,
+              deliveryCost: delivCost,
+              collectionCost: collCost,
+              totalCost: primaryOption?.totalCost,
+            }
+          : {
+              selectedDates: dates,
+              startDate: form.startDate,
+              endDate: form.endDate,
+              days,
+              dailyRate: effectiveRate,
+              dailyCost,
+              deliveryCost: delivCost,
+              collectionCost: collCost,
+              totalCost,
+            }),
       };
       const res = await fetch("/send-quote-email", {
         method: "POST",
@@ -178,7 +247,7 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white rounded-t-2xl z-10">
           <div>
@@ -268,8 +337,24 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Hire Period
               </p>
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, quoteMode: "single" }))}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${!isCompareMode ? "border-red-300 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                >
+                  Single duration
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, quoteMode: "compare" }))}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${isCompareMode ? "border-red-300 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                >
+                  Compare 3–6 weeks
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className={isCompareMode ? "col-span-2" : ""}>
                   <Label htmlFor="cq-start">Start date *</Label>
                   <Input
                     id="cq-start"
@@ -280,27 +365,51 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="cq-end">End date *</Label>
-                  <Input
-                    id="cq-end"
-                    type="date"
-                    value={form.endDate}
-                    min={form.startDate}
-                    onChange={set("endDate")}
-                    className="mt-1"
-                    required
-                  />
-                </div>
+                {!isCompareMode && (
+                  <div>
+                    <Label htmlFor="cq-end">End date *</Label>
+                    <Input
+                      id="cq-end"
+                      type="date"
+                      value={form.endDate}
+                      min={form.startDate}
+                      onChange={set("endDate")}
+                      className="mt-1"
+                      required
+                    />
+                  </div>
+                )}
               </div>
-              {days > 0 && (
+              {isCompareMode ? (
+                <div className="mt-4">
+                  <Label>Durations to include</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {COMPARE_WEEK_OPTIONS.map((weeks) => {
+                      const selected = selectedCompareWeeks.includes(weeks);
+                      return (
+                        <button
+                          key={weeks}
+                          type="button"
+                          onClick={() => toggleCompareWeek(weeks)}
+                          className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${selected ? "border-red-300 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                        >
+                          {weeks} weeks
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    The customer will see all selected options in one quotation email.
+                  </p>
+                </div>
+              ) : days > 0 ? (
                 <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
                   <span className="font-semibold text-slate-700">{days} day{days !== 1 ? "s" : ""}</span>
                   {days < 7 && (
                     <span className="text-amber-600 font-medium">⚠ Minimum is 7 days</span>
                   )}
                 </div>
-              )}
+              ) : null}
             </section>
 
             <hr className="border-slate-100" />
@@ -310,20 +419,22 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Pricing
               </p>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label htmlFor="cq-rate">Daily rate (£)</Label>
-                  <Input
-                    id="cq-rate"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={form.dailyRate}
-                    onChange={set("dailyRate")}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Tiered: 1wk £70, 2wk £60, 3wk £50, 4+wk £45</p>
-                </div>
+              <div className={`grid gap-3 ${isCompareMode ? "grid-cols-2" : "grid-cols-3"}`}>
+                {!isCompareMode && (
+                  <div>
+                    <Label htmlFor="cq-rate">Daily rate (£)</Label>
+                    <Input
+                      id="cq-rate"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.dailyRate}
+                      onChange={set("dailyRate")}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">Tiered: 1wk £70, 2wk £60, 3wk £50, 4+wk £45</p>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="cq-delivery">Delivery (£)</Label>
                   <Input
@@ -353,7 +464,16 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
               </div>
 
               {/* Hire subtotal breakdown */}
-              {days > 0 && (
+              {isCompareMode && durationOptions.length > 0 ? (
+                <div className="mt-3 bg-slate-50 rounded-lg px-4 py-3 text-sm space-y-2 text-slate-600">
+                  {durationOptions.map((opt) => (
+                    <div key={opt.weeks} className="flex justify-between gap-3">
+                      <span>{opt.weeks} weeks ({opt.days} days × £{opt.dailyRate})</span>
+                      <span className="font-medium whitespace-nowrap">£{opt.totalCost.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : days > 0 ? (
                 <div className="mt-3 bg-slate-50 rounded-lg px-4 py-3 text-sm space-y-1 text-slate-600">
                   <div className="flex justify-between">
                     <span>Hire ({days} days × £{Number(form.dailyRate).toFixed(0)})</span>
@@ -368,16 +488,36 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
                     <span className="font-medium">£{collCost.toFixed(2)}</span>
                   </div>
                 </div>
-              )}
+              ) : null}
             </section>
 
             {/* Total */}
             <div className="bg-red-50 border border-red-100 rounded-xl px-5 py-4 flex justify-between items-center">
               <div>
-                <div className="text-sm font-semibold text-red-800">Total</div>
-                <div className="text-xs text-red-400 mt-0.5">What the customer will see</div>
+                <div className="text-sm font-semibold text-red-800">
+                  {isCompareMode ? "Comparison quote" : "Total"}
+                </div>
+                <div className="text-xs text-red-400 mt-0.5">
+                  {isCompareMode
+                    ? `${durationOptions.length} option${durationOptions.length !== 1 ? "s" : ""} in one email`
+                    : "What the customer will see"}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-red-600">£{totalCost.toFixed(2)}</div>
+              <div className="text-right">
+                {isCompareMode && durationOptions.length > 0 ? (
+                  <>
+                    <div className="text-sm text-red-700">From</div>
+                    <div className="text-2xl font-bold text-red-600">
+                      £{durationOptions[0].totalCost.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-red-500">
+                      to £{durationOptions[durationOptions.length - 1].totalCost.toFixed(2)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-2xl font-bold text-red-600">£{totalCost.toFixed(2)}</div>
+                )}
+              </div>
             </div>
 
             <hr className="border-slate-100" />

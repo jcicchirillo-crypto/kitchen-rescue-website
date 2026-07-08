@@ -1185,9 +1185,43 @@ app.post('/request-quote', async (req, res) => {
 // Send quote email (or lead notification only)
 app.post('/send-quote-email', async (req, res) => {
     try {
-        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type, source } = req.body;
+        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type, source, durationOptions: rawDurationOptions } = req.body;
+
+        let durationOptions = Array.isArray(rawDurationOptions) && rawDurationOptions.length > 1
+            ? rawDurationOptions
+                .map((opt) => ({
+                    weeks: Number(opt.weeks),
+                    days: Number(opt.days) || Number(opt.weeks) * 7,
+                    startDate: opt.startDate || startDate,
+                    endDate: opt.endDate,
+                    selectedDates: opt.selectedDates || [],
+                    dailyRate: Number(opt.dailyRate),
+                    dailyCost: Number(opt.dailyCost),
+                    deliveryCost: Number(opt.deliveryCost),
+                    collectionCost: Number(opt.collectionCost),
+                    totalCost: Number(opt.totalCost),
+                }))
+                .filter((opt) => opt.weeks && opt.days && opt.endDate)
+                .sort((a, b) => a.weeks - b.weeks)
+            : null;
+
+        const primaryOption = durationOptions?.[0] || null;
+        const longestOption = durationOptions?.[durationOptions.length - 1] || null;
+        const bookingStartDate = primaryOption?.startDate || startDate;
+        const bookingEndDate = primaryOption?.endDate || endDate;
+        const bookingDays = primaryOption?.days || days;
+        const bookingDailyRate = primaryOption?.dailyRate || dailyRate;
+        const bookingDailyCost = primaryOption?.dailyCost || dailyCost;
+        const bookingTotalCost = primaryOption?.totalCost || totalCost;
+        const bookingSelectedDates = longestOption?.selectedDates?.length
+            ? longestOption.selectedDates
+            : (selectedDates || []);
+        const comparisonNote = durationOptions
+            ? `Duration options quoted: ${formatDurationOptionsNotes(durationOptions)}`
+            : '';
+        const bookingNotes = [notes, comparisonNote].filter(Boolean).join('\n\n');
         
-        const isLeadOnly = type === 'new_lead' || !selectedDates?.length;
+        const isLeadOnly = type === 'new_lead' || !bookingSelectedDates?.length;
         
         console.log('Quote/lead request received for:', email, isLeadOnly ? '(lead only — admin notification)' : '(full quote)');
         console.log('Transporter exists:', !!transporter);
@@ -1283,15 +1317,15 @@ app.post('/send-quote-email', async (req, res) => {
                 email,
                 phone: phone || '',
                 postcode,
-                selectedDates: selectedDates || [],
-                startDate,
-                endDate,
-                days,
-                dailyCost: Number(dailyCost) || 0,
+                selectedDates: bookingSelectedDates,
+                startDate: bookingStartDate,
+                endDate: bookingEndDate,
+                days: bookingDays,
+                dailyCost: Number(bookingDailyCost) || 0,
                 deliveryCost: Number(deliveryCost) || 0,
                 collectionCost: Number(collectionCost) || 0,
-                totalCost: Number(totalCost) || 0,
-                notes: notes || '',
+                totalCost: Number(bookingTotalCost) || 0,
+                notes: bookingNotes || '',
                 status: 'Awaiting deposit',
                 source: source || 'quote',
                 pod: '16ft Pod'
@@ -1317,7 +1351,17 @@ app.post('/send-quote-email', async (req, res) => {
         
         // Generate quote email HTML
         const quoteEmailHTML = generateQuoteEmailHTML({
-            name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost
+            name, email, phone, notes, postcode,
+            selectedDates: bookingSelectedDates,
+            startDate: bookingStartDate,
+            endDate: bookingEndDate,
+            days: bookingDays,
+            dailyRate: bookingDailyRate,
+            dailyCost: bookingDailyCost,
+            deliveryCost,
+            collectionCost,
+            totalCost: bookingTotalCost,
+            durationOptions,
         });
         
         // Send email to customer
@@ -1364,15 +1408,15 @@ app.post('/send-quote-email', async (req, res) => {
             email,
             phone: phone || '',
             postcode,
-            selectedDates: selectedDates || [],
-            startDate,
-            endDate,
-            days,
-            dailyCost: Number(dailyCost) || 0,
+            selectedDates: bookingSelectedDates,
+            startDate: bookingStartDate,
+            endDate: bookingEndDate,
+            days: bookingDays,
+            dailyCost: Number(bookingDailyCost) || 0,
             deliveryCost: Number(deliveryCost) || 0,
             collectionCost: Number(collectionCost) || 0,
-            totalCost: Number(totalCost) || 0,
-            notes: notes || '',
+            totalCost: Number(bookingTotalCost) || 0,
+            notes: bookingNotes || '',
             status: 'Awaiting deposit',
             source: source || 'quote',
             pod: '16ft Pod'
@@ -1580,6 +1624,57 @@ app.post('/api/booking-received', async (req, res) => {
     }
 });
 
+function quoteIsoAddDays(iso, n) {
+    const d = new Date(iso + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+}
+
+function quoteBuildDateRange(start, end) {
+    if (!start || !end || end < start) return [];
+    const dates = [];
+    let cur = start;
+    while (cur <= end) {
+        dates.push(cur);
+        cur = quoteIsoAddDays(cur, 1);
+    }
+    return dates;
+}
+
+function getDailyRateForDays(days) {
+    if (days >= 28) return 45;
+    if (days >= 21) return 50;
+    if (days >= 14) return 60;
+    return 70;
+}
+
+function buildDurationOption(startDate, weeks, deliveryCost, collectionCost) {
+    const days = weeks * 7;
+    const endDate = quoteIsoAddDays(startDate, days - 1);
+    const dailyRate = getDailyRateForDays(days);
+    const dailyCost = days * dailyRate;
+    const deliv = Number(deliveryCost) || 0;
+    const coll = Number(collectionCost) || 0;
+    return {
+        weeks,
+        days,
+        startDate,
+        endDate,
+        selectedDates: quoteBuildDateRange(startDate, endDate),
+        dailyRate,
+        dailyCost,
+        deliveryCost: deliv,
+        collectionCost: coll,
+        totalCost: dailyCost + deliv + coll,
+    };
+}
+
+function formatDurationOptionsNotes(durationOptions) {
+    return durationOptions
+        .map((opt) => `${opt.weeks} weeks (${opt.days} days): £${Number(opt.totalCost).toFixed(2)} total`)
+        .join(' | ');
+}
+
 function generateQuoteEmailHTML(data) {
     const baseUrl = 'https://www.thekitchenrescue.co.uk';
     const money = (n) => {
@@ -1589,8 +1684,10 @@ function generateQuoteEmailHTML(data) {
     };
     const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
 
-    // Friendly greeting (e.g. "Mrs Jay" or "John" from "John Smith")
     const firstName = (data.name || '').trim() || 'there';
+    const durationOptions = Array.isArray(data.durationOptions) && data.durationOptions.length > 1
+        ? data.durationOptions
+        : null;
     const days = Number(data.days) || 0;
     const dailyRate = Number(data.dailyRate) || 70;
     const hireCost = Number(data.dailyCost) || (days * dailyRate);
@@ -1608,6 +1705,123 @@ function generateQuoteEmailHTML(data) {
     if (!isNaN(collNum) && collNum > 0) ctaParts.push('collectionCost=' + collNum);
     const ctaQuery = ctaParts.length ? '&' + ctaParts.join('&') : '';
     const ctaUrl = `${baseUrl}/availability.html?dates=${(data.selectedDates || []).join(',')}&postcode=${encodeURIComponent(data.postcode || '')}&skipgate=true${ctaQuery}`;
+    const contactMailto = `mailto:hello@thekitchenrescue.co.uk?subject=${encodeURIComponent(`Kitchen Rescue quotation — ${data.name || 'enquiry'}`)}`;
+
+    const compareTableHtml = durationOptions ? `
+      <table class="compare-table" cellpadding="0" cellspacing="0">
+        <thead>
+          <tr>
+            <th>Duration</th>
+            <th>Daily rate</th>
+            <th>Hire</th>
+            <th>Delivery &amp; setup</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${durationOptions.map((opt) => `
+          <tr>
+            <td>${opt.weeks} weeks<br><span class="compare-sub">${opt.days} days</span></td>
+            <td>£${opt.dailyRate}/day</td>
+            <td>${money(opt.dailyCost)}</td>
+            <td>${money((Number(opt.deliveryCost) || 0) + (Number(opt.collectionCost) || 0))}</td>
+            <td><strong>${money(opt.totalCost)}</strong></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <p class="compare-note">All options start on <strong>${fd(data.startDate)}</strong>. Delivery and set up is the same for each duration — only the hire period changes.</p>
+    ` : '';
+
+    const bookingSectionHtml = durationOptions ? `
+    <div class="booking-section">
+      <div class="section-eyebrow">Your booking</div>
+      <div class="booking-grid">
+        <div class="b-box">
+          <div class="b-label">We deliver from</div>
+          <div class="b-value">${fd(data.startDate)}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Your location</div>
+          <div class="b-value">${(data.postcode || '—').toUpperCase()}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Options quoted</div>
+          <div class="b-value">${durationOptions.map((opt) => `${opt.weeks} weeks`).join(', ')}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Collection</div>
+          <div class="b-value">Depends on duration chosen</div>
+        </div>
+      </div>
+    </div>` : `
+    <div class="booking-section">
+      <div class="section-eyebrow">Your booking</div>
+      <div class="booking-grid">
+        <div class="b-box">
+          <div class="b-label">We deliver</div>
+          <div class="b-value">${fd(data.startDate)}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">We collect</div>
+          <div class="b-value">${fd(data.endDate)}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Duration</div>
+          <div class="b-value">${days} day${days !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="b-box">
+          <div class="b-label">Your location</div>
+          <div class="b-value">${(data.postcode || '—').toUpperCase()}</div>
+        </div>
+      </div>
+    </div>`;
+
+    const priceSectionHtml = durationOptions ? `
+    <div class="price-section">
+      <div class="section-eyebrow">Your quotation</div>
+      ${compareTableHtml}
+      <div class="deposit-note">
+        A <strong>refundable £250 deposit</strong> is required to confirm your booking —
+        returned in full subject to checks.
+      </div>
+    </div>` : `
+    <div class="price-section">
+      <div class="section-eyebrow">Your quotation</div>
+      <div class="price-reveal">
+        <div class="price-context">Total</div>
+        <div class="price-main">${hasNumericTotal ? '£' + quoteTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
+        ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
+        <div class="price-breakdown">
+          <div class="pb-row">
+            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 70 ? `<s style="color:#999">£70</s> <strong style="color:#111">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
+            <span>${money(hireCost)}</span>
+          </div>
+          <div class="pb-row">
+            <span>Delivery, set up &amp; collection</span>
+            <span>${delivCollIsTBC ? 'TBC' : money(delivColl)}</span>
+          </div>
+          ${hasNumericTotal ? `
+          <div class="pb-row grand">
+            <span>Total</span>
+            <span>${money(quoteTotal)}</span>
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="deposit-note">
+        A <strong>refundable £250 deposit</strong> is required to confirm your booking —
+        returned in full subject to checks.
+      </div>
+    </div>`;
+
+    const ctaSectionHtml = durationOptions ? `
+    <div class="cta-section">
+      <a href="${contactMailto}" class="cta-btn">Confirm Your Preferred Option</a>
+      <div class="cta-urgency">Reply with your chosen duration and we'll confirm your dates</div>
+    </div>` : `
+    <div class="cta-section">
+      <a href="${ctaUrl}" class="cta-btn">Confirm My Booking</a>
+      <div class="cta-urgency">Quote valid 7 days · No card needed to hold your dates</div>
+    </div>`;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1654,6 +1868,12 @@ function generateQuoteEmailHTML(data) {
   .pb-row.subtotal { padding-top: 10px; margin-top: 4px; border-top: 1px solid #dfdfdf; color: #222; }
   .pb-row.vat-row { color: #666; }
   .pb-row.grand { font-size: 14px; font-weight: 700; color: #111; padding-top: 10px; margin-top: 4px; border-top: 1px solid #dfdfdf; }
+  .compare-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+  .compare-table th { text-align: left; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #777; padding: 10px 8px; border-bottom: 1px solid #e7e7e7; }
+  .compare-table td { padding: 12px 8px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: top; }
+  .compare-table th:last-child, .compare-table td:last-child { text-align: right; }
+  .compare-sub { font-size: 11px; color: #888; }
+  .compare-note { margin-top: 14px; font-size: 14px; line-height: 1.6; color: #555; }
   .deposit-note { margin-top: 14px; font-size: 12.5px; color: #666; text-align: center; font-style: italic; line-height: 1.6; }
   .deposit-note strong { color: #333; font-style: normal; }
   .cta-section { text-align: center; margin-bottom: 28px; }
@@ -1719,60 +1939,11 @@ function generateQuoteEmailHTML(data) {
       </div>
     </div>
 
-    <div class="booking-section">
-      <div class="section-eyebrow">Your booking</div>
-      <div class="booking-grid">
-        <div class="b-box">
-          <div class="b-label">We deliver</div>
-          <div class="b-value">${fd(data.startDate)}</div>
-        </div>
-        <div class="b-box">
-          <div class="b-label">We collect</div>
-          <div class="b-value">${fd(data.endDate)}</div>
-        </div>
-        <div class="b-box">
-          <div class="b-label">Duration</div>
-          <div class="b-value">${days} day${days !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="b-box">
-          <div class="b-label">Your location</div>
-          <div class="b-value">${(data.postcode || '—').toUpperCase()}</div>
-        </div>
-      </div>
-    </div>
+    ${bookingSectionHtml}
 
-    <div class="price-section">
-      <div class="section-eyebrow">Your quotation</div>
-      <div class="price-reveal">
-        <div class="price-context">Total</div>
-        <div class="price-main">${hasNumericTotal ? '£' + quoteTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'TBC'}</div>
-        ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
-        <div class="price-breakdown">
-          <div class="pb-row">
-            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 70 ? `<s style="color:#999">£70</s> <strong style="color:#111">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
-            <span>${money(hireCost)}</span>
-          </div>
-          <div class="pb-row">
-            <span>Delivery, set up &amp; collection</span>
-            <span>${delivCollIsTBC ? 'TBC' : money(delivColl)}</span>
-          </div>
-          ${hasNumericTotal ? `
-          <div class="pb-row grand">
-            <span>Total</span>
-            <span>${money(quoteTotal)}</span>
-          </div>` : ''}
-        </div>
-      </div>
-      <div class="deposit-note">
-        A <strong>refundable £250 deposit</strong> is required to confirm your booking —
-        returned in full subject to checks.
-      </div>
-    </div>
+    ${priceSectionHtml}
 
-    <div class="cta-section">
-      <a href="${ctaUrl}" class="cta-btn">Confirm My Booking</a>
-      <div class="cta-urgency">Quote valid 7 days · No card needed to hold your dates</div>
-    </div>
+    ${ctaSectionHtml}
 
     <div class="trust">
       <strong>Any questions? Just call or text us on <a href="tel:+447342606655" style="color:#dc2626;text-decoration:none;">07342 606655</a>.</strong><br>

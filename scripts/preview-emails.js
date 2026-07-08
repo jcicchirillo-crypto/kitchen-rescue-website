@@ -56,4 +56,50 @@ const quoteSample = {
 
 fs.writeFileSync(path.join(outDir, 'custom-quote.html'), inlineLogo(app.generateQuoteEmailHTML(quoteSample)));
 
+function buildCompareOption(startDate, weeks, deliveryCost, collectionCost) {
+    const days = weeks * 7;
+    const end = new Date(startDate + 'T00:00:00Z');
+    end.setUTCDate(end.getUTCDate() + days - 1);
+    const endDate = end.toISOString().slice(0, 10);
+    const dailyRate = days >= 28 ? 45 : days >= 21 ? 50 : 60;
+    const dailyCost = days * dailyRate;
+    const deliv = Number(deliveryCost) || 0;
+    const coll = Number(collectionCost) || 0;
+    return {
+        weeks,
+        days,
+        startDate,
+        endDate,
+        dailyRate,
+        dailyCost,
+        deliveryCost: deliv,
+        collectionCost: coll,
+        totalCost: dailyCost + deliv + coll,
+    };
+}
+
+const compareStart = '2026-07-19';
+const compareDeliv = 75;
+const compareColl = 75;
+const compareOptions = [3, 4, 5, 6].map((w) => buildCompareOption(compareStart, w, compareDeliv, compareColl));
+
+const compareQuoteSample = {
+    name: 'Sarah Thompson',
+    email: 'sarah@example.com',
+    phone: '07342 606655',
+    postcode: 'WD17 3AB',
+    startDate: compareStart,
+    endDate: compareOptions[compareOptions.length - 1].endDate,
+    days: compareOptions[0].days,
+    dailyRate: compareOptions[0].dailyRate,
+    dailyCost: compareOptions[0].dailyCost,
+    deliveryCost: compareDeliv,
+    collectionCost: compareColl,
+    totalCost: compareOptions[0].totalCost,
+    notes: 'Driveway access from left side.',
+    durationOptions: compareOptions,
+};
+
+fs.writeFileSync(path.join(outDir, 'custom-quote-compare.html'), inlineLogo(app.generateQuoteEmailHTML(compareQuoteSample)));
+
 console.log('Wrote previews to', outDir);
