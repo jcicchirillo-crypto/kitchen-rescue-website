@@ -41,7 +41,7 @@ const EMPTY = {
   notes: "",
 };
 
-export function SendCustomQuoteModal({ open, onClose }) {
+export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [error, setError] = useState("");
@@ -49,11 +49,14 @@ export function SendCustomQuoteModal({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
-      setForm(EMPTY);
+      setForm({
+        ...EMPTY,
+        ...(initialValues || {}),
+      });
       setStatus("idle");
       setError("");
     }
-  }, [open]);
+  }, [open, initialValues]);
 
   // Auto-apply tiered rate when dates change
   useEffect(() => {

@@ -223,6 +223,7 @@ function KitchenRescueAdmin() {
   const [selectedId, setSelectedId] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [showCustomQuote, setShowCustomQuote] = useState(false);
+  const [customQuoteLead, setCustomQuoteLead] = useState(null);
   const [showCreateBooking, setShowCreateBooking] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [sendingConfirmationId, setSendingConfirmationId] = useState(null);
@@ -341,6 +342,17 @@ function KitchenRescueAdmin() {
   const activeLeads = useMemo(() => leads.filter((l) => !l.followed_up), [leads]);
   const archivedLeads = useMemo(() => leads.filter((l) => l.followed_up), [leads]);
 
+  const openCustomQuoteForLead = (lead) => {
+    setCustomQuoteLead({
+      name: lead.name || "",
+      email: lead.email || "",
+      phone: lead.phone || "",
+      postcode: lead.postcode || "",
+      notes: lead.notes || "",
+    });
+    setShowCustomQuote(true);
+  };
+
   const renderLeadRows = (items) =>
     items.map((l) => (
       <TableRow key={l.id}>
@@ -393,15 +405,26 @@ function KitchenRescueAdmin() {
           />
         </TableCell>
         <TableCell className="text-right">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-            onClick={() => setShowCreateBooking(true)}
-          >
-            <Plus className="h-3 w-3" />
-            Convert to booking
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-red-700 border-red-300 hover:bg-red-50"
+              onClick={() => openCustomQuoteForLead(l)}
+            >
+              <Mail className="h-3 w-3" />
+              Custom quote
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+              onClick={() => setShowCreateBooking(true)}
+            >
+              <Plus className="h-3 w-3" />
+              Convert to booking
+            </Button>
+          </div>
         </TableCell>
       </TableRow>
     ));
@@ -519,7 +542,10 @@ function KitchenRescueAdmin() {
             <Button
               size="sm"
               className="gap-2 bg-red-600 hover:bg-red-700 text-white"
-              onClick={() => setShowCustomQuote(true)}
+              onClick={() => {
+                setCustomQuoteLead(null);
+                setShowCustomQuote(true);
+              }}
             >
               <Mail className="h-4 w-4" />
               Send Custom Quote
@@ -909,7 +935,11 @@ function KitchenRescueAdmin() {
 
       <SendCustomQuoteModal
         open={showCustomQuote}
-        onClose={() => setShowCustomQuote(false)}
+        initialValues={customQuoteLead}
+        onClose={() => {
+          setShowCustomQuote(false);
+          setCustomQuoteLead(null);
+        }}
       />
     </div>
   );
