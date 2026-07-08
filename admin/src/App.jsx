@@ -64,6 +64,14 @@ function isoAddDays(iso, n) {
   return format(d, "yyyy-MM-dd");
 }
 
+function toDateTimeLocalValue(val) {
+  if (!val) return "";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "";
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
 function MonthCalendar({
   month,
   bookings,
@@ -234,6 +242,9 @@ function KitchenRescueAdmin() {
   const [leadNotesDraft, setLeadNotesDraft] = useState({});
   const [savingLeadId, setSavingLeadId] = useState(null);
   const [leadsTab, setLeadsTab] = useState("new");
+  const [followUpTab, setFollowUpTab] = useState("open");
+  const [quoteFollowUpDrafts, setQuoteFollowUpDrafts] = useState({});
+  const [savingQuoteId, setSavingQuoteId] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const toggleDelete = (id) => {
@@ -270,6 +281,23 @@ function KitchenRescueAdmin() {
     const t = setTimeout(() => setConfirmationMessage(null), 5000);
     return () => clearTimeout(t);
   }, [confirmationMessage]);
+
+  useEffect(() => {
+    setQuoteFollowUpDrafts((prev) => {
+      const next = { ...prev };
+      for (const booking of bookings) {
+        if (booking.source !== "quote") continue;
+        if (!next[booking.id]) {
+          next[booking.id] = {
+            followUpAt: toDateTimeLocalValue(booking.follow_up_at),
+            followUpStatus: booking.follow_up_status || "open",
+            notes: booking.notes || "",
+          };
+        }
+      }
+      return next;
+    });
+  }, [bookings]);
 
   const fetchLeads = async () => {
     const res = await fetch("/api/leads", {
@@ -341,6 +369,15 @@ function KitchenRescueAdmin() {
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.followed_up), [leads]);
   const archivedLeads = useMemo(() => leads.filter((l) => l.followed_up), [leads]);
+  const quoteBookings = useMemo(() => bookings.filter((b) => b.source === "quote"), [bookings]);
+  const openQuoteBookings = useMemo(
+    () => quoteBookings.filter((b) => !["won", "lost", "closed"].includes((b.follow_up_status || "open").toLowerCase())),
+    [quoteBookings]
+  );
+  const closedQuoteBookings = useMemo(
+    () => quoteBookings.filter((b) => ["won", "lost", "closed"].includes((b.follow_up_status || "").toLowerCase())),
+    [quoteBookings]
+  );
 
   const openCustomQuoteForLead = (lead) => {
     setCustomQuoteLead({
@@ -352,6 +389,126 @@ function KitchenRescueAdmin() {
     });
     setShowCustomQuote(true);
   };
+
+  const saveQuoteFollowUp = async (quote) => {
+    const draft = quoteFollowUpDrafts[quote.id];
+    if (!draft) return;
+    const token = localStorage.getItem("adminToken");
+    setSavingQuoteId(quote.id);
+    try {
+      const followUpAt = draft.followUpAt ? new Date(draft.followUpAt).toISOString() : null;
+      const followUpChanged = (quote.follow_up_at || null) !== followUpAt;
+      const payload = {
+        followUpAt,
+        followUpStatus: draft.followUpStatus || "open",
+        notes: draft.notes || "",
+      };
+      if (followUpChanged) payload.followUpReminderSentAt = null;
+      const res = await fetch(`/api/bookings/${quote.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to save follow-up");
+      setConfirmationMessage({ type: "success", text: `Follow-up saved for ${quote.name || quote.id}` });
+      fetchBookings();
+    } catch (err) {
+      setConfirmationMessage({ type: "error", text: err.message || "Failed to save follow-up" });
+    } finally {
+      setSavingQuoteId(null);
+    }
+  };
+
+  const renderQuoteRows = (items) =>
+    items.map((quote) => {
+      const draft = quoteFollowUpDrafts[quote.id] || {
+        followUpAt: "",
+        followUpStatus: "open",
+        notes: quote.notes || "",
+      };
+      const due = quote.follow_up_at && new Date(quote.follow_up_at) <= new Date() && (quote.follow_up_status || "open") === "open";
+      return (
+        <TableRow key={quote.id}>
+          <TableCell className="font-medium">
+            <div>{quote.name || "—"}</div>
+            <div className="text-xs text-slate-400">{quote.id}</div>
+          </TableCell>
+          <TableCell>
+            {quote.email ? (
+              <a href={`mailto:${quote.email}`} className="text-red-600 hover:underline">{quote.email}</a>
+            ) : "—"}
+          </TableCell>
+          <TableCell className="text-sm text-slate-500 whitespace-nowrap">
+            {quote.quote_sent_at || quote.createdAt || quote.timestamp
+              ? format(new Date(quote.quote_sent_at || quote.createdAt || quote.timestamp), "d MMM yyyy HH:mm")
+              : "—"}
+          </TableCell>
+          <TableCell className="whitespace-nowrap font-medium">
+            £{Number(quote.totalCost || 0).toFixed(2)}
+          </TableCell>
+          <TableCell>
+            <Input
+              type="datetime-local"
+              value={draft.followUpAt}
+              onChange={(e) =>
+                setQuoteFollowUpDrafts((prev) => ({
+                  ...prev,
+                  [quote.id]: { ...draft, followUpAt: e.target.value },
+                }))
+              }
+            />
+            {due ? <p className="text-xs text-rose-600 mt-1">Follow-up due now</p> : null}
+          </TableCell>
+          <TableCell>
+            <select
+              value={draft.followUpStatus}
+              onChange={(e) =>
+                setQuoteFollowUpDrafts((prev) => ({
+                  ...prev,
+                  [quote.id]: { ...draft, followUpStatus: e.target.value },
+                }))
+              }
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white"
+            >
+              <option value="open">Open</option>
+              <option value="called">Called</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+              <option value="closed">Closed</option>
+            </select>
+          </TableCell>
+          <TableCell>
+            <Textarea
+              value={draft.notes}
+              onChange={(e) =>
+                setQuoteFollowUpDrafts((prev) => ({
+                  ...prev,
+                  [quote.id]: { ...draft, notes: e.target.value },
+                }))
+              }
+              placeholder="Follow-up notes…"
+              className="min-h-[60px] text-xs resize-y"
+            />
+          </TableCell>
+          <TableCell className="text-right">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1"
+              onClick={() => saveQuoteFollowUp(quote)}
+              disabled={savingQuoteId === quote.id}
+            >
+              {savingQuoteId === quote.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Save
+            </Button>
+          </TableCell>
+        </TableRow>
+      );
+    });
 
   const renderLeadRows = (items) =>
     items.map((l) => (
@@ -636,6 +793,79 @@ function KitchenRescueAdmin() {
               <Table>
                 {leadsTableHeader}
                 <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className={`mb-4 ${followUpTab === "open" ? "border-red-200 bg-red-50/40" : "border-slate-200 bg-slate-50/80"}`}>
+          <CardHeader>
+            <div className="flex items-center gap-1 border-b border-slate-200 -mt-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setFollowUpTab("open")}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${followUpTab === "open" ? "border-red-500 text-red-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <Mail className="h-4 w-4" />
+                Follow Up
+                <Badge className={`${followUpTab === "open" ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
+                  {openQuoteBookings.length}
+                </Badge>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFollowUpTab("closed")}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${followUpTab === "closed" ? "border-slate-500 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <Archive className="h-4 w-4" />
+                Closed
+                <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200">
+                  {closedQuoteBookings.length}
+                </Badge>
+              </button>
+            </div>
+            <CardDescription>
+              Sent custom quotes are stored in the database here as well as in Customers. Set a follow-up date/time and we&apos;ll email you when it&apos;s due.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {followUpTab === "open" ? (
+              openQuoteBookings.length === 0 ? (
+                <p className="text-slate-500 text-sm py-4">No open quote follow-ups right now.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Quote sent</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Next follow-up</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="min-w-[220px]">Notes</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>{renderQuoteRows(openQuoteBookings)}</TableBody>
+                </Table>
+              )
+            ) : closedQuoteBookings.length === 0 ? (
+              <p className="text-slate-500 text-sm py-4">No closed quote follow-ups yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Quote sent</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Next follow-up</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="min-w-[220px]">Notes</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>{renderQuoteRows(closedQuoteBookings)}</TableBody>
               </Table>
             )}
           </CardContent>

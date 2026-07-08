@@ -809,6 +809,11 @@ function isConfirmedBookingStatus(s) {
     return v === 'confirmed' || v === 'deposit paid';
 }
 
+function isOpenFollowUpStatus(status) {
+    const v = String(status || 'open').toLowerCase();
+    return !['won', 'lost', 'closed'].includes(v);
+}
+
 async function runBalanceReminders({ dryRun = false } = {}) {
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayMs = Date.parse(todayStr + 'T00:00:00Z');
@@ -889,6 +894,75 @@ async function runBalanceReminders({ dryRun = false } = {}) {
     return result;
 }
 
+async function runQuoteFollowUpReminders({ dryRun = false } = {}) {
+    const now = new Date();
+    const bookings = await getAllBookings();
+    const result = { checked: bookings.length, eligible: 0, sent: 0, skipped: 0, errors: 0, details: [] };
+
+    for (const b of bookings) {
+        if (b.source !== 'quote') continue;
+        if (!isOpenFollowUpStatus(b.follow_up_status)) continue;
+        if (!b.follow_up_at) continue;
+        if (b.follow_up_reminder_sent_at) continue;
+
+        const followUpAt = new Date(b.follow_up_at);
+        if (Number.isNaN(followUpAt.getTime())) continue;
+        if (followUpAt > now) continue;
+
+        result.eligible++;
+        if (dryRun) {
+            result.details.push({ id: b.id, followUpAt: b.follow_up_at, wouldSend: true });
+            continue;
+        }
+
+        const nowIso = new Date().toISOString();
+        const marked = await updateBooking(b.id, { follow_up_reminder_sent_at: nowIso });
+        if (!marked) {
+            result.skipped++;
+            result.details.push({ id: b.id, reason: 'could-not-mark-sent (add follow_up_reminder_sent_at column?)' });
+            continue;
+        }
+
+        if (!transporter) {
+            result.skipped++;
+            result.details.push({ id: b.id, reason: 'email-not-configured' });
+            continue;
+        }
+
+        try {
+            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const html = generateQuoteFollowUpReminderEmailHTML({
+                id: b.id,
+                name: b.name,
+                email: b.email,
+                phone: b.phone,
+                postcode: b.postcode,
+                totalCost: b.totalCost,
+                followUpAt: b.follow_up_at,
+                notes: b.notes || '',
+                startDate: b.startDate || b.delivery_date,
+                endDate: b.endDate,
+            });
+            await transporter.sendMail({
+                from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                to: adminEmail,
+                subject: `Quote follow-up due: ${b.name || b.id} (${b.id})`,
+                html,
+            });
+            result.sent++;
+            result.details.push({ id: b.id, sentTo: adminEmail });
+            console.log('[quote-followups] Sent follow-up reminder for', b.id, 'to', adminEmail);
+        } catch (e) {
+            result.errors++;
+            result.details.push({ id: b.id, reason: 'send-failed', error: e.message });
+            console.error('[quote-followups] Failed to send for', b.id, e.message);
+        }
+    }
+
+    console.log('[quote-followups] Run complete:', JSON.stringify({ checked: result.checked, eligible: result.eligible, sent: result.sent, skipped: result.skipped, errors: result.errors }));
+    return result;
+}
+
 function isAuthorizedCron(req) {
     const secret = process.env.CRON_SECRET;
     if (!secret) return true; // not configured — allow so it works out of the box (set CRON_SECRET to lock down)
@@ -912,6 +986,20 @@ const handleBalanceRemindersCron = async (req, res) => {
 };
 app.get('/api/cron/send-balance-reminders', handleBalanceRemindersCron);
 app.post('/api/cron/send-balance-reminders', handleBalanceRemindersCron);
+
+const handleQuoteFollowUpRemindersCron = async (req, res) => {
+    if (!isAuthorizedCron(req)) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
+        const result = await runQuoteFollowUpReminders({ dryRun });
+        res.json({ success: true, dryRun, ...result });
+    } catch (error) {
+        console.error('[quote-followups] Cron error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+app.get('/api/cron/send-quote-followups', handleQuoteFollowUpRemindersCron);
+app.post('/api/cron/send-quote-followups', handleQuoteFollowUpRemindersCron);
 
 // Availability lead gate — save lead + add to Brevo (replaces direct client Supabase insert)
 app.post('/api/lead-gate', async (req, res) => {
@@ -1189,6 +1277,8 @@ app.post('/send-quote-email', async (req, res) => {
                 id: `KR-${Date.now()}`,
                 timestamp: new Date().toISOString(),
                 createdAt: new Date().toISOString(), // Matches Supabase schema (createdAt, not created_at)
+                quoteSentAt: new Date().toISOString(),
+                followUpStatus: 'open',
                 name,
                 email,
                 phone: phone || '',
@@ -1268,6 +1358,8 @@ app.post('/send-quote-email', async (req, res) => {
             id: `KR-${Date.now()}`,
             timestamp: new Date().toISOString(),
             createdAt: new Date().toISOString(), // Matches Supabase schema (createdAt, not created_at)
+            quoteSentAt: new Date().toISOString(),
+            followUpStatus: 'open',
             name,
             email,
             phone: phone || '',
@@ -2113,6 +2205,48 @@ function generateBalanceReminderEmailHTML(data) {
 </html>`;
 }
 
+function generateQuoteFollowUpReminderEmailHTML(data) {
+    const baseUrl = 'https://www.thekitchenrescue.co.uk';
+    const fd = (d) => { if (!d) return '—'; const dt = new Date((d + '').replace(/Z$/, '').replace(/T.*/, '') + 'T12:00:00'); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
+    const fdt = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+    const esc = (v) => String(v || '—').replace(/</g, '&lt;');
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Quote follow-up due</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#333333;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
+  <tr><td align="center">
+    <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:6px;overflow:hidden;">
+      <tr><td style="background:#000000;padding:20px 24px;text-align:center;">
+        <img src="${baseUrl}/assets/logo-email.png" alt="Kitchen Rescue" width="150" style="width:150px;max-width:60%;height:auto;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
+        <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:700;">Quote Follow-up Due</h1>
+        <p style="margin:0;color:rgba(255,255,255,0.85);font-size:14px;">${esc(data.id)}</p>
+      </td></tr>
+      <tr><td style="padding:24px 32px;">
+        <p style="margin:0 0 18px;line-height:1.65;">A quote follow-up is now due for <strong>${esc(data.name)}</strong>.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:20px;overflow:hidden;">
+          <tr><td style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Quote Details</td></tr>
+          <tr><td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Customer</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${esc(data.name)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Email</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${esc(data.email)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Phone</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${esc(data.phone)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Quote total</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">£${Number(data.totalCost || 0).toFixed(2)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Delivery</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${fd(data.startDate)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Collection</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${fd(data.endDate)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;">Follow-up due</td><td style="padding:11px 16px;font-size:14px;color:#C41E1E;font-weight:700;text-align:right;">${fdt(data.followUpAt)}</td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 12px;line-height:1.65;"><strong>Notes:</strong> ${esc(data.notes)}</p>
+        <p style="margin:0;line-height:1.65;">Open the admin Follow Up tab to update the status after you’ve contacted them.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
 // Admin API endpoints
 // Simple authentication middleware
 const authenticateAdmin = (req, res, next) => {
@@ -2473,6 +2607,10 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         if (body.dailyCost !== undefined) updatesSnake.daily_cost = body.dailyCost;
         if (body.deliveryCost !== undefined) updatesSnake.delivery_cost = body.deliveryCost;
         if (body.collectionCost !== undefined) updatesSnake.collection_cost = body.collectionCost;
+        if (body.quoteSentAt !== undefined) updatesSnake.quote_sent_at = body.quoteSentAt;
+        if (body.followUpAt !== undefined) updatesSnake.follow_up_at = body.followUpAt;
+        if (body.followUpStatus !== undefined) updatesSnake.follow_up_status = body.followUpStatus;
+        if (body.followUpReminderSentAt !== undefined) updatesSnake.follow_up_reminder_sent_at = body.followUpReminderSentAt;
 
         const updatesCamel = {};
         if (body.name !== undefined) updatesCamel.name = body.name;
@@ -2490,6 +2628,10 @@ app.put('/api/bookings/:id', authenticateAdmin, async (req, res) => {
         if (body.dailyCost !== undefined) updatesCamel.dailyCost = body.dailyCost;
         if (body.deliveryCost !== undefined) updatesCamel.deliveryCost = body.deliveryCost;
         if (body.collectionCost !== undefined) updatesCamel.collectionCost = body.collectionCost;
+        if (body.quoteSentAt !== undefined) updatesCamel.quoteSentAt = body.quoteSentAt;
+        if (body.followUpAt !== undefined) updatesCamel.followUpAt = body.followUpAt;
+        if (body.followUpStatus !== undefined) updatesCamel.followUpStatus = body.followUpStatus;
+        if (body.followUpReminderSentAt !== undefined) updatesCamel.followUpReminderSentAt = body.followUpReminderSentAt;
 
         const updateAttempts = [
             { label: 'snake_case', updates: updatesSnake },

@@ -8,6 +8,11 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS source TEXT;
 -- (/api/cron/send-balance-reminders) never emails the same customer twice.
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS balance_reminder_sent_at TIMESTAMPTZ;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_paid BOOLEAN DEFAULT FALSE;
+-- Quote follow-up workflow fields
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quote_sent_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS follow_up_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS follow_up_status TEXT DEFAULT 'open';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS follow_up_reminder_sent_at TIMESTAMPTZ;
 
 -- If table doesn't exist yet, use this full schema:
 
