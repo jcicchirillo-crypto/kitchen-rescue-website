@@ -5,4 +5,6 @@ admin/node_modules/
 .DS_Store
 dist/
 build/
+!admin/build/
+!admin/build/**/
 

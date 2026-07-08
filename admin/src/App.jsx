@@ -736,9 +736,15 @@ function KitchenRescueAdmin() {
           <Stat icon={Wallet} label="This month revenue" value={`£${bookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
         </div>
 
-        <Card className={`mb-4 ${leadsTab === "new" ? "border-amber-200 bg-amber-50/50" : "border-slate-200 bg-slate-50/80"}`}>
+        <Card className={`mb-4 ${
+          leadsTab === "new"
+            ? "border-amber-200 bg-amber-50/50"
+            : leadsTab === "follow-up"
+              ? "border-red-200 bg-red-50/40"
+              : "border-slate-200 bg-slate-50/80"
+        }`}>
           <CardHeader>
-            <div className="flex items-center gap-1 border-b border-slate-200 -mt-2 mb-3">
+            <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 -mt-2 mb-3">
               <button
                 type="button"
                 onClick={() => setLeadsTab("new")}
@@ -748,6 +754,17 @@ function KitchenRescueAdmin() {
                 New Enquiries
                 <Badge className={`${leadsTab === "new" ? "bg-amber-200 text-amber-900 hover:bg-amber-200" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
                   {activeLeads.length}
+                </Badge>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeadsTab("follow-up")}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "follow-up" ? "border-red-500 text-red-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <Mail className="h-4 w-4" />
+                Follow Up
+                <Badge className={`${leadsTab === "follow-up" ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
+                  {openQuoteBookings.length}
                 </Badge>
               </button>
               <button
@@ -762,10 +779,30 @@ function KitchenRescueAdmin() {
                 </Badge>
               </button>
             </div>
+            {leadsTab === "follow-up" && (
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setFollowUpTab("open")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${followUpTab === "open" ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                >
+                  Open ({openQuoteBookings.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFollowUpTab("closed")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${followUpTab === "closed" ? "bg-slate-200 text-slate-800" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                >
+                  Closed ({closedQuoteBookings.length})
+                </button>
+              </div>
+            )}
             <CardDescription>
               {leadsTab === "new"
                 ? 'Tick "Followed up" when your colleague has contacted them — they\'ll move to the Archive tab. Add notes before archiving if needed.'
-                : "Followed-up leads. Uncheck to move them back to New Enquiries."}
+                : leadsTab === "follow-up"
+                  ? "Sent custom quotes. Set a follow-up date/time and we'll email you when it's due. Quotes also stay in Customers."
+                  : "Followed-up leads. Uncheck to move them back to New Enquiries."}
             </CardDescription>
             {confirmationMessage && (
               <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
@@ -787,51 +824,29 @@ function KitchenRescueAdmin() {
                   <TableBody>{renderLeadRows(activeLeads)}</TableBody>
                 </Table>
               )
-            ) : archivedLeads.length === 0 ? (
-              <p className="text-slate-500 text-sm py-4">No archived enquiries yet.</p>
-            ) : (
-              <Table>
-                {leadsTableHeader}
-                <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className={`mb-4 ${followUpTab === "open" ? "border-red-200 bg-red-50/40" : "border-slate-200 bg-slate-50/80"}`}>
-          <CardHeader>
-            <div className="flex items-center gap-1 border-b border-slate-200 -mt-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setFollowUpTab("open")}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${followUpTab === "open" ? "border-red-500 text-red-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
-              >
-                <Mail className="h-4 w-4" />
-                Follow Up
-                <Badge className={`${followUpTab === "open" ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
-                  {openQuoteBookings.length}
-                </Badge>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFollowUpTab("closed")}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${followUpTab === "closed" ? "border-slate-500 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
-              >
-                <Archive className="h-4 w-4" />
-                Closed
-                <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200">
-                  {closedQuoteBookings.length}
-                </Badge>
-              </button>
-            </div>
-            <CardDescription>
-              Sent custom quotes are stored in the database here as well as in Customers. Set a follow-up date/time and we&apos;ll email you when it&apos;s due.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {followUpTab === "open" ? (
-              openQuoteBookings.length === 0 ? (
-                <p className="text-slate-500 text-sm py-4">No open quote follow-ups right now.</p>
+            ) : leadsTab === "follow-up" ? (
+              followUpTab === "open" ? (
+                openQuoteBookings.length === 0 ? (
+                  <p className="text-slate-500 text-sm py-4">No open quote follow-ups right now.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Quote sent</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Next follow-up</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="min-w-[220px]">Notes</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>{renderQuoteRows(openQuoteBookings)}</TableBody>
+                  </Table>
+                )
+              ) : closedQuoteBookings.length === 0 ? (
+                <p className="text-slate-500 text-sm py-4">No closed quote follow-ups yet.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -846,26 +861,15 @@ function KitchenRescueAdmin() {
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>{renderQuoteRows(openQuoteBookings)}</TableBody>
+                  <TableBody>{renderQuoteRows(closedQuoteBookings)}</TableBody>
                 </Table>
               )
-            ) : closedQuoteBookings.length === 0 ? (
-              <p className="text-slate-500 text-sm py-4">No closed quote follow-ups yet.</p>
+            ) : archivedLeads.length === 0 ? (
+              <p className="text-slate-500 text-sm py-4">No archived enquiries yet.</p>
             ) : (
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Quote sent</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Next follow-up</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="min-w-[220px]">Notes</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>{renderQuoteRows(closedQuoteBookings)}</TableBody>
+                {leadsTableHeader}
+                <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
               </Table>
             )}
           </CardContent>
