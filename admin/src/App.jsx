@@ -1189,6 +1189,11 @@ function KitchenRescueAdmin() {
       <SendCustomQuoteModal
         open={showCustomQuote}
         initialValues={customQuoteLead}
+        onSent={() => {
+          fetchBookings();
+          setLeadsTab("follow-up");
+          setFollowUpTab("open");
+        }}
         onClose={() => {
           setShowCustomQuote(false);
           setCustomQuoteLead(null);

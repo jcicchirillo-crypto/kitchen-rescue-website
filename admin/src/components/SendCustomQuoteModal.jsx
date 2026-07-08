@@ -67,7 +67,7 @@ function buildDurationOption(startDate, weeks, deliveryCost, collectionCost) {
   };
 }
 
-export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
+export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = null }) {
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [error, setError] = useState("");
@@ -230,6 +230,7 @@ export function SendCustomQuoteModal({ open, onClose, initialValues = null }) {
       const data = await res.json();
       if (data.success) {
         setStatus("success");
+        onSent?.();
       } else {
         setError("Failed to send — please try again.");
         setStatus("idle");

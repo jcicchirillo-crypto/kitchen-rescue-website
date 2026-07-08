@@ -1386,7 +1386,22 @@ app.post('/send-quote-email', async (req, res) => {
             to: adminEmail,
             subject: `📧 New Quote Request - ${name} (${postcode})`,
             html: generateBusinessNotificationHTML({
-                name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost
+                name,
+                email,
+                phone,
+                notes: bookingNotes,
+                postcode,
+                selectedDates: bookingSelectedDates,
+                startDate: bookingStartDate,
+                endDate: bookingEndDate,
+                days: bookingDays,
+                dailyRate: bookingDailyRate,
+                dailyCost: bookingDailyCost,
+                deliveryCost,
+                collectionCost,
+                totalCost: bookingTotalCost,
+                durationOptions,
+                source,
             })
         };
         
@@ -1967,8 +1982,29 @@ function generateQuoteEmailHTML(data) {
 }
 
 function generateBusinessNotificationHTML(data) {
-    const money = (n) => n === 'TBC' ? 'TBC' : `£${Number(n).toFixed(2)}`;
+    const money = (n) => {
+        if (n === 'TBC' || n === null || n === undefined) return 'TBC';
+        const num = Number(n);
+        return isNaN(num) ? 'TBC' : `£${num.toFixed(2)}`;
+    };
     const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
+    const durationOptions = Array.isArray(data.durationOptions) && data.durationOptions.length > 1
+        ? data.durationOptions
+        : null;
+    const isCustomQuote = data.source === 'admin-custom-quote';
+    const headerLabel = isCustomQuote ? 'Custom quote sent from admin' : 'New enquiry via website';
+    const headerTitle = durationOptions ? `Quote Comparison — ${data.name}` : `Quote Request — ${data.name}`;
+    const headerMeta = durationOptions
+        ? `${(data.postcode || '—').toUpperCase()} · ${durationOptions.map((opt) => `${opt.weeks}w`).join(' / ')} · ${fd(data.startDate)}`
+        : `${(data.postcode || '—').toUpperCase()} · ${data.days} day${Number(data.days) === 1 ? '' : 's'} · ${fd(data.startDate)}`;
+    const compareRows = durationOptions ? durationOptions.map((opt) => `
+              <tr>
+                <td style="padding:10px 0;color:#374151;font-size:14px;">${opt.weeks} weeks <span style="color:#9ca3af;">(${opt.days} days)</span></td>
+                <td align="right" style="padding:10px 0;color:#111827;font-size:14px;font-weight:600;">£${Number(opt.dailyRate).toFixed(0)}/day</td>
+                <td align="right" style="padding:10px 0;color:#111827;font-size:14px;font-weight:600;">${money(opt.totalCost)}</td>
+              </tr>
+              <tr><td colspan="3" style="border-top:1px solid #e5e7eb;"></td></tr>`).join('')
+        : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1983,19 +2019,19 @@ function generateBusinessNotificationHTML(data) {
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
       <!-- Header -->
-      <tr><td style="background:#dc2626;border-radius:12px 12px 0 0;padding:24px 40px;">
-        <p style="margin:0;color:#ffffff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.8;">New enquiry via website</p>
-        <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:700;">Quote Request — ${data.name}</h1>
-        <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">${data.postcode} · ${data.days} day${data.days > 1 ? 's' : ''} · ${fd(data.startDate)}</p>
+      <tr><td style="background:#111111;border-radius:12px 12px 0 0;padding:24px 40px;">
+        <p style="margin:0;color:rgba(255,255,255,0.78);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">${headerLabel}</p>
+        <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:700;">${headerTitle}</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">${headerMeta}</p>
       </td></tr>
 
       <!-- Body -->
       <tr><td style="background:#ffffff;padding:32px 40px;">
 
         <!-- Action banner -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:24px;">
           <tr><td style="padding:14px 18px;">
-            <p style="margin:0;color:#991b1b;font-size:14px;font-weight:700;">⚡ Action required — follow up within 24 hours</p>
+            <p style="margin:0;color:#111827;font-size:14px;font-weight:700;">Follow up within 24 hours</p>
           </td></tr>
         </table>
 
@@ -2025,11 +2061,11 @@ function generateBusinessNotificationHTML(data) {
               </tr>
               <tr>
                 <td style="padding:5px 0;color:#374151;font-size:14px;font-weight:600;">Collection</td>
-                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${fd(data.endDate)}</td>
+                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${durationOptions ? 'Depends on duration chosen' : fd(data.endDate)}</td>
               </tr>
               <tr>
-                <td style="padding:5px 0;color:#374151;font-size:14px;font-weight:600;">Duration</td>
-                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${data.days} days</td>
+                <td style="padding:5px 0;color:#374151;font-size:14px;font-weight:600;">${durationOptions ? 'Options quoted' : 'Duration'}</td>
+                <td style="padding:5px 0;color:#111827;font-size:14px;font-weight:700;">${durationOptions ? durationOptions.map((opt) => `${opt.weeks} weeks`).join(', ') : `${data.days} days`}</td>
               </tr>
             </table>
           </td></tr>
@@ -2039,6 +2075,18 @@ function generateBusinessNotificationHTML(data) {
         <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Pricing</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
           <tr><td style="padding:16px 20px;">
+            ${durationOptions ? `
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:0 0 10px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Duration</td>
+                <td align="right" style="padding:0 0 10px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Rate</td>
+                <td align="right" style="padding:0 0 10px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Total</td>
+              </tr>
+              <tr><td colspan="3" style="border-top:1px solid #e5e7eb;"></td></tr>
+              ${compareRows}
+            </table>
+            <p style="margin:14px 0 0;color:#4b5563;font-size:13px;line-height:1.6;">Delivery and set up stays the same across all options. The customer was shown one comparison email and asked to choose their preferred duration.</p>
+            ` : `
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="padding:5px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £${data.dailyRate || 70}/day${data.dailyRate && data.dailyRate !== 70 ? ' — CUSTOM RATE' : ''})</td>
@@ -2056,23 +2104,23 @@ function generateBusinessNotificationHTML(data) {
               </tr>
               <tr><td colspan="2" style="border-top:2px solid #e5e7eb;margin-top:4px;"></td></tr>
               <tr>
-                <td style="padding:8px 0 0;color:#dc2626;font-size:16px;font-weight:700;">Total</td>
-                <td align="right" style="padding:8px 0 0;color:#dc2626;font-size:20px;font-weight:700;">${money(data.totalCost)}</td>
+                <td style="padding:8px 0 0;color:#111827;font-size:16px;font-weight:700;">Total</td>
+                <td align="right" style="padding:8px 0 0;color:#111827;font-size:20px;font-weight:700;">${money(data.totalCost)}</td>
               </tr>
-            </table>
+            </table>`}
           </td></tr>
         </table>
 
         ${data.notes ? `
         <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Customer Notes</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;margin-bottom:20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
           <tr><td style="padding:14px 18px;color:#374151;font-size:14px;line-height:1.6;">${data.notes}</td></tr>
         </table>` : ''}
 
       </td></tr>
 
       <!-- Footer -->
-      <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+      <tr><td style="background:#111111;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
         <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;">Kitchen Rescue Admin Notification · <a href="https://www.thekitchenrescue.co.uk/admin" style="color:rgba(255,255,255,0.5);text-decoration:none;">View Admin →</a></p>
       </td></tr>
 
@@ -2400,7 +2448,7 @@ function generateQuoteFollowUpReminderEmailHTML(data) {
       <tr><td style="padding:24px 32px;">
         <p style="margin:0 0 18px;line-height:1.65;">A quote follow-up is now due for <strong>${esc(data.name)}</strong>.</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:20px;overflow:hidden;">
-          <tr><td style="background:#C41E1E;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Quote Details</td></tr>
+          <tr><td style="background:#f8f8f8;color:#111111;font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:10px 16px;">Quote Details</td></tr>
           <tr><td style="padding:0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Customer</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${esc(data.name)}</td></tr>
@@ -2409,7 +2457,7 @@ function generateQuoteFollowUpReminderEmailHTML(data) {
               <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Quote total</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">£${Number(data.totalCost || 0).toFixed(2)}</td></tr>
               <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Delivery</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${fd(data.startDate)}</td></tr>
               <tr><td style="padding:11px 16px;font-size:14px;color:#333333;border-bottom:1px solid #f0f0f0;">Collection</td><td style="padding:11px 16px;font-size:14px;color:#333333;font-weight:700;text-align:right;border-bottom:1px solid #f0f0f0;">${fd(data.endDate)}</td></tr>
-              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;">Follow-up due</td><td style="padding:11px 16px;font-size:14px;color:#C41E1E;font-weight:700;text-align:right;">${fdt(data.followUpAt)}</td></tr>
+              <tr><td style="padding:11px 16px;font-size:14px;color:#333333;">Follow-up due</td><td style="padding:11px 16px;font-size:14px;color:#111111;font-weight:700;text-align:right;">${fdt(data.followUpAt)}</td></tr>
             </table>
           </td></tr>
         </table>
