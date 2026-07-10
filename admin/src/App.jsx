@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive, Upload } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -21,6 +21,7 @@ import { AnalyticsGate } from "./components/AnalyticsGate";
 import { CookieBanner } from "./components/CookieBanner";
 import { BUSINESS } from "./config/business";
 import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
+import { LeadsImportTab } from "./components/LeadsImportTab";
 import { CreateBookingModal } from "./components/CreateBookingModal";
 import { EditBookingModal } from "./components/EditBookingModal";
 import "./App.css";
@@ -760,6 +761,8 @@ function KitchenRescueAdmin() {
             ? "border-amber-200 bg-amber-50/50"
             : leadsTab === "follow-up"
               ? "border-red-200 bg-red-50/40"
+              : leadsTab === "import"
+                ? "border-blue-200 bg-blue-50/40"
               : "border-slate-200 bg-slate-50/80"
         }`}>
           <CardHeader>
@@ -785,6 +788,14 @@ function KitchenRescueAdmin() {
                 <Badge className={`${leadsTab === "follow-up" ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
                   {openQuoteBookings.length}
                 </Badge>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeadsTab("import")}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "import" ? "border-blue-500 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <Upload className="h-4 w-4" />
+                Import CSV
               </button>
               <button
                 type="button"
@@ -821,6 +832,8 @@ function KitchenRescueAdmin() {
                 ? 'Tick "Followed up" when your colleague has contacted them — they\'ll move to the Archive tab. Add notes before archiving if needed.'
                 : leadsTab === "follow-up"
                   ? "Sent custom quotes. Set a follow-up date/time and status, then click Save follow-up on each row. We'll email you when it's due. Quotes also stay in Customers."
+                  : leadsTab === "import"
+                    ? "Upload a CSV, map columns to lead fields, preview duplicates, then import into New Enquiries."
                   : "Followed-up leads. Uncheck to move them back to New Enquiries."}
             </CardDescription>
             {confirmationMessage && (
@@ -843,6 +856,15 @@ function KitchenRescueAdmin() {
                   <TableBody>{renderLeadRows(activeLeads)}</TableBody>
                 </Table>
               )
+            ) : leadsTab === "import" ? (
+              <LeadsImportTab
+                leads={leads}
+                onImported={() => {
+                  fetchLeads();
+                  setLeadsTab("new");
+                }}
+                onMessage={setConfirmationMessage}
+              />
             ) : leadsTab === "follow-up" ? (
               followUpTab === "open" ? (
                 openQuoteBookings.length === 0 ? (

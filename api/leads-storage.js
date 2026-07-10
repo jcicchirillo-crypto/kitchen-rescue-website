@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('./lib/supabaseAdmin');
+const { normalizeLeadRow, normalizeEmail } = require('./csv-import-utils');
 
 const supabase = supabaseAdmin;
 const useSupabase = !!supabase;
@@ -91,4 +92,77 @@ async function updateLead(id, updates) {
     }
 }
 
-module.exports = { addLead, getAllLeads, updateLead };
+/**
+ * Bulk import leads from mapped CSV rows.
+ * Returns counts and per-row outcomes.
+ */
+async function importLeads(rows, options = {}) {
+    const skipDuplicates = options.skipDuplicates !== false;
+    const defaultSource = options.defaultSource || 'csv-import';
+
+    if (!useSupabase || !supabase) {
+        return { ok: false, error: 'Supabase not available', inserted: 0, skipped: 0, failed: 0, results: [] };
+    }
+    if (!Array.isArray(rows) || rows.length === 0) {
+        return { ok: false, error: 'No rows to import', inserted: 0, skipped: 0, failed: 0, results: [] };
+    }
+
+    const { data: existing, error: fetchError } = await supabase
+        .from('leads')
+        .select('email');
+    if (fetchError) {
+        return { ok: false, error: fetchError.message, inserted: 0, skipped: 0, failed: 0, results: [] };
+    }
+
+    const existingEmails = new Set(
+        (existing || []).map((row) => normalizeEmail(row.email)).filter(Boolean)
+    );
+    const batchEmails = new Set();
+
+    const results = [];
+    let inserted = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        const normalized = normalizeLeadRow(rows[i], defaultSource);
+        const label = normalized.name || normalized.email || `Row ${i + 1}`;
+
+        if (!normalized.email) {
+            failed += 1;
+            results.push({ index: i, status: 'failed', name: label, reason: 'Missing or invalid email' });
+            continue;
+        }
+
+        if (skipDuplicates && (existingEmails.has(normalized.email) || batchEmails.has(normalized.email))) {
+            skipped += 1;
+            results.push({ index: i, status: 'skipped', name: label, email: normalized.email, reason: 'Duplicate email' });
+            continue;
+        }
+
+        const payload = {
+            name: normalized.name,
+            email: normalized.email,
+            phone: normalized.phone,
+            source: normalized.source,
+            notes: normalized.notes,
+        };
+        if (normalized.created_at) payload.created_at = normalized.created_at;
+
+        const { error } = await supabase.from('leads').insert([payload]);
+        if (error) {
+            failed += 1;
+            results.push({ index: i, status: 'failed', name: label, email: normalized.email, reason: error.message });
+            continue;
+        }
+
+        batchEmails.add(normalized.email);
+        existingEmails.add(normalized.email);
+        inserted += 1;
+        results.push({ index: i, status: 'inserted', name: label, email: normalized.email });
+    }
+
+    return { ok: true, inserted, skipped, failed, results };
+}
+
+module.exports = { addLead, getAllLeads, updateLead, importLeads };

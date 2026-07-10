@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead, getAllLeads, updateLead } = require('./leads-storage');
+const { addLead, getAllLeads, updateLead, importLeads } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
@@ -2991,6 +2991,30 @@ app.get('/api/leads', authenticateAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error fetching leads:', error);
         res.status(500).json([]);
+    }
+});
+
+// Bulk import leads from mapped CSV rows (admin)
+app.post('/api/leads/import', authenticateAdmin, async (req, res) => {
+    try {
+        const { rows, skipDuplicates, defaultSource } = req.body || {};
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ error: 'Provide rows array with mapped lead data' });
+        }
+        if (rows.length > 500) {
+            return res.status(400).json({ error: 'Maximum 500 rows per import' });
+        }
+        const result = await importLeads(rows, {
+            skipDuplicates: skipDuplicates !== false,
+            defaultSource: defaultSource || 'csv-import',
+        });
+        if (!result.ok) {
+            return res.status(500).json({ error: result.error || 'Import failed', ...result });
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('Error importing leads:', error);
+        res.status(500).json({ error: 'Failed to import leads' });
     }
 });
 
