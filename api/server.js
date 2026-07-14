@@ -3415,7 +3415,8 @@ async function findOrCreateCustomer(booking) {
 }
 
 // Delivery cost from postcode (for custom quote, availability, etc.)
-// Base: SG12 0HJ (Bengeo Rural, Hertfordshire). Pricing: £2/mile one-way, min £75 per trip; delivery + collection = 2 trips.
+// Base: SG12 0HJ (Bengeo Rural, Hertfordshire). Pricing: £2/mile one-way, min £100 per trip.
+// Over 100 miles is still calculated for admin custom quotes (with overLimit flag).
 app.get('/api/delivery-cost', async (req, res) => {
     try {
         const postcode = (req.query.postcode || '').trim().toUpperCase();
@@ -3439,13 +3440,20 @@ app.get('/api/delivery-cost', async (req, res) => {
             Math.cos(baseLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng/2) ** 2;
         const cVal = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
         const miles = R * cVal;
-        if (miles > 100) {
-            return res.status(400).json({ error: 'We deliver up to 100 miles. Please call 07342 606655 for a quote.' });
-        }
-        const perTrip = Math.max(100, Math.round(miles) * 2); // £2/mile, £100 min per trip
-        const deliveryCost = perTrip;
-        const collectionCost = perTrip;
-        res.json({ deliveryCost, collectionCost, total: perTrip * 2, miles: Math.round(miles * 10) / 10 });
+        const roundedMiles = Math.round(miles * 10) / 10;
+        const overLimit = miles > 100;
+        // £2 per mile one-way, £100 minimum per trip (delivery and collection charged separately)
+        const perTrip = Math.max(100, Math.round(miles) * 2);
+        res.json({
+            deliveryCost: perTrip,
+            collectionCost: perTrip,
+            total: perTrip * 2,
+            miles: roundedMiles,
+            overLimit,
+            note: overLimit
+                ? `About ${Math.round(miles)} miles from base — long-distance rate applied (£2/mile). Adjust manually if needed.`
+                : null,
+        });
     } catch (err) {
         console.error('Delivery cost error:', err);
         res.status(500).json({ error: 'Could not calculate delivery cost' });

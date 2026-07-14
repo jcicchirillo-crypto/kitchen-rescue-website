@@ -38,8 +38,8 @@ const EMPTY = {
   startDate: "",
   endDate: "",
   dailyRate: 70,
-  deliveryCost: 75,
-  collectionCost: 75,
+  deliveryCost: 100,
+  collectionCost: 100,
   notes: "",
   quoteMode: "single",
   compareWeeks: [3, 4, 5, 6],
@@ -72,6 +72,7 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [error, setError] = useState("");
   const [deliveryCalculating, setDeliveryCalculating] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState(null); // { miles, overLimit, note }
 
   useEffect(() => {
     if (open) {
@@ -81,6 +82,7 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
       });
       setStatus("idle");
       setError("");
+      setDeliveryInfo(null);
     }
   }, [open, initialValues]);
 
@@ -97,7 +99,10 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
   // Auto-calculate delivery cost from postcode when postcode changes
   useEffect(() => {
     const pc = (form.postcode || "").trim().toUpperCase();
-    if (pc.length < 4) return;
+    if (pc.length < 4) {
+      setDeliveryInfo(null);
+      return;
+    }
     const t = setTimeout(async () => {
       setDeliveryCalculating(true);
       try {
@@ -109,9 +114,24 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
             deliveryCost: data.deliveryCost,
             collectionCost: data.collectionCost,
           }));
+          setDeliveryInfo({
+            miles: data.miles,
+            overLimit: !!data.overLimit,
+            note: data.note || null,
+          });
+        } else {
+          setDeliveryInfo({
+            miles: null,
+            overLimit: false,
+            note: data.error || "Could not calculate delivery — enter costs manually.",
+          });
         }
       } catch {
-        // Keep existing values on error
+        setDeliveryInfo({
+          miles: null,
+          overLimit: false,
+          note: "Could not calculate delivery — enter costs manually.",
+        });
       } finally {
         setDeliveryCalculating(false);
       }
@@ -452,7 +472,11 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                     onChange={set("deliveryCost")}
                     className="mt-1"
                   />
-                  <p className="text-xs text-slate-400 mt-1">Auto-calculated from postcode (min £75 each). This is NOT the hire price.</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {deliveryCalculating
+                      ? "Calculating from postcode…"
+                      : "£2/mile one-way, min £100 each. Editable."}
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="cq-collection">Collection (£)</Label>
@@ -465,9 +489,20 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                     onChange={set("collectionCost")}
                     className="mt-1"
                   />
-                  <p className="text-xs text-slate-400 mt-1">Same as delivery (editable)</p>
+                  <p className="text-xs text-slate-400 mt-1">Same as delivery by default (editable)</p>
                 </div>
               </div>
+              {deliveryInfo?.note && (
+                <div className={`mt-3 rounded-lg px-3 py-2 text-sm ${deliveryInfo.overLimit ? "bg-amber-50 text-amber-900 border border-amber-200" : "bg-slate-50 text-slate-600"}`}>
+                  {deliveryInfo.miles != null ? `${deliveryInfo.miles} miles from base. ` : ""}
+                  {deliveryInfo.note}
+                  {deliveryInfo.overLimit && (
+                    <span className="block mt-1 font-medium">
+                      Suggested each way: £{Number(form.deliveryCost).toFixed(0)} (total delivery+collection £{(Number(form.deliveryCost) + Number(form.collectionCost)).toFixed(0)}). Adjust if you want a different long-distance rate.
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Hire subtotal breakdown */}
               {isCompareMode && durationOptions.length > 0 ? (
