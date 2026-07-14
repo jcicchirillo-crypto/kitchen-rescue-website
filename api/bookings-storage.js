@@ -175,7 +175,9 @@ async function getAllBookings() {
                     totalCost,
                     notes: booking.notes || null,
                     status: booking.status || 'Awaiting deposit',
-                    source: booking.source || 'quote',
+                    // Only treat as quote when source says so, or a quote was actually sent
+                    source: booking.source
+                        || ((booking.quote_sent_at || booking.quoteSentAt) ? 'quote' : 'website'),
                     pod: booking.pod || '16ft Pod',
                     confirmation_email_sent_at: booking.confirmation_email_sent_at || booking.confirmationEmailSentAt || null,
                     balance_reminder_sent_at: booking.balance_reminder_sent_at || booking.balanceReminderSentAt || null,

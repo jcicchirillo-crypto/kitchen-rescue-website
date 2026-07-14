@@ -433,7 +433,12 @@ function KitchenRescueAdmin() {
   const notInterestedLeads = leadsByStatus.not_interested;
   const archivedLeads = leadsByStatus.archived;
   const quoteBookings = useMemo(
-    () => bookings.filter((b) => b.source === "quote" || b.source === "admin-custom-quote"),
+    () => bookings.filter((b) => {
+      const status = (b.status || "").toLowerCase();
+      if (status === "confirmed" || status === "cancelled") return false;
+      if (b.quote_sent_at) return true;
+      return b.source === "quote" || b.source === "admin-custom-quote";
+    }),
     [bookings]
   );
   const openQuoteBookings = useMemo(

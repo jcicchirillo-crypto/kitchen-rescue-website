@@ -192,9 +192,9 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
-        phone: form.phone.trim(),
-        notes: form.notes.trim(),
-        postcode: form.postcode.toUpperCase().trim(),
+        phone: (form.phone || "").trim(),
+        notes: (form.notes || "").trim(),
+        postcode: (form.postcode || "").toUpperCase().trim(),
         source: "admin-custom-quote",
         quoteMode: form.quoteMode,
         ...(isCompareMode
@@ -222,17 +222,22 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
               totalCost,
             }),
       };
+      if (!payload.selectedDates?.length) {
+        setError("Please choose a valid hire period before sending.");
+        setStatus("idle");
+        return;
+      }
       const res = await fetch("/send-quote-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         setStatus("success");
         onSent?.();
       } else {
-        setError("Failed to send — please try again.");
+        setError(data.error || data.details || "Failed to send — please try again.");
         setStatus("idle");
       }
     } catch {
@@ -447,7 +452,7 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                     onChange={set("deliveryCost")}
                     className="mt-1"
                   />
-                  <p className="text-xs text-slate-400 mt-1">Auto-calculated from postcode (min £75 each)</p>
+                  <p className="text-xs text-slate-400 mt-1">Auto-calculated from postcode (min £75 each). This is NOT the hire price.</p>
                 </div>
                 <div>
                   <Label htmlFor="cq-collection">Collection (£)</Label>
@@ -470,7 +475,9 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                   {durationOptions.map((opt) => (
                     <div key={opt.weeks} className="flex justify-between gap-3">
                       <span>{opt.weeks} weeks ({opt.days} days × £{opt.dailyRate})</span>
-                      <span className="font-medium whitespace-nowrap">£{opt.totalCost.toFixed(2)}</span>
+                      <span className="font-medium whitespace-nowrap">
+                        Hire £{opt.dailyCost.toFixed(0)} + del £{(opt.deliveryCost + opt.collectionCost).toFixed(0)} = £{opt.totalCost.toFixed(0)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -496,12 +503,14 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
             <div className="bg-red-50 border border-red-100 rounded-xl px-5 py-4 flex justify-between items-center">
               <div>
                 <div className="text-sm font-semibold text-red-800">
-                  {isCompareMode ? "Comparison quote" : "Total"}
+                  {isCompareMode ? "Comparison quote" : "Total (hire + delivery + collection)"}
                 </div>
                 <div className="text-xs text-red-400 mt-0.5">
                   {isCompareMode
-                    ? `${durationOptions.length} option${durationOptions.length !== 1 ? "s" : ""} in one email`
-                    : "What the customer will see"}
+                    ? `${durationOptions.length} option${durationOptions.length !== 1 ? "s" : ""} — hire is included below, not just delivery`
+                    : days > 0
+                      ? "What the customer will see"
+                      : "Choose dates to see the full hire total"}
                 </div>
               </div>
               <div className="text-right">
@@ -515,8 +524,10 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                       to £{durationOptions[durationOptions.length - 1].totalCost.toFixed(2)}
                     </div>
                   </>
-                ) : (
+                ) : days > 0 ? (
                   <div className="text-2xl font-bold text-red-600">£{totalCost.toFixed(2)}</div>
+                ) : (
+                  <div className="text-lg font-medium text-red-400">—</div>
                 )}
               </div>
             </div>

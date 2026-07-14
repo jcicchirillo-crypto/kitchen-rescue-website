@@ -900,7 +900,7 @@ async function runQuoteFollowUpReminders({ dryRun = false } = {}) {
     const result = { checked: bookings.length, eligible: 0, sent: 0, skipped: 0, errors: 0, details: [] };
 
     for (const b of bookings) {
-        if (b.source !== 'quote') continue;
+        if (b.source !== 'quote' && b.source !== 'admin-custom-quote' && !b.quote_sent_at) continue;
         if (!isOpenFollowUpStatus(b.follow_up_status)) continue;
         if (!b.follow_up_at) continue;
         if (b.follow_up_reminder_sent_at) continue;
@@ -1187,37 +1187,60 @@ app.post('/send-quote-email', async (req, res) => {
     try {
         const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type, source, durationOptions: rawDurationOptions } = req.body;
 
-        let durationOptions = Array.isArray(rawDurationOptions) && rawDurationOptions.length > 1
-            ? rawDurationOptions
-                .map((opt) => ({
-                    weeks: Number(opt.weeks),
-                    days: Number(opt.days) || Number(opt.weeks) * 7,
-                    startDate: opt.startDate || startDate,
-                    endDate: opt.endDate,
-                    selectedDates: opt.selectedDates || [],
-                    dailyRate: Number(opt.dailyRate),
-                    dailyCost: Number(opt.dailyCost),
-                    deliveryCost: Number(opt.deliveryCost),
-                    collectionCost: Number(opt.collectionCost),
-                    totalCost: Number(opt.totalCost),
-                }))
-                .filter((opt) => opt.weeks && opt.days && opt.endDate)
-                .sort((a, b) => a.weeks - b.weeks)
-            : null;
+        const delivNum = Number(deliveryCost) || 0;
+        const collNum = Number(collectionCost) || 0;
+
+        // Always recompute multi-week comparison options on the server so hire isn't dropped
+        let durationOptions = null;
+        if (Array.isArray(rawDurationOptions) && rawDurationOptions.length >= 1 && startDate) {
+            durationOptions = rawDurationOptions
+                .map((opt) => {
+                    const weeks = Number(opt.weeks);
+                    if (!weeks || weeks < 1) return null;
+                    return buildDurationOption(
+                        opt.startDate || startDate,
+                        weeks,
+                        Number.isFinite(Number(opt.deliveryCost)) ? opt.deliveryCost : delivNum,
+                        Number.isFinite(Number(opt.collectionCost)) ? opt.collectionCost : collNum
+                    );
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.weeks - b.weeks);
+            if (durationOptions.length === 0) durationOptions = null;
+            // Single option still rendered as a normal quote email, not a compare table
+            if (durationOptions && durationOptions.length === 1) {
+                // Keep the computed option for pricing, but don't force compare layout
+            }
+        }
 
         const primaryOption = durationOptions?.[0] || null;
         const longestOption = durationOptions?.[durationOptions.length - 1] || null;
+
+        // Recompute single-duration hire on the server (don't trust client totals alone)
         const bookingStartDate = primaryOption?.startDate || startDate;
         const bookingEndDate = primaryOption?.endDate || endDate;
-        const bookingDays = primaryOption?.days || days;
-        const bookingDailyRate = primaryOption?.dailyRate || dailyRate;
-        const bookingDailyCost = primaryOption?.dailyCost || dailyCost;
-        const bookingTotalCost = primaryOption?.totalCost || totalCost;
         const bookingSelectedDates = longestOption?.selectedDates?.length
             ? longestOption.selectedDates
-            : (selectedDates || []);
-        const comparisonNote = durationOptions
-            ? `Duration options quoted: ${formatDurationOptionsNotes(durationOptions)}`
+            : (Array.isArray(selectedDates) && selectedDates.length
+                ? selectedDates
+                : (bookingStartDate && bookingEndDate ? quoteBuildDateRange(bookingStartDate, bookingEndDate) : []));
+        const bookingDays = Number(primaryOption?.days) || Number(days) || bookingSelectedDates.length || 0;
+        const bookingDailyRate = Number(primaryOption?.dailyRate)
+            || Number(dailyRate)
+            || getDailyRateForDays(bookingDays);
+        const recomputedHire = bookingDays > 0 ? bookingDays * bookingDailyRate : 0;
+        const clientHire = Number(dailyCost);
+        const bookingDailyCost = Number(primaryOption?.dailyCost) > 0
+            ? Number(primaryOption.dailyCost)
+            : (clientHire > 0 ? clientHire : recomputedHire);
+        const bookingTotalCost = Number(primaryOption?.totalCost) > bookingDailyCost
+            ? Number(primaryOption.totalCost)
+            : (bookingDailyCost + delivNum + collNum);
+
+        // Compare table only when 2+ options
+        const compareDurationOptions = durationOptions && durationOptions.length > 1 ? durationOptions : null;
+        const comparisonNote = compareDurationOptions
+            ? `Duration options quoted: ${formatDurationOptionsNotes(compareDurationOptions)}`
             : '';
         const bookingNotes = [notes, comparisonNote].filter(Boolean).join('\n\n');
         
@@ -1322,8 +1345,8 @@ app.post('/send-quote-email', async (req, res) => {
                 endDate: bookingEndDate,
                 days: bookingDays,
                 dailyCost: Number(bookingDailyCost) || 0,
-                deliveryCost: Number(deliveryCost) || 0,
-                collectionCost: Number(collectionCost) || 0,
+                deliveryCost: delivNum,
+                collectionCost: collNum,
                 totalCost: Number(bookingTotalCost) || 0,
                 notes: bookingNotes || '',
                 status: 'Awaiting deposit',
@@ -1358,25 +1381,38 @@ app.post('/send-quote-email', async (req, res) => {
             days: bookingDays,
             dailyRate: bookingDailyRate,
             dailyCost: bookingDailyCost,
-            deliveryCost,
-            collectionCost,
+            deliveryCost: delivNum,
+            collectionCost: collNum,
             totalCost: bookingTotalCost,
-            durationOptions,
+            durationOptions: compareDurationOptions,
         });
         
         // Send email to customer
         const customerMailOptions = {
             from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: `Your Kitchen Pod Quote - ${startDate} to ${endDate}`,
+            subject: `Your Kitchen Pod Quote - ${bookingStartDate || startDate || ''} to ${bookingEndDate || endDate || ''}`,
             html: quoteEmailHTML
         };
         
+        let customerEmailSent = false;
+        let customerEmailError = null;
         try {
             await transporter.sendMail(customerMailOptions);
+            customerEmailSent = true;
             console.log('Customer email sent successfully to:', email);
         } catch (emailError) {
-            console.error('Error sending customer email:', emailError.message);
+            customerEmailError = emailError.message || String(emailError);
+            console.error('Error sending customer email:', customerEmailError);
+        }
+
+        // Custom quotes from admin must actually reach the customer
+        if (!customerEmailSent && (source === 'admin-custom-quote' || source === 'quote')) {
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to email the customer. Check EMAIL settings and try again.',
+                details: customerEmailError,
+            });
         }
         
         // Send notification email to business
@@ -1397,10 +1433,10 @@ app.post('/send-quote-email', async (req, res) => {
                 days: bookingDays,
                 dailyRate: bookingDailyRate,
                 dailyCost: bookingDailyCost,
-                deliveryCost,
-                collectionCost,
+                deliveryCost: delivNum,
+                collectionCost: collNum,
                 totalCost: bookingTotalCost,
-                durationOptions,
+                durationOptions: compareDurationOptions,
                 source,
             })
         };
@@ -1428,8 +1464,8 @@ app.post('/send-quote-email', async (req, res) => {
             endDate: bookingEndDate,
             days: bookingDays,
             dailyCost: Number(bookingDailyCost) || 0,
-            deliveryCost: Number(deliveryCost) || 0,
-            collectionCost: Number(collectionCost) || 0,
+            deliveryCost: delivNum,
+            collectionCost: collNum,
             totalCost: Number(bookingTotalCost) || 0,
             notes: bookingNotes || '',
             status: 'Awaiting deposit',
@@ -1729,8 +1765,8 @@ function generateQuoteEmailHTML(data) {
             <th>Duration</th>
             <th>Daily rate</th>
             <th>Hire</th>
-            <th>Delivery &amp; setup</th>
-            <th>Total</th>
+            <th>Delivery &amp; collection</th>
+            <th>Grand total</th>
           </tr>
         </thead>
         <tbody>
