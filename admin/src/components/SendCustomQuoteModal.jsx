@@ -29,6 +29,7 @@ function getDailyRateForDays(days) {
 }
 
 const COMPARE_WEEK_OPTIONS = [3, 4, 5, 6];
+const SINGLE_WEEK_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12];
 
 const EMPTY = {
   name: "",
@@ -37,6 +38,7 @@ const EMPTY = {
   postcode: "",
   startDate: "",
   endDate: "",
+  hireWeeks: "",
   dailyRate: 70,
   deliveryCost: 100,
   collectionCost: 100,
@@ -95,6 +97,49 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
       setForm((f) => ({ ...f, dailyRate: tiered }));
     }
   }, [form.startDate, form.endDate, form.quoteMode]);
+
+  // When weeks + start date are set, fill the end date automatically
+  const applyWeeks = (weeks, startDate = form.startDate) => {
+    const w = Number(weeks);
+    if (!w || w < 1 || !startDate) {
+      setForm((f) => ({ ...f, hireWeeks: weeks === "" ? "" : String(weeks) }));
+      return;
+    }
+    const days = w * 7;
+    const endDate = isoAddDays(startDate, days - 1);
+    const tiered = getDailyRateForDays(days);
+    setForm((f) => ({
+      ...f,
+      hireWeeks: String(w),
+      startDate,
+      endDate,
+      dailyRate: tiered,
+    }));
+  };
+
+  const onStartDateChange = (e) => {
+    const startDate = e.target.value;
+    if (form.hireWeeks && Number(form.hireWeeks) >= 1 && startDate) {
+      applyWeeks(form.hireWeeks, startDate);
+      return;
+    }
+    setForm((f) => ({ ...f, startDate }));
+  };
+
+  const onEndDateChange = (e) => {
+    const endDate = e.target.value;
+    // Clear weeks shortcut if they type a custom end date that isn't an exact week block
+    setForm((f) => {
+      if (!f.startDate || !endDate) return { ...f, endDate, hireWeeks: "" };
+      const len = buildDateRange(f.startDate, endDate).length;
+      const exactWeeks = len % 7 === 0 ? len / 7 : null;
+      return {
+        ...f,
+        endDate,
+        hireWeeks: exactWeeks ? String(exactWeeks) : "",
+      };
+    });
+  };
 
   // Auto-calculate delivery cost from postcode when postcode changes
   useEffect(() => {
@@ -386,7 +431,7 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                     id="cq-start"
                     type="date"
                     value={form.startDate}
-                    onChange={set("startDate")}
+                    onChange={onStartDateChange}
                     className="mt-1"
                     required
                   />
@@ -399,13 +444,78 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                       type="date"
                       value={form.endDate}
                       min={form.startDate}
-                      onChange={set("endDate")}
+                      onChange={onEndDateChange}
                       className="mt-1"
                       required
                     />
                   </div>
                 )}
               </div>
+              {!isCompareMode && (
+                <div className="mt-4">
+                  <Label>Or pick weeks required</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {SINGLE_WEEK_OPTIONS.map((weeks) => {
+                      const selected = String(form.hireWeeks) === String(weeks);
+                      return (
+                        <button
+                          key={weeks}
+                          type="button"
+                          onClick={() => {
+                            if (!form.startDate) {
+                              setForm((f) => ({ ...f, hireWeeks: String(weeks) }));
+                              setError("Pick a start date first, then choose weeks.");
+                              return;
+                            }
+                            setError("");
+                            applyWeeks(weeks);
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${selected ? "border-red-300 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                        >
+                          {weeks} week{weeks !== 1 ? "s" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 flex items-end gap-2 max-w-xs">
+                    <div className="flex-1">
+                      <Label htmlFor="cq-weeks">Custom weeks</Label>
+                      <Input
+                        id="cq-weeks"
+                        type="number"
+                        min="1"
+                        max="52"
+                        step="1"
+                        placeholder="e.g. 7"
+                        value={form.hireWeeks}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (!v) {
+                            setForm((f) => ({ ...f, hireWeeks: "" }));
+                            return;
+                          }
+                          if (form.startDate) applyWeeks(v);
+                          else setForm((f) => ({ ...f, hireWeeks: v }));
+                        }}
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mb-0.5"
+                      disabled={!form.startDate || !Number(form.hireWeeks)}
+                      onClick={() => applyWeeks(form.hireWeeks)}
+                    >
+                      Set end date
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Example: start Monday + 6 weeks → end date filled for 42 days. You can still edit the end date manually.
+                  </p>
+                </div>
+              )}
               {isCompareMode ? (
                 <div className="mt-4">
                   <Label>Durations to include</Label>
@@ -429,8 +539,11 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                   </p>
                 </div>
               ) : days > 0 ? (
-                <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
+                <div className="mt-2 text-sm text-slate-500 flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-slate-700">{days} day{days !== 1 ? "s" : ""}</span>
+                  {form.hireWeeks ? (
+                    <span className="text-slate-600">({form.hireWeeks} week{Number(form.hireWeeks) !== 1 ? "s" : ""})</span>
+                  ) : null}
                   {days < 7 && (
                     <span className="text-amber-600 font-medium">⚠ Minimum is 7 days</span>
                   )}
