@@ -4,9 +4,27 @@ const { normalizeLeadRow, normalizeEmail } = require('./csv-import-utils');
 const supabase = supabaseAdmin;
 const useSupabase = !!supabase;
 
+const LEAD_STATUSES = ['new', 'callback', 'booked', 'not_interested', 'archived'];
+const LEAD_SELECT = 'id, name, email, phone, source, created_at, followed_up, notes, status';
+
+function resolveStatus(lead) {
+    if (lead?.status && LEAD_STATUSES.includes(lead.status)) return lead.status;
+    return lead?.followed_up ? 'archived' : 'new';
+}
+
+function mapLead(row) {
+    if (!row) return row;
+    const status = resolveStatus(row);
+    return {
+        ...row,
+        status,
+        followed_up: status === 'archived' || !!row.followed_up,
+    };
+}
+
 /**
  * Insert a lead into the Supabase `leads` table.
- * Table columns: id (uuid), name, email, phone, source, created_at
+ * Table columns: id (uuid), name, email, phone, source, created_at, status
  * Used for: trade quote calculations, trade quote requests, availability gate, etc.
  */
 async function addLead(lead) {
@@ -19,7 +37,8 @@ async function addLead(lead) {
             name: lead.name || '—',
             email: lead.email || '',
             phone: lead.phone ?? null,
-            source: lead.source || 'website'
+            source: lead.source || 'website',
+            status: lead.status && LEAD_STATUSES.includes(lead.status) ? lead.status : 'new',
         };
         const { error } = await supabase
             .from('leads')
@@ -39,7 +58,7 @@ async function addLead(lead) {
 
 /**
  * Fetch all leads from the Supabase `leads` table (for admin panel).
- * Returns array of { id, name, email, phone, source, created_at, followed_up, notes }.
+ * Returns array of { id, name, email, phone, source, created_at, followed_up, notes, status }.
  */
 async function getAllLeads() {
     if (!useSupabase || !supabase) {
@@ -48,13 +67,25 @@ async function getAllLeads() {
     try {
         const { data, error } = await supabase
             .from('leads')
-            .select('id, name, email, phone, source, created_at, followed_up, notes')
+            .select(LEAD_SELECT)
             .order('created_at', { ascending: false });
         if (error) {
+            // Fallback if status column not migrated yet
+            if (error.message?.includes('status') || error.code === '42703') {
+                const fallback = await supabase
+                    .from('leads')
+                    .select('id, name, email, phone, source, created_at, followed_up, notes')
+                    .order('created_at', { ascending: false });
+                if (fallback.error) {
+                    console.error('❌ Supabase leads fetch error:', fallback.error.message);
+                    return [];
+                }
+                return (fallback.data || []).map(mapLead);
+            }
             console.error('❌ Supabase leads fetch error:', error.message, error.details);
             return [];
         }
-        return data || [];
+        return (data || []).map(mapLead);
     } catch (err) {
         console.error('❌ getAllLeads exception:', err);
         return [];
@@ -62,14 +93,20 @@ async function getAllLeads() {
 }
 
 /**
- * Update follow-up status and/or notes for a lead.
+ * Update status, follow-up flag, and/or notes for a lead.
  */
 async function updateLead(id, updates) {
     if (!useSupabase || !supabase) {
         return { ok: false, error: 'Supabase not available' };
     }
     const row = {};
-    if (typeof updates.followed_up === 'boolean') row.followed_up = updates.followed_up;
+    if (typeof updates.status === 'string' && LEAD_STATUSES.includes(updates.status)) {
+        row.status = updates.status;
+        row.followed_up = updates.status === 'archived';
+    } else if (typeof updates.followed_up === 'boolean') {
+        row.followed_up = updates.followed_up;
+        row.status = updates.followed_up ? 'archived' : 'new';
+    }
     if (typeof updates.notes === 'string') row.notes = updates.notes;
     if (Object.keys(row).length === 0) {
         return { ok: false, error: 'No valid fields to update' };
@@ -79,13 +116,33 @@ async function updateLead(id, updates) {
             .from('leads')
             .update(row)
             .eq('id', id)
-            .select('id, name, email, phone, source, created_at, followed_up, notes')
+            .select(LEAD_SELECT)
             .single();
         if (error) {
+            // Retry without status if column missing
+            if (error.message?.includes('status') || error.code === '42703') {
+                const legacy = {};
+                if (typeof row.followed_up === 'boolean') legacy.followed_up = row.followed_up;
+                if (typeof row.notes === 'string') legacy.notes = row.notes;
+                if (Object.keys(legacy).length === 0) {
+                    return { ok: false, error: 'Run SUPABASE_LEADS_STATUS_SETUP.sql to enable status updates' };
+                }
+                const retry = await supabase
+                    .from('leads')
+                    .update(legacy)
+                    .eq('id', id)
+                    .select('id, name, email, phone, source, created_at, followed_up, notes')
+                    .single();
+                if (retry.error) {
+                    console.error('❌ Supabase leads update error:', retry.error.message);
+                    return { ok: false, error: retry.error.message };
+                }
+                return { ok: true, lead: mapLead({ ...retry.data, status: row.status }) };
+            }
             console.error('❌ Supabase leads update error:', error.message, error.details);
             return { ok: false, error: error.message };
         }
-        return { ok: true, lead: data };
+        return { ok: true, lead: mapLead(data) };
     } catch (err) {
         console.error('❌ updateLead exception:', err);
         return { ok: false, error: err.message };
@@ -146,14 +203,26 @@ async function importLeads(rows, options = {}) {
             phone: normalized.phone,
             source: normalized.source,
             notes: normalized.notes,
+            status: 'new',
         };
         if (normalized.created_at) payload.created_at = normalized.created_at;
 
         const { error } = await supabase.from('leads').insert([payload]);
         if (error) {
-            failed += 1;
-            results.push({ index: i, status: 'failed', name: label, email: normalized.email, reason: error.message });
-            continue;
+            // Retry without status if column not migrated
+            if (error.message?.includes('status') || error.code === '42703') {
+                delete payload.status;
+                const retry = await supabase.from('leads').insert([payload]);
+                if (retry.error) {
+                    failed += 1;
+                    results.push({ index: i, status: 'failed', name: label, email: normalized.email, reason: retry.error.message });
+                    continue;
+                }
+            } else {
+                failed += 1;
+                results.push({ index: i, status: 'failed', name: label, email: normalized.email, reason: error.message });
+                continue;
+            }
         }
 
         batchEmails.add(normalized.email);
@@ -165,4 +234,4 @@ async function importLeads(rows, options = {}) {
     return { ok: true, inserted, skipped, failed, results };
 }
 
-module.exports = { addLead, getAllLeads, updateLead, importLeads };
+module.exports = { addLead, getAllLeads, updateLead, importLeads, LEAD_STATUSES };

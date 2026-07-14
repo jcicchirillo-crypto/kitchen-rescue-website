@@ -28,6 +28,7 @@ const DEFAULT_PROJECTS = ["Kitchen Rescue", "Sun Tan Business", "House Build"];
 
 function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor, onTouchStart, isDragging }) {
   const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
+  const isRolledOver = !!task.rolledOver && !task.completed;
   
   return (
     <div
@@ -42,31 +43,37 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
       }}
       className={`p-2 rounded-lg border-2 cursor-move transition-all hover:shadow-md ${
         task.completed ? "opacity-60 line-through" : ""
-      } ${projectColor || "bg-gray-100"} ${isDragging ? "opacity-80 scale-110 border-blue-500 border-4 shadow-2xl z-50" : ""}`}
+      } ${isRolledOver ? "bg-red-50 border-red-500 text-red-900" : (projectColor || "bg-gray-100")} ${isDragging ? "opacity-80 scale-110 border-blue-500 border-4 shadow-2xl z-50" : ""}`}
       style={{ 
         touchAction: 'none', 
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none'
       }}
+      title={isRolledOver ? `Rolled over from ${task.originalDate || "a previous day"}` : undefined}
     >
       <div className="flex items-start gap-1.5">
         <button onClick={() => onToggle(task.id)} className="mt-0.5 flex-shrink-0">
           {task.completed ? (
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           ) : (
-            <Circle className="h-4 w-4 text-gray-400" />
+            <Circle className={`h-4 w-4 ${isRolledOver ? "text-red-500" : "text-gray-400"}`} />
           )}
         </button>
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-xs leading-tight cursor-pointer hover:text-blue-600" onClick={() => onEdit(task)}>{task.title}</div>
+          <div className={`font-medium text-xs leading-tight cursor-pointer hover:text-blue-600 ${isRolledOver ? "text-red-800" : ""}`} onClick={() => onEdit(task)}>{task.title}</div>
           {task.description && (
-            <div className="text-[10px] text-gray-600 mt-0.5 line-clamp-1">{task.description}</div>
+            <div className={`text-[10px] mt-0.5 line-clamp-1 ${isRolledOver ? "text-red-700" : "text-gray-600"}`}>{task.description}</div>
           )}
-          <div className="flex items-center gap-1 mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <Badge className={priority.color} style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
               {priority.name}
             </Badge>
+            {isRolledOver && (
+              <Badge className="bg-red-600 text-white border-red-700 hover:bg-red-600" style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
+                Overdue
+              </Badge>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-1">
@@ -109,6 +116,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
         {dayTasks.map((task) => {
           const projectColor = getProjectColor(task.project);
           const priority = PRIORITY_LEVELS.find(p => p.id === task.priority) || PRIORITY_LEVELS[1];
+          const isRolledOver = !!task.rolledOver && !task.completed;
           return (
             <div
               key={task.id}
@@ -118,11 +126,17 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
                 e.stopPropagation();
                 onTouchStart && onTouchStart(e, task);
               }}
-              className={`text-[10px] px-2 py-1 rounded cursor-move ${projectColor} ${
+              className={`text-[10px] px-2 py-1 rounded cursor-move ${
+                isRolledOver
+                  ? "bg-red-100 text-red-900 border border-red-500 font-semibold"
+                  : projectColor
+              } ${
                 task.completed ? "opacity-60 line-through" : ""
               } hover:shadow-sm transition-shadow group relative`}
               style={{ touchAction: 'none' }}
-              title={`${task.project} - ${task.title} (${priority.name} priority) - Drag to move or click to edit`}
+              title={isRolledOver
+                ? `${task.title} — rolled over from ${task.originalDate || "a previous day"}`
+                : `${task.project} - ${task.title} (${priority.name} priority) - Drag to move or click to edit`}
             >
               <div className="flex items-center justify-between gap-1">
                 <span className="truncate flex-1" onClick={() => onEdit(task)}>{task.title}</span>
@@ -422,7 +436,7 @@ export default function Planner() {
     }
   }, [isLoggedIn]);
 
-  // Auto-rollover incomplete tasks from past dates to today
+  // Auto-rollover incomplete tasks from past dates to today (show in red)
   useEffect(() => {
     if (!isLoggedIn || rolloverChecked.current) return;
 
@@ -450,7 +464,13 @@ export default function Planner() {
       const updatedTasks = currentTasks.map(task => {
         // If task has a date in the past and is not completed, move it to today
         if (task.date && !task.completed && task.date < today) {
-          const updated = { ...task, date: today };
+          const originalDate = task.originalDate || task.date;
+          const updated = {
+            ...task,
+            date: today,
+            rolledOver: true,
+            originalDate,
+          };
           // Save to API
           fetch(`/api/tasks/${task.id}`, {
             method: "PUT",
@@ -458,7 +478,11 @@ export default function Planner() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
             },
-            body: JSON.stringify({ date: today }),
+            body: JSON.stringify({
+              date: today,
+              rolledOver: true,
+              originalDate,
+            }),
           }).catch(e => console.error("Error updating rolled-over task:", e));
           return updated;
         }
@@ -573,19 +597,29 @@ export default function Planner() {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     
-    const updated = { ...task, completed: !task.completed };
+    const nextCompleted = !task.completed;
+    const updated = {
+      ...task,
+      completed: nextCompleted,
+      // Clear overdue flag when completed
+      ...(nextCompleted ? { rolledOver: false } : {}),
+    };
     // Optimistically update UI
     setTasks(tasks.map(t => t.id === id ? updated : t));
     
     // Save to API immediately
     try {
+      const payload = { completed: updated.completed };
+      if (nextCompleted) {
+        payload.rolledOver = false;
+      }
       const res = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         },
-        body: JSON.stringify({ completed: updated.completed }),
+        body: JSON.stringify(payload),
       });
       
       if (!res.ok) {
@@ -678,7 +712,13 @@ export default function Planner() {
     // If day is null, unschedule the task (remove date)
     const dateStr = day ? format(startOfDay(day), "yyyy-MM-dd") : null;
     const originalTask = taskToDrop;
-    const updated = { ...taskToDrop, date: dateStr };
+    // Manual reschedule clears overdue/rolled-over styling
+    const updated = {
+      ...taskToDrop,
+      date: dateStr,
+      rolledOver: false,
+      originalDate: null,
+    };
     
     // Optimistically update UI
     setTasks(prevTasks => prevTasks.map(t =>
@@ -697,7 +737,11 @@ export default function Planner() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         },
-        body: JSON.stringify({ date: dateStr }),
+        body: JSON.stringify({
+          date: dateStr,
+          rolledOver: false,
+          originalDate: null,
+        }),
       });
       
       if (!res.ok) {

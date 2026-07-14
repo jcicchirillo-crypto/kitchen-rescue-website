@@ -50,6 +50,8 @@ async function getAllTasks() {
                 project: task.project || '',
                 completed: task.completed || false,
                 date: task.date || null,
+                rolledOver: !!task.rolled_over,
+                originalDate: task.original_date || null,
                 createdAt: task.created_at
             }));
             
@@ -163,31 +165,61 @@ async function addTask(newTask) {
 async function updateTask(taskId, updates) {
     if (useSupabase && supabase) {
         try {
-            console.log(`💾 Updating task ${taskId} in Supabase:`, JSON.stringify(updates, null, 2));
-            
+            // Map camelCase API fields to snake_case columns
+            const dbUpdates = { ...updates };
+            if (Object.prototype.hasOwnProperty.call(dbUpdates, 'rolledOver')) {
+                dbUpdates.rolled_over = !!dbUpdates.rolledOver;
+                delete dbUpdates.rolledOver;
+            }
+            if (Object.prototype.hasOwnProperty.call(dbUpdates, 'originalDate')) {
+                dbUpdates.original_date = dbUpdates.originalDate;
+                delete dbUpdates.originalDate;
+            }
+            if (Object.prototype.hasOwnProperty.call(dbUpdates, 'createdAt')) {
+                delete dbUpdates.createdAt;
+            }
+
+            console.log(`💾 Updating task ${taskId} in Supabase:`, JSON.stringify(dbUpdates, null, 2));
+
             const { data, error } = await supabase
                 .from('tasks')
-                .update(updates)
+                .update(dbUpdates)
                 .eq('id', taskId)
                 .select();
-            
+
             if (error) {
+                // Retry without rollover columns if migration not applied yet
+                if (error.message?.includes('rolled_over') || error.message?.includes('original_date') || error.code === '42703') {
+                    const legacy = { ...dbUpdates };
+                    delete legacy.rolled_over;
+                    delete legacy.original_date;
+                    const retry = await supabase
+                        .from('tasks')
+                        .update(legacy)
+                        .eq('id', taskId)
+                        .select();
+                    if (retry.error) {
+                        console.error('❌ Supabase task update error:', retry.error.message);
+                        return false;
+                    }
+                    console.log('✅ Task updated (without rollover columns — run SUPABASE_TASKS_ROLLOVER_SETUP.sql)');
+                    return true;
+                }
                 console.error('❌❌❌ SUPABASE TASK UPDATE ERROR ❌❌❌');
                 console.error('Error object:', JSON.stringify(error, null, 2));
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
                 console.error('Error details:', error.details);
                 console.error('Error hint:', error.hint);
-                
-                // Check if table doesn't exist
+
                 if (error.code === '42P01' || error.message?.includes('does not exist')) {
                     console.error('⚠️⚠️⚠️ TASKS TABLE DOES NOT EXIST IN SUPABASE!');
                     console.error('⚠️⚠️⚠️ Please run SUPABASE_TASKS_SETUP.sql in Supabase SQL Editor');
                 }
-                
+
                 return false;
             }
-            
+
             console.log('✅✅✅ Task updated in Supabase successfully');
             return true;
         } catch (error) {

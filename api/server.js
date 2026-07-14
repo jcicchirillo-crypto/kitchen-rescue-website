@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead, getAllLeads, updateLead, importLeads } = require('./leads-storage');
+const { addLead, getAllLeads, updateLead, importLeads, LEAD_STATUSES } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 // PDF generation removed - builders can add their own uplift to quotes
@@ -3018,15 +3018,59 @@ app.post('/api/leads/import', authenticateAdmin, async (req, res) => {
     }
 });
 
-// Update lead follow-up status and/or notes
+// Export leads as CSV (opens in Excel)
+app.get('/api/leads/export', authenticateAdmin, async (req, res) => {
+    try {
+        const statusFilter = typeof req.query.status === 'string' ? req.query.status : 'all';
+        const leads = await getAllLeads();
+        const filtered = statusFilter === 'all'
+            ? leads
+            : leads.filter((l) => (l.status || (l.followed_up ? 'archived' : 'new')) === statusFilter);
+
+        const escapeCsv = (value) => {
+            const str = value == null ? '' : String(value);
+            if (/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+            return str;
+        };
+
+        const headers = ['Name', 'Email', 'Phone', 'Source', 'Status', 'Notes', 'Created'];
+        const rows = filtered.map((l) => [
+            l.name || '',
+            l.email || '',
+            l.phone || '',
+            l.source || '',
+            l.status || (l.followed_up ? 'archived' : 'new'),
+            l.notes || '',
+            l.created_at || '',
+        ].map(escapeCsv).join(','));
+
+        const csv = `\uFEFF${headers.join(',')}\n${rows.join('\n')}`;
+        const stamp = new Date().toISOString().slice(0, 10);
+        const suffix = statusFilter === 'all' ? 'all' : statusFilter;
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="leads-${suffix}-${stamp}.csv"`);
+        res.send(csv);
+    } catch (error) {
+        console.error('Error exporting leads:', error);
+        res.status(500).json({ error: 'Failed to export leads' });
+    }
+});
+
+// Update lead status, follow-up flag, and/or notes
 app.patch('/api/leads/:id', authenticateAdmin, async (req, res) => {
     try {
-        const { followed_up, notes } = req.body || {};
+        const { followed_up, notes, status } = req.body || {};
         const updates = {};
+        if (typeof status === 'string') {
+            if (!LEAD_STATUSES.includes(status)) {
+                return res.status(400).json({ error: `status must be one of: ${LEAD_STATUSES.join(', ')}` });
+            }
+            updates.status = status;
+        }
         if (typeof followed_up === 'boolean') updates.followed_up = followed_up;
         if (typeof notes === 'string') updates.notes = notes;
         if (Object.keys(updates).length === 0) {
-            return res.status(400).json({ error: 'Provide followed_up (boolean) and/or notes (string)' });
+            return res.status(400).json({ error: 'Provide status, followed_up, and/or notes' });
         }
         const result = await updateLead(req.params.id, updates);
         if (!result.ok) {

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfDay, parseISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive, Upload } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, Users, Mail, Loader2, Plus, Search, Settings, LogOut, Truck, Wallet, Calendar as CalendarIcon, ListTodo, RefreshCw, Sparkles, Trash2, X, Phone, MessageSquare, ClipboardCheck, Copy, Pencil, Archive, Upload, Download, PhoneCall, ThumbsDown, CheckCircle2 } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -18,6 +18,19 @@ import TermsPage from "./pages/Terms";
 import RefundsPage from "./pages/Refunds";
 import { Footer } from "./components/Footer";
 import { AnalyticsGate } from "./components/AnalyticsGate";
+
+const LEAD_STATUS_OPTIONS = [
+  { id: "new", label: "New", short: "New" },
+  { id: "callback", label: "Callbacks", short: "Callback" },
+  { id: "booked", label: "Booked", short: "Booked" },
+  { id: "not_interested", label: "Not interested", short: "Not interested" },
+  { id: "archived", label: "Archive", short: "Archived" },
+];
+
+function leadStatus(lead) {
+  if (lead?.status && LEAD_STATUS_OPTIONS.some((s) => s.id === lead.status)) return lead.status;
+  return lead?.followed_up ? "archived" : "new";
+}
 import { CookieBanner } from "./components/CookieBanner";
 import { BUSINESS } from "./config/business";
 import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
@@ -358,16 +371,41 @@ function KitchenRescueAdmin() {
     }
   };
 
-  const toggleLeadFollowedUp = async (lead) => {
-    const next = !lead.followed_up;
-    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, followed_up: next } : l)));
-    const result = await saveLeadUpdate(lead.id, { followed_up: next });
+  const setLeadStatus = async (lead, status) => {
+    const prevStatus = leadStatus(lead);
+    if (prevStatus === status) return;
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, status, followed_up: status === "archived" } : l)));
+    const result = await saveLeadUpdate(lead.id, { status });
     if (!result) {
-      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, followed_up: lead.followed_up } : l)));
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, status: prevStatus, followed_up: lead.followed_up } : l)));
       return;
     }
-    if (next) {
-      setConfirmationMessage({ type: "success", text: `${lead.name || "Enquiry"} moved to archive` });
+    const label = LEAD_STATUS_OPTIONS.find((s) => s.id === status)?.label || status;
+    setConfirmationMessage({ type: "success", text: `${lead.name || "Enquiry"} moved to ${label}` });
+  };
+
+  const exportLeads = async (status = "all") => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(`/api/leads/export?status=${encodeURIComponent(status)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      const match = cd.match(/filename="([^"]+)"/);
+      const filename = match?.[1] || `leads-${status}.csv`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setConfirmationMessage({ type: "success", text: "Leads downloaded — opens in Excel" });
+    } catch (err) {
+      setConfirmationMessage({ type: "error", text: err.message || "Failed to export leads" });
     }
   };
 
@@ -380,8 +418,20 @@ function KitchenRescueAdmin() {
     }
   };
 
-  const activeLeads = useMemo(() => leads.filter((l) => !l.followed_up), [leads]);
-  const archivedLeads = useMemo(() => leads.filter((l) => l.followed_up), [leads]);
+  const leadsByStatus = useMemo(() => {
+    const groups = { new: [], callback: [], booked: [], not_interested: [], archived: [] };
+    for (const lead of leads) {
+      const status = leadStatus(lead);
+      if (groups[status]) groups[status].push(lead);
+      else groups.new.push(lead);
+    }
+    return groups;
+  }, [leads]);
+  const activeLeads = leadsByStatus.new;
+  const callbackLeads = leadsByStatus.callback;
+  const bookedLeads = leadsByStatus.booked;
+  const notInterestedLeads = leadsByStatus.not_interested;
+  const archivedLeads = leadsByStatus.archived;
   const quoteBookings = useMemo(
     () => bookings.filter((b) => b.source === "quote" || b.source === "admin-custom-quote"),
     [bookings]
@@ -533,18 +583,19 @@ function KitchenRescueAdmin() {
   const renderLeadRows = (items) =>
     items.map((l) => (
       <TableRow key={l.id}>
-        <TableCell className="text-center">
-          <label className="inline-flex items-center justify-center gap-2 cursor-pointer" title={l.followed_up ? "Uncheck to restore to new enquiries" : "Mark as followed up and archive"}>
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-              checked={!!l.followed_up}
-              disabled={savingLeadId === l.id}
-              onChange={() => toggleLeadFollowedUp(l)}
-              aria-label={l.followed_up ? `Restore ${l.name || "lead"} to new enquiries` : `Mark ${l.name || "lead"} as followed up`}
-            />
-            {savingLeadId === l.id ? <Loader2 className="h-3 w-3 animate-spin text-slate-400" /> : null}
-          </label>
+        <TableCell>
+          <select
+            className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            value={leadStatus(l)}
+            disabled={savingLeadId === l.id}
+            onChange={(e) => setLeadStatus(l, e.target.value)}
+            aria-label={`Status for ${l.name || "lead"}`}
+          >
+            {LEAD_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>{opt.short}</option>
+            ))}
+          </select>
+          {savingLeadId === l.id ? <Loader2 className="inline h-3 w-3 ml-1 animate-spin text-slate-400" /> : null}
         </TableCell>
         <TableCell className="font-medium">{l.name || "—"}</TableCell>
         <TableCell>
@@ -596,7 +647,10 @@ function KitchenRescueAdmin() {
               size="sm"
               variant="outline"
               className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-              onClick={() => setShowCreateBooking(true)}
+              onClick={() => {
+                setLeadStatus(l, "booked");
+                setShowCreateBooking(true);
+              }}
             >
               <Plus className="h-3 w-3" />
               Convert to booking
@@ -609,7 +663,7 @@ function KitchenRescueAdmin() {
   const leadsTableHeader = (
     <TableHeader>
       <TableRow>
-        <TableHead className="w-24 text-center">Followed up</TableHead>
+        <TableHead className="w-36">Status</TableHead>
         <TableHead>Name</TableHead>
         <TableHead>Email</TableHead>
         <TableHead>Phone</TableHead>
@@ -620,6 +674,26 @@ function KitchenRescueAdmin() {
       </TableRow>
     </TableHeader>
   );
+
+  const leadTabMeta = {
+    new: { count: activeLeads.length, empty: "No new enquiries awaiting contact." },
+    callback: { count: callbackLeads.length, empty: "No callbacks scheduled." },
+    booked: { count: bookedLeads.length, empty: "No booked leads yet." },
+    not_interested: { count: notInterestedLeads.length, empty: "No leads marked not interested." },
+    archived: { count: archivedLeads.length, empty: "No archived enquiries yet." },
+  };
+
+  const leadTabItems = {
+    new: activeLeads,
+    callback: callbackLeads,
+    booked: bookedLeads,
+    not_interested: notInterestedLeads,
+    archived: archivedLeads,
+  };
+
+  const exportStatusForTab = ["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab)
+    ? leadsTab
+    : "all";
 
   const fetchBookings = async () => {
     const res = await fetch("/api/bookings", {
@@ -759,32 +833,71 @@ function KitchenRescueAdmin() {
         <Card className={`mb-4 ${
           leadsTab === "new"
             ? "border-amber-200 bg-amber-50/50"
-            : leadsTab === "follow-up"
-              ? "border-red-200 bg-red-50/40"
-              : leadsTab === "import"
-                ? "border-blue-200 bg-blue-50/40"
-              : "border-slate-200 bg-slate-50/80"
+            : leadsTab === "callback"
+              ? "border-orange-200 bg-orange-50/40"
+              : leadsTab === "booked"
+                ? "border-emerald-200 bg-emerald-50/40"
+                : leadsTab === "not_interested"
+                  ? "border-slate-300 bg-slate-50/80"
+                  : leadsTab === "follow-up"
+                    ? "border-red-200 bg-red-50/40"
+                    : leadsTab === "import"
+                      ? "border-blue-200 bg-blue-50/40"
+                      : "border-slate-200 bg-slate-50/80"
         }`}>
           <CardHeader>
             <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 -mt-2 mb-3">
               <button
                 type="button"
                 onClick={() => setLeadsTab("new")}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "new" ? "border-amber-500 text-amber-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "new" ? "border-amber-500 text-amber-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
               >
                 <MessageSquare className="h-4 w-4" />
-                New Enquiries
+                New
                 <Badge className={`${leadsTab === "new" ? "bg-amber-200 text-amber-900 hover:bg-amber-200" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
                   {activeLeads.length}
                 </Badge>
               </button>
               <button
                 type="button"
+                onClick={() => setLeadsTab("callback")}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "callback" ? "border-orange-500 text-orange-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <PhoneCall className="h-4 w-4" />
+                Callbacks
+                <Badge className={`${leadsTab === "callback" ? "bg-orange-100 text-orange-800 hover:bg-orange-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
+                  {callbackLeads.length}
+                </Badge>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeadsTab("booked")}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "booked" ? "border-emerald-500 text-emerald-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Booked
+                <Badge className={`${leadsTab === "booked" ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
+                  {bookedLeads.length}
+                </Badge>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeadsTab("not_interested")}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "not_interested" ? "border-slate-500 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+              >
+                <ThumbsDown className="h-4 w-4" />
+                Not interested
+                <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200">
+                  {notInterestedLeads.length}
+                </Badge>
+              </button>
+              <button
+                type="button"
                 onClick={() => setLeadsTab("follow-up")}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "follow-up" ? "border-red-500 text-red-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "follow-up" ? "border-red-500 text-red-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
               >
                 <Mail className="h-4 w-4" />
-                Follow Up
+                Quote follow-up
                 <Badge className={`${leadsTab === "follow-up" ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>
                   {openQuoteBookings.length}
                 </Badge>
@@ -792,7 +905,7 @@ function KitchenRescueAdmin() {
               <button
                 type="button"
                 onClick={() => setLeadsTab("import")}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "import" ? "border-blue-500 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "import" ? "border-blue-500 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}
               >
                 <Upload className="h-4 w-4" />
                 Import CSV
@@ -800,7 +913,7 @@ function KitchenRescueAdmin() {
               <button
                 type="button"
                 onClick={() => setLeadsTab("archived")}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "archived" ? "border-slate-500 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${leadsTab === "archived" ? "border-slate-500 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
               >
                 <Archive className="h-4 w-4" />
                 Archive
@@ -808,6 +921,32 @@ function KitchenRescueAdmin() {
                   {archivedLeads.length}
                 </Badge>
               </button>
+              <div className="ml-auto flex items-center gap-2 pb-1">
+                {["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab) && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => exportLeads(exportStatusForTab)}
+                    title="Download this tab as a spreadsheet (opens in Excel)"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download Excel
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5 text-slate-600"
+                  onClick={() => exportLeads("all")}
+                  title="Download all leads"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  All leads
+                </Button>
+              </div>
             </div>
             {leadsTab === "follow-up" && (
               <div className="flex items-center gap-2 mb-3">
@@ -829,12 +968,18 @@ function KitchenRescueAdmin() {
             )}
             <CardDescription>
               {leadsTab === "new"
-                ? 'Tick "Followed up" when your colleague has contacted them — they\'ll move to the Archive tab. Add notes before archiving if needed.'
-                : leadsTab === "follow-up"
-                  ? "Sent custom quotes. Set a follow-up date/time and status, then click Save follow-up on each row. We'll email you when it's due. Quotes also stay in Customers."
-                  : leadsTab === "import"
-                    ? "Upload a CSV, map columns to lead fields, preview duplicates, then import into New Enquiries."
-                  : "Followed-up leads. Uncheck to move them back to New Enquiries."}
+                ? "New enquiries. Call them, then move each lead into Callbacks, Booked, or Not interested using the Status column. Download Excel to work offline."
+                : leadsTab === "callback"
+                  ? "Leads that need a call back. Update status when you've spoken to them."
+                  : leadsTab === "booked"
+                    ? "Leads that converted to a booking."
+                    : leadsTab === "not_interested"
+                      ? "Leads that declined. Move to Archive when you're done reviewing."
+                      : leadsTab === "follow-up"
+                        ? "Sent custom quotes. Set a follow-up date/time and status, then click Save follow-up on each row. We'll email you when it's due."
+                        : leadsTab === "import"
+                          ? "Upload a CSV, map columns to lead fields, preview duplicates, then import into New."
+                          : "Archived leads. Change status to move them back into the pipeline."}
             </CardDescription>
             {confirmationMessage && (
               <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
@@ -843,20 +988,7 @@ function KitchenRescueAdmin() {
             )}
           </CardHeader>
           <CardContent>
-            {leadsTab === "new" ? (
-              activeLeads.length === 0 ? (
-                <p className="text-slate-500 text-sm py-4">
-                  {leads.length === 0
-                    ? "No enquiries yet. Click Refresh to check for new leads."
-                    : "No enquiries awaiting follow-up. All caught up!"}
-                </p>
-              ) : (
-                <Table>
-                  {leadsTableHeader}
-                  <TableBody>{renderLeadRows(activeLeads)}</TableBody>
-                </Table>
-              )
-            ) : leadsTab === "import" ? (
+            {leadsTab === "import" ? (
               <LeadsImportTab
                 leads={leads}
                 onImported={() => {
@@ -905,12 +1037,16 @@ function KitchenRescueAdmin() {
                   <TableBody>{renderQuoteRows(closedQuoteBookings)}</TableBody>
                 </Table>
               )
-            ) : archivedLeads.length === 0 ? (
-              <p className="text-slate-500 text-sm py-4">No archived enquiries yet.</p>
+            ) : (leadTabItems[leadsTab] || []).length === 0 ? (
+              <p className="text-slate-500 text-sm py-4">
+                {leads.length === 0 && leadsTab === "new"
+                  ? "No enquiries yet. Click Refresh to check for new leads."
+                  : leadTabMeta[leadsTab]?.empty || "Nothing here yet."}
+              </p>
             ) : (
               <Table>
                 {leadsTableHeader}
-                <TableBody>{renderLeadRows(archivedLeads)}</TableBody>
+                <TableBody>{renderLeadRows(leadTabItems[leadsTab])}</TableBody>
               </Table>
             )}
           </CardContent>

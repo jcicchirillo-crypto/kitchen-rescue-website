@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   project TEXT,
   completed BOOLEAN DEFAULT false,
   date TEXT,
+  rolled_over BOOLEAN DEFAULT false,
+  original_date TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
