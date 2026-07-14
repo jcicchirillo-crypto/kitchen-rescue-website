@@ -152,6 +152,33 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     console.log('To enable email quotes, set EMAIL_USER and EMAIL_PASS in your .env file');
 }
 
+// Admin / ops notification recipients (leads, quotes, follow-up reminders)
+const KEITH_EMAIL_DEFAULT = 'classicretros@yahoo.co.uk';
+function getAdminNotifyEmails() {
+    const emails = new Set();
+    const primary = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    if (primary) {
+        String(primary)
+            .split(/[,;]/)
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean)
+            .forEach((e) => emails.add(e));
+    }
+    const keith = String(process.env.KEITH_EMAIL || KEITH_EMAIL_DEFAULT).trim().toLowerCase();
+    if (keith) emails.add(keith);
+    String(process.env.NOTIFY_EMAILS || '')
+        .split(/[,;]/)
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+        .forEach((e) => emails.add(e));
+    return [...emails];
+}
+function adminNotifyTo() {
+    const list = getAdminNotifyEmails();
+    return list.length ? list.join(', ') : null;
+}
+console.log('Admin notify emails:', adminNotifyTo() || '(none)');
+
 // Brevo (Kitchen Rescue leads) — all enquiries should sync to this list
 const BREVO_LEADS_LIST = process.env.BREVO_LEAD_GATE_LIST_ID || process.env.BREVO_LIST_ID;
 console.log('Brevo config: API key set:', !!process.env.BREVO_API_KEY, '| Leads list ID:', BREVO_LEADS_LIST || '(not set — leads will NOT sync to Brevo)');
@@ -930,7 +957,7 @@ async function runQuoteFollowUpReminders({ dryRun = false } = {}) {
         }
 
         try {
-            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const adminEmail = adminNotifyTo();
             const html = generateQuoteFollowUpReminderEmailHTML({
                 id: b.id,
                 name: b.name,
@@ -1068,7 +1095,7 @@ app.post('/api/lead-gate', async (req, res) => {
 
         // Notify admin by email
         if (transporter) {
-            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const adminEmail = adminNotifyTo();
             const leadHtml = `
                 <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
                     <h2 style="color:#dc2626;">New availability check lead</h2>
@@ -1292,7 +1319,7 @@ app.post('/send-quote-email', async (req, res) => {
             if (!transporter) {
                 return res.json({ success: true, message: 'Thanks! You can now check availability.' });
             }
-            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const adminEmail = adminNotifyTo();
             const leadSubject = req.body.subject || `New lead: ${name || 'Unknown'} — ${phone || 'no phone'}`;
             const leadHtml = `
                 <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
@@ -1416,7 +1443,7 @@ app.post('/send-quote-email', async (req, res) => {
         }
         
         // Send notification email to business
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        const adminEmail = adminNotifyTo();
         const businessMailOptions = {
             from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
             to: adminEmail,
@@ -1615,7 +1642,7 @@ app.post('/api/booking-received', async (req, res) => {
             });
             console.log('Booking received email sent to:', email);
 
-            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            const adminEmail = adminNotifyTo();
             const adminHtml = generateAdminBookingNotificationHTML({
                 name: fullName || req.body.name,
                 email,
@@ -3478,7 +3505,7 @@ app.post('/api/delivery-checklist', async (req, res) => {
             notes,
             photos: Array.isArray(photos) ? photos.slice(0, 6) : [] // limit to 6 photos
         });
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        const adminEmail = adminNotifyTo();
         const checkLabels = {
             driveway_suitable: 'Driveway suitable for trailer',
             ground_level: 'Ground level and stable',
@@ -3873,7 +3900,7 @@ app.post('/api/trade-pack-request', async (req, res) => {
         }
 
         // Send admin copy
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        const adminEmail = adminNotifyTo();
         if (adminEmail && transporter) {
             try {
                 await transporter.sendMail({
@@ -4525,7 +4552,7 @@ app.post('/api/insurance-claims-enquiry', async (req, res) => {
         // Send notification email if email is configured
         if (transporter && process.env.EMAIL_USER) {
             try {
-                const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+                const adminEmail = adminNotifyTo();
                 const businessMailOptions = {
                     from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
                     to: adminEmail,

@@ -35,6 +35,7 @@ import { CookieBanner } from "./components/CookieBanner";
 import { BUSINESS } from "./config/business";
 import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
 import { LeadsImportTab } from "./components/LeadsImportTab";
+import { QuoteFollowUpCalendar } from "./components/QuoteFollowUpCalendar";
 import { CreateBookingModal } from "./components/CreateBookingModal";
 import { EditBookingModal } from "./components/EditBookingModal";
 import "./App.css";
@@ -437,7 +438,13 @@ function KitchenRescueAdmin() {
       const status = (b.status || "").toLowerCase();
       if (status === "confirmed" || status === "cancelled") return false;
       if (b.quote_sent_at) return true;
-      return b.source === "quote" || b.source === "admin-custom-quote";
+      if (b.follow_up_at) return true;
+      if (b.source === "quote" || b.source === "admin-custom-quote") return true;
+      const notes = (b.notes || "").toLowerCase();
+      if (/custom quote|backfilled from sent|quote to follow|quotation/.test(notes) && status.includes("await")) {
+        return true;
+      }
+      return false;
     }),
     [bookings]
   );
@@ -461,20 +468,32 @@ function KitchenRescueAdmin() {
     setShowCustomQuote(true);
   };
 
-  const saveQuoteFollowUp = async (quote) => {
-    const draft = quoteFollowUpDrafts[quote.id];
+  const saveQuoteFollowUp = async (quote, override = null) => {
+    const draft = override || quoteFollowUpDrafts[quote.id];
     if (!draft) return;
+    const silent = !!override?.silent;
     const token = localStorage.getItem("adminToken");
     setSavingQuoteId(quote.id);
     try {
-      const followUpAt = draft.followUpAt ? new Date(draft.followUpAt).toISOString() : null;
+      const followUpAtRaw = override
+        ? override.followUpAt
+        : draft.followUpAt
+          ? new Date(draft.followUpAt).toISOString()
+          : null;
+      const followUpAt = followUpAtRaw
+        ? (typeof followUpAtRaw === "string" && followUpAtRaw.includes("T")
+            ? followUpAtRaw
+            : new Date(followUpAtRaw).toISOString())
+        : null;
       const followUpChanged = (quote.follow_up_at || null) !== followUpAt;
       const payload = {
         followUpAt,
         followUpStatus: draft.followUpStatus || "open",
-        notes: draft.notes || "",
+        notes: draft.notes ?? quote.notes ?? "",
       };
-      if (followUpChanged) payload.followUpReminderSentAt = null;
+      if (followUpChanged || override?.followUpReminderSentAt === null) {
+        payload.followUpReminderSentAt = null;
+      }
       const res = await fetch(`/api/bookings/${quote.id}`, {
         method: "PUT",
         headers: {
@@ -485,10 +504,14 @@ function KitchenRescueAdmin() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to save follow-up");
-      setConfirmationMessage({ type: "success", text: `Follow-up saved for ${quote.name || quote.id}` });
+      if (!silent) {
+        setConfirmationMessage({ type: "success", text: `Follow-up saved for ${quote.name || quote.id}` });
+      }
       fetchBookings();
     } catch (err) {
-      setConfirmationMessage({ type: "error", text: err.message || "Failed to save follow-up" });
+      if (!silent) {
+        setConfirmationMessage({ type: "error", text: err.message || "Failed to save follow-up" });
+      }
     } finally {
       setSavingQuoteId(null);
     }
@@ -981,7 +1004,7 @@ function KitchenRescueAdmin() {
                     : leadsTab === "not_interested"
                       ? "Leads that declined. Move to Archive when you're done reviewing."
                       : leadsTab === "follow-up"
-                        ? "Sent custom quotes. Set a follow-up date/time and status, then click Save follow-up on each row. We'll email you when it's due."
+                        ? "Quote follow-ups on a week calendar. Missed ones roll to today in red. Use Today / Tomorrow / Called / Won / Lost on each card."
                         : leadsTab === "import"
                           ? "Upload a CSV, map columns to lead fields, preview duplicates, then import into New."
                           : "Archived leads. Change status to move them back into the pipeline."}
@@ -1007,21 +1030,33 @@ function KitchenRescueAdmin() {
                 openQuoteBookings.length === 0 ? (
                   <p className="text-slate-500 text-sm py-4">No open quote follow-ups right now.</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Quote sent</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Next follow-up</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="min-w-[220px]">Notes</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>{renderQuoteRows(openQuoteBookings)}</TableBody>
-                  </Table>
+                  <div className="space-y-6">
+                    <QuoteFollowUpCalendar
+                      quotes={openQuoteBookings}
+                      savingId={savingQuoteId}
+                      onSave={saveQuoteFollowUp}
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                        All open quotes (table)
+                      </p>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Quote sent</TableHead>
+                            <TableHead>Total</TableHead>
+                            <TableHead>Next follow-up</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="min-w-[220px]">Notes</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>{renderQuoteRows(openQuoteBookings)}</TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 )
               ) : closedQuoteBookings.length === 0 ? (
                 <p className="text-slate-500 text-sm py-4">No closed quote follow-ups yet.</p>
