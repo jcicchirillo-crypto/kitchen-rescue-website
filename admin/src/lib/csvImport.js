@@ -100,13 +100,21 @@ export function applyMapping(rows, mapping) {
   });
 }
 
-export function buildPreviewRows(mappedRows, existingEmails, defaultSource) {
-  const seen = new Set();
+export function buildPreviewRows(mappedRows, existingEmails, defaultSource, existingPhones = new Set()) {
+  const seenEmails = new Set();
+  const seenPhones = new Set();
+  const phoneKey = (raw) => {
+    const digits = String(raw || "").replace(/\D/g, "");
+    if (!digits) return "";
+    return digits.length >= 10 ? digits.slice(-10) : digits;
+  };
+
   return mappedRows.map((row, index) => {
     const email = String(row.email || "").trim().toLowerCase();
     const name = String(row.name || "").trim() || "—";
     const phone = String(row.phone || "").trim();
-    const source = String(row.source || defaultSource || "csv-import").trim() || defaultSource || "csv-import";
+    const digits = phoneKey(phone);
+    const source = String(row.source || defaultSource || "meta").trim() || defaultSource || "meta";
     const created_at = String(row.created_at || "").trim();
     const notes = String(row.notes || "").trim();
 
@@ -115,11 +123,15 @@ export function buildPreviewRows(mappedRows, existingEmails, defaultSource) {
     if (!email || !email.includes("@")) {
       status = "invalid";
       reason = "Missing or invalid email";
-    } else if (existingEmails.has(email) || seen.has(email)) {
+    } else if (existingEmails.has(email) || seenEmails.has(email)) {
       status = "duplicate";
-      reason = "Already in leads";
+      reason = "Already in leads (email)";
+    } else if (digits && (existingPhones.has(digits) || seenPhones.has(digits))) {
+      status = "duplicate";
+      reason = "Already in leads (phone)";
     } else {
-      seen.add(email);
+      seenEmails.add(email);
+      if (digits) seenPhones.add(digits);
     }
 
     return {

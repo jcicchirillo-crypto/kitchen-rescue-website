@@ -39,11 +39,20 @@ export function LeadsImportTab({ leads, onImported, onMessage }) {
     () => new Set((leads || []).map((l) => (l.email || "").trim().toLowerCase()).filter(Boolean)),
     [leads]
   );
+  const existingPhones = useMemo(() => {
+    const set = new Set();
+    for (const l of leads || []) {
+      const digits = String(l.phone || "").replace(/\D/g, "");
+      if (digits.length >= 10) set.add(digits.slice(-10));
+      else if (digits) set.add(digits);
+    }
+    return set;
+  }, [leads]);
 
   const mappedRows = useMemo(() => applyMapping(rawRows, mapping), [rawRows, mapping]);
   const previewRows = useMemo(
-    () => buildPreviewRows(mappedRows, existingEmails, defaultSource),
-    [mappedRows, existingEmails, defaultSource]
+    () => buildPreviewRows(mappedRows, existingEmails, defaultSource, existingPhones),
+    [mappedRows, existingEmails, existingPhones, defaultSource]
   );
 
   const readyCount = previewRows.filter((r) => r.status === "ready").length;
@@ -90,7 +99,7 @@ export function LeadsImportTab({ leads, onImported, onMessage }) {
         body: JSON.stringify({
           rows: rowsToImport,
           skipDuplicates,
-          defaultSource: defaultSource.trim() || "csv-import",
+          defaultSource: defaultSource.trim() || "meta",
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -163,14 +172,16 @@ export function LeadsImportTab({ leads, onImported, onMessage }) {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="default-source">Default source (when CSV has no source column)</Label>
-              <Input
+              <Label htmlFor="default-source">These are uploaded as</Label>
+              <select
                 id="default-source"
                 value={defaultSource}
                 onChange={(e) => setDefaultSource(e.target.value)}
-                placeholder="e.g. meta, paid, website"
-                className="mt-1"
-              />
+                className="mt-1 w-full h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+              >
+                <option value="meta">Meta (ads / CSV upload)</option>
+                <option value="website">Website</option>
+              </select>
             </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-slate-700">
@@ -180,7 +191,7 @@ export function LeadsImportTab({ leads, onImported, onMessage }) {
                   onChange={(e) => setSkipDuplicates(e.target.checked)}
                   className="rounded border-slate-300"
                 />
-                Skip duplicate emails already in leads
+                Skip / merge duplicates (same email or phone)
               </label>
             </div>
           </div>

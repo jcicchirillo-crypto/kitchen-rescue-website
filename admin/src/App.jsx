@@ -18,6 +18,14 @@ import TermsPage from "./pages/Terms";
 import RefundsPage from "./pages/Refunds";
 import { Footer } from "./components/Footer";
 import { AnalyticsGate } from "./components/AnalyticsGate";
+import { CookieBanner } from "./components/CookieBanner";
+import { BUSINESS } from "./config/business";
+import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
+import { LeadsImportTab } from "./components/LeadsImportTab";
+import { QuoteFollowUpCalendar } from "./components/QuoteFollowUpCalendar";
+import { CreateBookingModal } from "./components/CreateBookingModal";
+import { EditBookingModal } from "./components/EditBookingModal";
+import "./App.css";
 
 const LEAD_STATUS_OPTIONS = [
   { id: "new", label: "New", short: "New" },
@@ -27,18 +35,28 @@ const LEAD_STATUS_OPTIONS = [
   { id: "archived", label: "Archive", short: "Archived" },
 ];
 
+function isMetaLeadSource(source) {
+  const s = String(source || "").toLowerCase().trim();
+  if (!s) return false;
+  return ["meta", "csv-import", "facebook", "instagram", "fb", "ig"].some(
+    (hint) => s === hint || s.includes(hint)
+  );
+}
+
+function leadSourceLabel(source) {
+  return isMetaLeadSource(source) ? "Meta" : "Website";
+}
+
+function phoneDigitsKey(raw) {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
 function leadStatus(lead) {
   if (lead?.status && LEAD_STATUS_OPTIONS.some((s) => s.id === lead.status)) return lead.status;
   return lead?.followed_up ? "archived" : "new";
 }
-import { CookieBanner } from "./components/CookieBanner";
-import { BUSINESS } from "./config/business";
-import { SendCustomQuoteModal } from "./components/SendCustomQuoteModal";
-import { LeadsImportTab } from "./components/LeadsImportTab";
-import { QuoteFollowUpCalendar } from "./components/QuoteFollowUpCalendar";
-import { CreateBookingModal } from "./components/CreateBookingModal";
-import { EditBookingModal } from "./components/EditBookingModal";
-import "./App.css";
 
 const STATUS_MAP = {
   Confirmed: { color: "bg-emerald-100 text-emerald-700" },
@@ -269,6 +287,7 @@ function KitchenRescueAdmin() {
   const [leadNotesDraft, setLeadNotesDraft] = useState({});
   const [savingLeadId, setSavingLeadId] = useState(null);
   const [leadsTab, setLeadsTab] = useState("new");
+  const [leadSourceFilter, setLeadSourceFilter] = useState("all"); // all | meta | website
   const [followUpTab, setFollowUpTab] = useState("open");
   const [quoteFollowUpDrafts, setQuoteFollowUpDrafts] = useState({});
   const [savingQuoteId, setSavingQuoteId] = useState(null);
@@ -421,18 +440,25 @@ function KitchenRescueAdmin() {
 
   const leadsByStatus = useMemo(() => {
     const groups = { new: [], callback: [], booked: [], not_interested: [], archived: [] };
-    for (const lead of leads) {
+    const filtered = leads.filter((lead) => {
+      if (leadSourceFilter === "meta") return isMetaLeadSource(lead.source);
+      if (leadSourceFilter === "website") return !isMetaLeadSource(lead.source);
+      return true;
+    });
+    for (const lead of filtered) {
       const status = leadStatus(lead);
       if (groups[status]) groups[status].push(lead);
       else groups.new.push(lead);
     }
     return groups;
-  }, [leads]);
+  }, [leads, leadSourceFilter]);
   const activeLeads = leadsByStatus.new;
   const callbackLeads = leadsByStatus.callback;
   const bookedLeads = leadsByStatus.booked;
   const notInterestedLeads = leadsByStatus.not_interested;
   const archivedLeads = leadsByStatus.archived;
+  const metaLeadCount = useMemo(() => leads.filter((l) => isMetaLeadSource(l.source)).length, [leads]);
+  const websiteLeadCount = useMemo(() => leads.filter((l) => !isMetaLeadSource(l.source)).length, [leads]);
   const quoteBookings = useMemo(
     () => bookings.filter((b) => {
       const status = (b.status || "").toLowerCase();
@@ -448,6 +474,26 @@ function KitchenRescueAdmin() {
     }),
     [bookings]
   );
+  const quotedContactKeys = useMemo(() => {
+    const emails = new Set();
+    const phones = new Set();
+    for (const b of quoteBookings) {
+      const e = String(b.email || "").trim().toLowerCase();
+      if (e) emails.add(e);
+      const p = phoneDigitsKey(b.phone);
+      if (p) phones.add(p);
+    }
+    return { emails, phones };
+  }, [quoteBookings]);
+
+  const leadIsQuoted = (lead) => {
+    if (lead?.quoted_at || lead?.quote_booking_id) return true;
+    const e = String(lead?.email || "").trim().toLowerCase();
+    if (e && quotedContactKeys.emails.has(e)) return true;
+    const p = phoneDigitsKey(lead?.phone);
+    if (p && quotedContactKeys.phones.has(p)) return true;
+    return false;
+  };
   const openQuoteBookings = useMemo(
     () => quoteBookings.filter((b) => !["won", "lost", "closed"].includes((b.follow_up_status || "open").toLowerCase())),
     [quoteBookings]
@@ -459,6 +505,7 @@ function KitchenRescueAdmin() {
 
   const openCustomQuoteForLead = (lead) => {
     setCustomQuoteLead({
+      leadId: lead.id,
       name: lead.name || "",
       email: lead.email || "",
       phone: lead.phone || "",
@@ -625,7 +672,12 @@ function KitchenRescueAdmin() {
           </select>
           {savingLeadId === l.id ? <Loader2 className="inline h-3 w-3 ml-1 animate-spin text-slate-400" /> : null}
         </TableCell>
-        <TableCell className="font-medium">{l.name || "—"}</TableCell>
+        <TableCell className="font-medium">
+          <div>{l.name || "—"}</div>
+          {leadIsQuoted(l) && (
+            <Badge className="mt-1 bg-violet-100 text-violet-800 hover:bg-violet-100 text-[10px]">Quoted</Badge>
+          )}
+        </TableCell>
         <TableCell>
           {l.email ? (
             <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1">
@@ -643,9 +695,20 @@ function KitchenRescueAdmin() {
           ) : "—"}
         </TableCell>
         <TableCell>
-          <Badge variant="outline" className="text-xs">
-            {l.source || "website"}
-          </Badge>
+          <div className="flex flex-col gap-1 items-start">
+            <Badge
+              className={
+                isMetaLeadSource(l.source)
+                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100 text-xs"
+                  : "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-xs"
+              }
+            >
+              {leadSourceLabel(l.source)}
+            </Badge>
+            {l.source && !["meta", "website"].includes(String(l.source).toLowerCase()) && (
+              <span className="text-[10px] text-slate-400">{l.source}</span>
+            )}
+          </div>
         </TableCell>
         <TableCell className="text-slate-500 text-sm whitespace-nowrap">
           {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : "—"}
@@ -976,6 +1039,33 @@ function KitchenRescueAdmin() {
                 </Button>
               </div>
             </div>
+            {["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab) && (
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-xs font-medium text-slate-500">Show:</span>
+                {[
+                  { id: "all", label: "All", count: leads.length },
+                  { id: "meta", label: "Meta", count: metaLeadCount },
+                  { id: "website", label: "Website", count: websiteLeadCount },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setLeadSourceFilter(opt.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      leadSourceFilter === opt.id
+                        ? opt.id === "meta"
+                          ? "bg-blue-100 text-blue-800"
+                          : opt.id === "website"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {opt.label} ({opt.count})
+                  </button>
+                ))}
+              </div>
+            )}
             {leadsTab === "follow-up" && (
               <div className="flex items-center gap-2 mb-3">
                 <button
@@ -1389,8 +1479,12 @@ function KitchenRescueAdmin() {
         initialValues={customQuoteLead}
         onSent={() => {
           fetchBookings();
-          setLeadsTab("follow-up");
-          setFollowUpTab("open");
+          fetchLeads();
+          setLeadsTab("callback");
+          setConfirmationMessage({
+            type: "success",
+            text: "Quote sent — lead kept under Callbacks with a Quoted badge",
+          });
         }}
         onClose={() => {
           setShowCustomQuote(false);

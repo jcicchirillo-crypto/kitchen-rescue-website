@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead, getAllLeads, updateLead, importLeads, LEAD_STATUSES } = require('./leads-storage');
+const { addLead, getAllLeads, updateLead, importLeads, markLeadQuoted, LEAD_STATUSES } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 const { normalizeRecurrence, nextOccurrenceDate } = require('./task-recurrence');
@@ -1330,7 +1330,7 @@ app.post('/request-quote', async (req, res) => {
 // Send quote email (or lead notification only)
 app.post('/send-quote-email', async (req, res) => {
     try {
-        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type, source, durationOptions: rawDurationOptions } = req.body;
+        const { name, email, phone, notes, postcode, selectedDates, startDate, endDate, days, dailyRate, dailyCost, deliveryCost, collectionCost, totalCost, type, source, durationOptions: rawDurationOptions, leadId } = req.body;
 
         const delivNum = Number(deliveryCost) || 0;
         const collNum = Number(collectionCost) || 0;
@@ -1505,6 +1505,19 @@ app.post('/send-quote-email', async (req, res) => {
             const saved = await addBooking(newBooking);
             if (saved) {
                 console.log('✅ Quote saved as booking successfully:', newBooking.id);
+                try {
+                    await markLeadQuoted({
+                        leadId: req.body.leadId || null,
+                        name,
+                        email,
+                        phone,
+                        bookingId: newBooking.id,
+                        totalCost: newBooking.totalCost,
+                        source: newBooking.source,
+                    });
+                } catch (e) {
+                    console.error('markLeadQuoted failed:', e.message);
+                }
             } else {
                 console.error('❌ FAILED to save quote to database:', newBooking.id);
                 console.error('This quote request was NOT saved to admin system!');
@@ -1636,6 +1649,19 @@ app.post('/send-quote-email', async (req, res) => {
         console.log('🔍 addBooking returned:', saved);
         if (saved) {
             console.log('✅✅✅ Quote saved as booking successfully:', newBooking.id);
+            try {
+                await markLeadQuoted({
+                    leadId: leadId || null,
+                    name,
+                    email,
+                    phone,
+                    bookingId: newBooking.id,
+                    totalCost: newBooking.totalCost,
+                    source: newBooking.source,
+                });
+            } catch (e) {
+                console.error('markLeadQuoted failed:', e.message);
+            }
         } else {
             console.error('========================================');
             console.error('❌❌❌ CRITICAL: FAILED to save quote to database');

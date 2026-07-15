@@ -261,6 +261,7 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
         notes: (form.notes || "").trim(),
         postcode: (form.postcode || "").toUpperCase().trim(),
         source: "admin-custom-quote",
+        leadId: initialValues?.leadId || undefined,
         quoteMode: form.quoteMode,
         ...(isCompareMode
           ? {
