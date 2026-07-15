@@ -50,6 +50,7 @@ async function getAllTasks() {
                 project: task.project || '',
                 completed: task.completed || false,
                 date: task.date || null,
+                assignee: task.assignee || 'joe',
                 rolledOver: !!task.rolled_over,
                 originalDate: task.original_date || null,
                 createdAt: task.created_at
@@ -118,6 +119,7 @@ async function addTask(newTask) {
                 project: newTask.project || null,
                 completed: newTask.completed || false,
                 date: newTask.date || null,
+                assignee: newTask.assignee || 'joe',
             };
             
             console.log('💾 Attempting to save task to Supabase:', taskData.id);
@@ -130,6 +132,18 @@ async function addTask(newTask) {
                 .single();
             
             if (error) {
+                // Retry without assignee if column missing
+                if (error.message?.includes('assignee') || error.code === '42703') {
+                    const legacy = { ...taskData };
+                    delete legacy.assignee;
+                    const retry = await supabase.from('tasks').insert([legacy]).select().single();
+                    if (retry.error) {
+                        console.error('❌ Supabase task insert error:', retry.error.message);
+                        return false;
+                    }
+                    console.log('✅ Task saved (without assignee — run SUPABASE_TASKS_ASSIGNEE_SETUP.sql)');
+                    return true;
+                }
                 console.error('❌❌❌ SUPABASE TASK INSERT ERROR ❌❌❌');
                 console.error('Error object:', JSON.stringify(error, null, 2));
                 console.error('Error code:', error.code);
@@ -188,11 +202,17 @@ async function updateTask(taskId, updates) {
                 .select();
 
             if (error) {
-                // Retry without rollover columns if migration not applied yet
-                if (error.message?.includes('rolled_over') || error.message?.includes('original_date') || error.code === '42703') {
+                // Retry without rollover/assignee columns if migration not applied yet
+                if (
+                    error.message?.includes('rolled_over')
+                    || error.message?.includes('original_date')
+                    || error.message?.includes('assignee')
+                    || error.code === '42703'
+                ) {
                     const legacy = { ...dbUpdates };
                     delete legacy.rolled_over;
                     delete legacy.original_date;
+                    delete legacy.assignee;
                     const retry = await supabase
                         .from('tasks')
                         .update(legacy)
@@ -202,7 +222,7 @@ async function updateTask(taskId, updates) {
                         console.error('❌ Supabase task update error:', retry.error.message);
                         return false;
                     }
-                    console.log('✅ Task updated (without rollover columns — run SUPABASE_TASKS_ROLLOVER_SETUP.sql)');
+                    console.log('✅ Task updated (without newer columns — run SUPABASE_TASKS_* setup SQL)');
                     return true;
                 }
                 console.error('❌❌❌ SUPABASE TASK UPDATE ERROR ❌❌❌');

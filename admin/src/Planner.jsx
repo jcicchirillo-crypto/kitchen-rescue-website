@@ -15,6 +15,15 @@ const PRIORITY_LEVELS = [
   { id: "low", name: "Low", color: "bg-green-100 text-green-700 border-green-300" },
 ];
 
+const TASK_ASSIGNEES = [
+  { id: "joe", name: "Joe", short: "Joe", color: "bg-slate-100 text-slate-700 border-slate-300" },
+  { id: "keith", name: "Keith Robins", short: "Keith", color: "bg-sky-100 text-sky-800 border-sky-300" },
+];
+
+function assigneeMeta(id) {
+  return TASK_ASSIGNEES.find((a) => a.id === id) || TASK_ASSIGNEES[0];
+}
+
 const PROJECT_COLORS = [
   "bg-blue-100 text-blue-700 border-blue-300",
   "bg-purple-100 text-purple-700 border-purple-300",
@@ -68,6 +77,9 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <Badge className={priority.color} style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
               {priority.name}
+            </Badge>
+            <Badge className={assigneeMeta(task.assignee).color} style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
+              {assigneeMeta(task.assignee).short}
             </Badge>
             {isRolledOver && (
               <Badge className="bg-red-600 text-white border-red-700 hover:bg-red-600" style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
@@ -140,6 +152,9 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
             >
               <div className="flex items-center justify-between gap-1">
                 <span className="truncate flex-1" onClick={() => onEdit(task)}>{task.title}</span>
+                <span className={`flex-shrink-0 text-[8px] font-semibold px-1 rounded ${assigneeMeta(task.assignee).color}`}>
+                  {assigneeMeta(task.assignee).short === "Keith" ? "K" : "J"}
+                </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -302,9 +317,11 @@ export default function Planner() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showManageProjects, setShowManageProjects] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
-  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "" });
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
   const [editingTask, setEditingTask] = useState(null);
-  const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "" });
+  const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
+  const [assigneeFilter, setAssigneeFilter] = useState("all"); // all | joe | keith
+  const [notifyStatus, setNotifyStatus] = useState("");
   const [draggedTask, setDraggedTask] = useState(null);
   const [touchDraggedTask, setTouchDraggedTask] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
@@ -545,6 +562,7 @@ export default function Planner() {
       description: newTask.description,
       priority: newTask.priority,
       project: newTask.project,
+      assignee: newTask.assignee || "joe",
       completed: false,
       date: null,
       createdAt: new Date().toISOString(),
@@ -552,7 +570,7 @@ export default function Planner() {
     
     // Optimistically add to UI
     setTasks([...tasks, task]);
-    setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "" });
+    setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "", assignee: "joe" });
     setShowAddTask(false);
     
     // Save to API immediately
@@ -565,7 +583,7 @@ export default function Planner() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
         },
-        body: JSON.stringify(task),
+        body: JSON.stringify({ ...task, notify: task.assignee === "keith" }),
       });
       
       if (!res.ok) {
@@ -577,8 +595,15 @@ export default function Planner() {
         alert('Failed to save task. Please check if Supabase tables are created and try again.');
         setTimeout(() => setSyncStatus(""), 3000);
       } else {
+        const data = await res.json().catch(() => ({}));
         console.log('✅ Task saved to Supabase successfully');
         setSyncStatus("synced");
+        if (task.assignee === "keith") {
+          setNotifyStatus(data?.notified?.ok
+            ? "Emailed Keith this task"
+            : "Saved — email to Keith may have failed (check EMAIL settings)");
+          setTimeout(() => setNotifyStatus(""), 4000);
+        }
         // Also save to localStorage as backup
         localStorage.setItem("planner-tasks", JSON.stringify([...tasks, task]));
         setTimeout(() => setSyncStatus(""), 2000);
@@ -948,19 +973,22 @@ export default function Planner() {
       title: task.title,
       description: task.description || "",
       priority: task.priority || "medium",
-      project: task.project || projects[0] || ""
+      project: task.project || projects[0] || "",
+      assignee: task.assignee || "joe",
     });
   };
 
   const handleSaveEdit = async () => {
     if (!editingTask || !editTask.title.trim() || !editTask.project) return;
     const originalTask = editingTask;
+    const assigneeChanged = (originalTask.assignee || "joe") !== (editTask.assignee || "joe");
     const updated = {
       ...editingTask,
       title: editTask.title,
       description: editTask.description,
       priority: editTask.priority,
-      project: editTask.project
+      project: editTask.project,
+      assignee: editTask.assignee || "joe",
     };
     
     // Optimistically update UI
@@ -968,7 +996,7 @@ export default function Planner() {
       t.id === editingTask.id ? updated : t
     ));
     setEditingTask(null);
-    setEditTask({ title: "", description: "", priority: "medium", project: "" });
+    setEditTask({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
     
     // Save to API immediately
     try {
@@ -982,7 +1010,9 @@ export default function Planner() {
           title: editTask.title,
           description: editTask.description,
           priority: editTask.priority,
-          project: editTask.project
+          project: editTask.project,
+          assignee: editTask.assignee || "joe",
+          notify: editTask.assignee === "keith" && assigneeChanged,
         }),
       });
       
@@ -992,15 +1022,44 @@ export default function Planner() {
         setTasks(tasks.map(t => t.id === editingTask.id ? originalTask : t));
         alert('Failed to save changes. Please try again.');
       } else {
-        console.log('✅ Task updated in Supabase');
-        // Update localStorage backup
+        const data = await res.json().catch(() => ({}));
+        console.log("✅ Task updated in Supabase");
         localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === editingTask.id ? updated : t)));
+        if (editTask.assignee === "keith" && assigneeChanged) {
+          setNotifyStatus(data?.notified?.ok
+            ? "Emailed Keith this task"
+            : "Saved — email to Keith may have failed");
+          setTimeout(() => setNotifyStatus(""), 4000);
+        }
       }
     } catch (e) {
       console.error("❌ Error updating task:", e);
-      // Revert UI change
       setTasks(tasks.map(t => t.id === editingTask.id ? originalTask : t));
-      alert('Failed to save changes. Please check your connection and try again.');
+      alert('Failed to save changes. Please try again.');
+    }
+  };
+
+  const emailKeithTask = async (task) => {
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({
+          assignee: "keith",
+          notify: true,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("Failed");
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, assignee: "keith" } : t)));
+      setNotifyStatus(data?.notified?.ok ? "Emailed Keith" : "Assigned to Keith — email may have failed");
+      setTimeout(() => setNotifyStatus(""), 4000);
+    } catch {
+      setNotifyStatus("Could not email Keith");
+      setTimeout(() => setNotifyStatus(""), 3000);
     }
   };
 
@@ -1040,14 +1099,19 @@ export default function Planner() {
     }
   };
 
+  const visibleTasks = useMemo(() => {
+    if (assigneeFilter === "all") return tasks;
+    return tasks.filter((t) => (t.assignee || "joe") === assigneeFilter);
+  }, [tasks, assigneeFilter]);
+
   const todaysTasks = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
-    return tasks.filter(t => t.date === today);
-  }, [tasks]);
+    return visibleTasks.filter(t => t.date === today);
+  }, [visibleTasks]);
 
   const unassignedTasks = useMemo(() => {
-    return tasks.filter(t => !t.date && !t.completed);
-  }, [tasks]);
+    return visibleTasks.filter(t => !t.date && !t.completed);
+  }, [visibleTasks]);
 
   const tasksByProjectAndPriority = useMemo(() => {
     const grouped = {};
@@ -1108,7 +1172,30 @@ export default function Planner() {
               </span>
             )}
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+            <div className="flex items-center gap-1 rounded-md border bg-white p-0.5">
+              {[
+                { id: "all", label: "All" },
+                { id: "joe", label: "Joe" },
+                { id: "keith", label: "Keith" },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setAssigneeFilter(opt.id)}
+                  className={`px-2.5 py-1 text-xs rounded ${
+                    assigneeFilter === opt.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {notifyStatus && (
+              <span className="text-xs text-sky-700 bg-sky-50 border border-sky-200 rounded px-2 py-1">
+                {notifyStatus}
+              </span>
+            )}
             <Button variant="outline" size="sm" onClick={() => setShowManageProjects(!showManageProjects)}>
               <Settings className="h-4 w-4 mr-2" />
               Manage Projects
@@ -1226,6 +1313,9 @@ export default function Planner() {
                             <Badge className={priority.color}>
                               {priority.name}
                             </Badge>
+                            <Badge className={assigneeMeta(task.assignee).color}>
+                              {assigneeMeta(task.assignee).short}
+                            </Badge>
                             <button
                               onClick={() => handleEdit(task)}
                               className="text-gray-400 hover:text-blue-500"
@@ -1303,6 +1393,20 @@ export default function Planner() {
                           </option>
                         ))}
                       </select>
+                      <select
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                        value={newTask.assignee || "joe"}
+                        onChange={(e) => setNewTask({ ...newTask, assignee: e.target.value })}
+                      >
+                        {TASK_ASSIGNEES.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            Assign to {a.name}
+                          </option>
+                        ))}
+                      </select>
+                      {newTask.assignee === "keith" && (
+                        <p className="text-[11px] text-sky-700">Keith will be emailed this task when you add it.</p>
+                      )}
                       <div className="flex gap-2">
                         <Button size="sm" onClick={addTask} className="flex-1">
                           Add Task
@@ -1425,7 +1529,7 @@ export default function Planner() {
               {view === "week" ? (
                 <WeekView
                   week={currentDate}
-                  tasks={tasks}
+                  tasks={visibleTasks}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   projects={projects}
@@ -1438,7 +1542,7 @@ export default function Planner() {
               ) : (
                 <MonthView
                   month={currentDate}
-                  tasks={tasks}
+                  tasks={visibleTasks}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   projects={projects}
@@ -1511,13 +1615,44 @@ export default function Planner() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleSaveEdit} className="flex-1">
-                      Save Changes
-                    </Button>
-                    <Button variant="outline" onClick={() => setEditingTask(null)}>
-                      Cancel
-                    </Button>
+                  <div>
+                    <Label>Assigned to</Label>
+                    <select
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                      value={editTask.assignee || "joe"}
+                      onChange={(e) => setEditTask({ ...editTask, assignee: e.target.value })}
+                    >
+                      {TASK_ASSIGNEES.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                    {editTask.assignee === "keith" && (
+                      <p className="text-[11px] text-sky-700 mt-1">
+                        Saving will email Keith if you just assigned it to him.
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveEdit} className="flex-1">
+                        Save Changes
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditingTask(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                    {editingTask && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full text-sky-800 border-sky-300"
+                        onClick={() => emailKeithTask(editingTask)}
+                      >
+                        Email Keith this task
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -179,6 +179,58 @@ function adminNotifyTo() {
 }
 console.log('Admin notify emails:', adminNotifyTo() || '(none)');
 
+const TASK_ASSIGNEES = {
+    joe: { id: 'joe', name: 'Joe', email: null },
+    keith: {
+        id: 'keith',
+        name: 'Keith Robins',
+        email: String(process.env.KEITH_EMAIL || KEITH_EMAIL_DEFAULT).trim().toLowerCase(),
+    },
+};
+
+async function notifyKeithOfTask(task, reason = 'assigned') {
+    const keithEmail = TASK_ASSIGNEES.keith.email;
+    if (!transporter || !keithEmail) {
+        console.warn('Cannot notify Keith of task — email not configured');
+        return { ok: false, reason: 'email-not-configured' };
+    }
+    if ((task.assignee || 'joe') !== 'keith') {
+        return { ok: false, reason: 'not-keith' };
+    }
+    const when = task.date
+        ? `Due: ${task.date}`
+        : 'Not scheduled on the calendar yet';
+    const subject = reason === 'updated'
+        ? `Task updated: ${task.title}`
+        : `New task for you: ${task.title}`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;">
+        <h2 style="color:#111;margin:0 0 12px;">Kitchen Rescue — Task for Keith</h2>
+        <p style="margin:0 0 8px;color:#666;font-size:13px;">${reason === 'updated' ? 'A task assigned to you was updated.' : 'A new task has been allocated to you.'}</p>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#111;">${String(task.title || '').replace(/</g, '&lt;')}</p>
+          ${task.description ? `<p style="margin:0 0 8px;color:#444;">${String(task.description).replace(/</g, '&lt;')}</p>` : ''}
+          <p style="margin:0;color:#555;font-size:14px;"><strong>Project:</strong> ${String(task.project || '—').replace(/</g, '&lt;')}</p>
+          <p style="margin:6px 0 0;color:#555;font-size:14px;"><strong>Priority:</strong> ${String(task.priority || 'medium')}</p>
+          <p style="margin:6px 0 0;color:#555;font-size:14px;"><strong>${when}</strong></p>
+        </div>
+        <p style="margin:0;color:#888;font-size:12px;">Open the Task Planner in admin to mark it done or move it.</p>
+      </div>`;
+    try {
+        await transporter.sendMail({
+            from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+            to: keithEmail,
+            subject,
+            html,
+        });
+        console.log('✅ Keith notified of task:', task.id, '→', keithEmail);
+        return { ok: true, sentTo: keithEmail };
+    } catch (err) {
+        console.error('❌ Failed to email Keith task:', err.message);
+        return { ok: false, reason: err.message };
+    }
+}
+
 // Brevo (Kitchen Rescue leads) — all enquiries should sync to this list
 const BREVO_LEADS_LIST = process.env.BREVO_LEAD_GATE_LIST_ID || process.env.BREVO_LIST_ID;
 console.log('Brevo config: API key set:', !!process.env.BREVO_API_KEY, '| Leads list ID:', BREVO_LEADS_LIST || '(not set — leads will NOT sync to Brevo)');
@@ -3182,13 +3234,18 @@ app.post('/api/tasks', authenticateAdmin, async (req, res) => {
             project: req.body.project || '',
             completed: req.body.completed || false,
             date: req.body.date || null,
+            assignee: req.body.assignee === 'keith' ? 'keith' : 'joe',
         };
         
         console.log('📥 Creating new task:', newTask.id);
         const saved = await addTask(newTask);
         if (saved) {
             console.log('✅ Task created successfully');
-            res.json(newTask);
+            let notified = null;
+            if (newTask.assignee === 'keith' && req.body.notify !== false) {
+                notified = await notifyKeithOfTask(newTask, 'assigned');
+            }
+            res.json({ ...newTask, notified });
         } else {
             console.error('❌ Failed to create task in Supabase');
             res.status(500).json({ 
@@ -3206,13 +3263,32 @@ app.post('/api/tasks', authenticateAdmin, async (req, res) => {
 app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
     try {
         const taskId = req.params.id;
-        const updates = req.body;
+        const updates = { ...req.body };
+        const shouldNotify = updates.notify === true;
+        delete updates.notify;
+        if (updates.assignee && updates.assignee !== 'keith' && updates.assignee !== 'joe') {
+            delete updates.assignee;
+        }
         
         console.log(`📥 Updating task ${taskId}`);
+        // Load previous assignee when we may need to notify
+        let previous = null;
+        if (updates.assignee === 'keith' || shouldNotify) {
+            const all = await getAllTasks();
+            previous = all.find((t) => t.id === taskId) || null;
+        }
         const updated = await updateTask(taskId, updates);
         if (updated) {
             console.log('✅ Task updated successfully');
-            res.json({ success: true });
+            let notified = null;
+            const nextAssignee = updates.assignee || previous?.assignee;
+            const assignedToKeith = nextAssignee === 'keith';
+            const assigneeChanged = previous && updates.assignee && previous.assignee !== updates.assignee;
+            if (assignedToKeith && (assigneeChanged || shouldNotify)) {
+                const merged = { ...(previous || {}), ...updates, id: taskId, assignee: 'keith' };
+                notified = await notifyKeithOfTask(merged, assigneeChanged ? 'assigned' : 'updated');
+            }
+            res.json({ success: true, notified });
         } else {
             console.error(`❌ Failed to update task ${taskId}`);
             res.status(500).json({ 
