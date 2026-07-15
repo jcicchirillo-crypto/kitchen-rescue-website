@@ -8,7 +8,7 @@ const LEAD_STATUSES = ['new', 'callback', 'booked', 'not_interested', 'archived'
 const LEAD_SELECT = 'id, name, email, phone, source, created_at, followed_up, notes, status, quoted_at, quote_booking_id';
 const LEAD_SELECT_LEGACY = 'id, name, email, phone, source, created_at, followed_up, notes, status';
 
-const META_SOURCE_HINTS = ['meta', 'csv-import', 'facebook', 'instagram', 'fb', 'ig'];
+const META_SOURCE_HINTS = ['meta', 'paid', 'csv-import', 'facebook', 'instagram', 'fb', 'ig'];
 
 function isMetaSource(source) {
     const s = String(source || '').toLowerCase().trim();

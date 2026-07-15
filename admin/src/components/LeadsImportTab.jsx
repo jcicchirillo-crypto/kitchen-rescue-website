@@ -30,7 +30,7 @@ export function LeadsImportTab({ leads, onImported, onMessage }) {
     created_at: "",
     notes: "",
   });
-  const [defaultSource, setDefaultSource] = useState("meta");
+  const [defaultSource, setDefaultSource] = useState("paid");
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
@@ -179,7 +179,8 @@ export function LeadsImportTab({ leads, onImported, onMessage }) {
                 onChange={(e) => setDefaultSource(e.target.value)}
                 className="mt-1 w-full h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
               >
-                <option value="meta">Meta (ads / CSV upload)</option>
+                <option value="paid">Paid / Meta ads</option>
+                <option value="meta">Meta</option>
                 <option value="website">Website</option>
               </select>
             </div>

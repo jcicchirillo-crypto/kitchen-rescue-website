@@ -38,7 +38,7 @@ const LEAD_STATUS_OPTIONS = [
 function isMetaLeadSource(source) {
   const s = String(source || "").toLowerCase().trim();
   if (!s) return false;
-  return ["meta", "csv-import", "facebook", "instagram", "fb", "ig"].some(
+  return ["meta", "paid", "csv-import", "facebook", "instagram", "fb", "ig"].some(
     (hint) => s === hint || s.includes(hint)
   );
 }
