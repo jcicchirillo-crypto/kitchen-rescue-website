@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 // Drag and drop fixes applied
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp, Mail } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp, Mail, Repeat } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -20,8 +20,21 @@ const TASK_ASSIGNEES = [
   { id: "keith", name: "Keith Robins", short: "Keith", color: "bg-sky-100 text-sky-800 border-sky-300" },
 ];
 
+const RECURRENCE_OPTIONS = [
+  { id: "none", name: "Does not repeat", short: null },
+  { id: "daily", name: "Daily", short: "Daily" },
+  { id: "weekdays", name: "Weekdays (Mon–Fri)", short: "Weekdays" },
+  { id: "weekly", name: "Weekly", short: "Weekly" },
+  { id: "fortnightly", name: "Fortnightly", short: "2 weeks" },
+  { id: "monthly", name: "Monthly", short: "Monthly" },
+];
+
 function assigneeMeta(id) {
   return TASK_ASSIGNEES.find((a) => a.id === id) || TASK_ASSIGNEES[0];
+}
+
+function recurrenceMeta(id) {
+  return RECURRENCE_OPTIONS.find((r) => r.id === id) || RECURRENCE_OPTIONS[0];
 }
 
 const PROJECT_COLORS = [
@@ -81,6 +94,12 @@ function TaskItem({ task, onToggle, onDelete, onDragStart, onEdit, projectColor,
             <Badge className={assigneeMeta(task.assignee).color} style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
               {assigneeMeta(task.assignee).short}
             </Badge>
+            {recurrenceMeta(task.recurrence).short && (
+              <Badge className="bg-violet-100 text-violet-800 border-violet-300" style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
+                <Repeat className="inline h-2.5 w-2.5 mr-0.5" />
+                {recurrenceMeta(task.recurrence).short}
+              </Badge>
+            )}
             {isRolledOver && (
               <Badge className="bg-red-600 text-white border-red-700 hover:bg-red-600" style={{ fontSize: "9px", padding: "1px 4px", lineHeight: "1.2" }}>
                 Overdue
@@ -148,10 +167,13 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
               style={{ touchAction: 'none' }}
               title={isRolledOver
                 ? `${task.title} — rolled over from ${task.originalDate || "a previous day"}`
-                : `${task.project} - ${task.title} (${priority.name} priority) - Drag to move or click to edit`}
+                : `${task.project} - ${task.title} (${priority.name} priority)${recurrenceMeta(task.recurrence).short ? ` · ${recurrenceMeta(task.recurrence).short}` : ""} - Drag to move or click to edit`}
             >
               <div className="flex items-center justify-between gap-1">
-                <span className="truncate flex-1" onClick={() => onEdit(task)}>{task.title}</span>
+                <span className="truncate flex-1" onClick={() => onEdit(task)}>
+                  {recurrenceMeta(task.recurrence).short ? "↻ " : ""}
+                  {task.title}
+                </span>
                 <span className={`flex-shrink-0 text-[8px] font-semibold px-1 rounded ${assigneeMeta(task.assignee).color}`}>
                   {assigneeMeta(task.assignee).short === "Keith" ? "K" : "Me"}
                 </span>
@@ -317,9 +339,9 @@ export default function Planner() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showManageProjects, setShowManageProjects] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
-  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe", recurrence: "none" });
   const [editingTask, setEditingTask] = useState(null);
-  const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
+  const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe", recurrence: "none" });
   const [assigneeFilter, setAssigneeFilter] = useState("all"); // all | joe | keith
   const [notifyStatus, setNotifyStatus] = useState("");
   const [sendingKeithList, setSendingKeithList] = useState(false);
@@ -564,6 +586,7 @@ export default function Planner() {
       priority: newTask.priority,
       project: newTask.project,
       assignee: newTask.assignee || "joe",
+      recurrence: newTask.recurrence || "none",
       completed: false,
       date: null,
       createdAt: new Date().toISOString(),
@@ -571,7 +594,7 @@ export default function Planner() {
     
     // Optimistically add to UI
     setTasks([...tasks, task]);
-    setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "", assignee: "joe" });
+    setNewTask({ title: "", description: "", priority: "medium", project: projects[0] || "", assignee: "joe", recurrence: "none" });
     setShowAddTask(false);
     
     // Save to API immediately
@@ -653,13 +676,28 @@ export default function Planner() {
         // Revert UI change
         setTasks(tasks);
       } else {
-        console.log('✅ Task updated in Supabase');
-        // Update localStorage backup
-        localStorage.setItem("planner-tasks", JSON.stringify(tasks.map(t => t.id === id ? updated : t)));
+        const data = await res.json().catch(() => ({}));
+        if (data.nextTask) {
+          setTasks((prev) => {
+            const already = prev.some((t) => t.id === data.nextTask.id);
+            return already ? prev : [...prev, data.nextTask];
+          });
+          setNotifyStatus(
+            `Next ${recurrenceMeta(data.nextTask.recurrence).short || "repeat"} due ${data.nextTask.date || "unscheduled"}`
+          );
+          setTimeout(() => setNotifyStatus(""), 4000);
+        }
+        localStorage.setItem(
+          "planner-tasks",
+          JSON.stringify(
+            data.nextTask
+              ? [...tasks.map((t) => (t.id === id ? updated : t)), data.nextTask]
+              : tasks.map((t) => (t.id === id ? updated : t))
+          )
+        );
       }
     } catch (e) {
       console.error("❌ Error updating task:", e);
-      // Revert UI change
       setTasks(tasks);
     }
   };
@@ -976,6 +1014,7 @@ export default function Planner() {
       priority: task.priority || "medium",
       project: task.project || projects[0] || "",
       assignee: task.assignee || "joe",
+      recurrence: task.recurrence || "none",
     });
   };
 
@@ -990,6 +1029,7 @@ export default function Planner() {
       priority: editTask.priority,
       project: editTask.project,
       assignee: editTask.assignee || "joe",
+      recurrence: editTask.recurrence || "none",
     };
     
     // Optimistically update UI
@@ -997,7 +1037,7 @@ export default function Planner() {
       t.id === editingTask.id ? updated : t
     ));
     setEditingTask(null);
-    setEditTask({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
+    setEditTask({ title: "", description: "", priority: "medium", project: "", assignee: "joe", recurrence: "none" });
     
     // Save to API immediately
     try {
@@ -1013,6 +1053,7 @@ export default function Planner() {
           priority: editTask.priority,
           project: editTask.project,
           assignee: editTask.assignee || "joe",
+          recurrence: editTask.recurrence || "none",
           notify: editTask.assignee === "keith" && assigneeChanged,
         }),
       });
@@ -1441,8 +1482,24 @@ export default function Planner() {
                           </option>
                         ))}
                       </select>
+                      <select
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                        value={newTask.recurrence || "none"}
+                        onChange={(e) => setNewTask({ ...newTask, recurrence: e.target.value })}
+                      >
+                        {RECURRENCE_OPTIONS.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </select>
                       {newTask.assignee === "keith" && (
                         <p className="text-[11px] text-sky-700">Keith will be emailed this task when you add it.</p>
+                      )}
+                      {newTask.recurrence && newTask.recurrence !== "none" && (
+                        <p className="text-[11px] text-violet-700">
+                          When marked done, the next one is created automatically.
+                        </p>
                       )}
                       <div className="flex gap-2">
                         <Button size="sm" onClick={addTask} className="flex-1">
@@ -1668,6 +1725,25 @@ export default function Planner() {
                     {editTask.assignee === "keith" && (
                       <p className="text-[11px] text-sky-700 mt-1">
                         Saving will email Keith if you just assigned it to him.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Repeat</Label>
+                    <select
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                      value={editTask.recurrence || "none"}
+                      onChange={(e) => setEditTask({ ...editTask, recurrence: e.target.value })}
+                    >
+                      {RECURRENCE_OPTIONS.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                    {editTask.recurrence && editTask.recurrence !== "none" && (
+                      <p className="text-[11px] text-violet-700 mt-1">
+                        Completing this creates the next occurrence on the calendar.
                       </p>
                     )}
                   </div>

@@ -30,6 +30,7 @@ const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBookin
 const { addLead, getAllLeads, updateLead, importLeads, LEAD_STATUSES } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
+const { normalizeRecurrence, nextOccurrenceDate } = require('./task-recurrence');
 // PDF generation removed - builders can add their own uplift to quotes
 
 // Initialize Stripe only if credentials are available
@@ -3300,6 +3301,7 @@ app.post('/api/tasks', authenticateAdmin, async (req, res) => {
             completed: req.body.completed || false,
             date: req.body.date || null,
             assignee: req.body.assignee === 'keith' ? 'keith' : 'joe',
+            recurrence: normalizeRecurrence(req.body.recurrence),
         };
         
         console.log('📥 Creating new task:', newTask.id);
@@ -3352,11 +3354,17 @@ app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
         if (updates.assignee && updates.assignee !== 'keith' && updates.assignee !== 'joe') {
             delete updates.assignee;
         }
+        if (Object.prototype.hasOwnProperty.call(updates, 'recurrence')) {
+            updates.recurrence = normalizeRecurrence(updates.recurrence);
+        }
         
         console.log(`📥 Updating task ${taskId}`);
-        // Load previous assignee when we may need to notify
+        // Load previous task when we may need to notify or spawn recurrence
+        const needsPrevious = updates.assignee === 'keith'
+            || shouldNotify
+            || updates.completed === true;
         let previous = null;
-        if (updates.assignee === 'keith' || shouldNotify) {
+        if (needsPrevious) {
             const all = await getAllTasks();
             previous = all.find((t) => t.id === taskId) || null;
         }
@@ -3364,6 +3372,7 @@ app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
         if (updated) {
             console.log('✅ Task updated successfully');
             let notified = null;
+            let nextTask = null;
             const nextAssignee = updates.assignee || previous?.assignee;
             const assignedToKeith = nextAssignee === 'keith';
             const assigneeChanged = previous && updates.assignee && previous.assignee !== updates.assignee;
@@ -3371,7 +3380,42 @@ app.put('/api/tasks/:id', authenticateAdmin, async (req, res) => {
                 const merged = { ...(previous || {}), ...updates, id: taskId, assignee: 'keith' };
                 notified = await notifyKeithOfTask(merged, assigneeChanged ? 'assigned' : 'updated');
             }
-            res.json({ success: true, notified });
+
+            // When a recurring task is marked complete, create the next occurrence
+            const justCompleted = updates.completed === true && previous && !previous.completed;
+            const recurrence = normalizeRecurrence(updates.recurrence || previous?.recurrence);
+            if (justCompleted && recurrence !== 'none') {
+                const baseDate = Object.prototype.hasOwnProperty.call(updates, 'date')
+                    ? updates.date
+                    : previous.date;
+                const nextDate = nextOccurrenceDate(baseDate, recurrence);
+                nextTask = {
+                    id: `task-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    title: previous.title,
+                    description: previous.description || '',
+                    priority: previous.priority || 'medium',
+                    project: previous.project || '',
+                    assignee: previous.assignee || 'joe',
+                    recurrence,
+                    completed: false,
+                    date: nextDate,
+                    rolledOver: false,
+                    originalDate: null,
+                };
+                const spawned = await addTask(nextTask);
+                if (!spawned) {
+                    console.error('❌ Failed to spawn next recurring task');
+                    nextTask = null;
+                } else {
+                    console.log('✅ Spawned next recurrence:', nextTask.id, 'due', nextDate);
+                    if (nextTask.assignee === 'keith') {
+                        // Don't auto-email every recurrence spawn — user can send list button.
+                        // Only notify if they specifically notified on the complete call.
+                    }
+                }
+            }
+
+            res.json({ success: true, notified, nextTask });
         } else {
             console.error(`❌ Failed to update task ${taskId}`);
             res.status(500).json({ 

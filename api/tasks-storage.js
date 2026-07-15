@@ -51,6 +51,7 @@ async function getAllTasks() {
                 completed: task.completed || false,
                 date: task.date || null,
                 assignee: task.assignee || 'joe',
+                recurrence: task.recurrence || 'none',
                 rolledOver: !!task.rolled_over,
                 originalDate: task.original_date || null,
                 createdAt: task.created_at
@@ -120,6 +121,7 @@ async function addTask(newTask) {
                 completed: newTask.completed || false,
                 date: newTask.date || null,
                 assignee: newTask.assignee || 'joe',
+                recurrence: newTask.recurrence || 'none',
             };
             
             console.log('💾 Attempting to save task to Supabase:', taskData.id);
@@ -132,16 +134,39 @@ async function addTask(newTask) {
                 .single();
             
             if (error) {
-                // Retry without assignee if column missing
-                if (error.message?.includes('assignee') || error.code === '42703') {
+                // Retry without newer columns if migration not applied yet
+                if (
+                    error.message?.includes('assignee')
+                    || error.message?.includes('recurrence')
+                    || error.code === '42703'
+                ) {
                     const legacy = { ...taskData };
-                    delete legacy.assignee;
+                    if (error.message?.includes('recurrence') || error.code === '42703') {
+                        delete legacy.recurrence;
+                    }
+                    if (error.message?.includes('assignee') || error.code === '42703') {
+                        delete legacy.assignee;
+                    }
+                    // If both might be missing, strip both
+                    if (error.code === '42703') {
+                        delete legacy.recurrence;
+                        delete legacy.assignee;
+                    }
                     const retry = await supabase.from('tasks').insert([legacy]).select().single();
                     if (retry.error) {
-                        console.error('❌ Supabase task insert error:', retry.error.message);
-                        return false;
+                        // One more try: strip both explicitly
+                        const bare = { ...taskData };
+                        delete bare.assignee;
+                        delete bare.recurrence;
+                        const retry2 = await supabase.from('tasks').insert([bare]).select().single();
+                        if (retry2.error) {
+                            console.error('❌ Supabase task insert error:', retry2.error.message);
+                            return false;
+                        }
+                        console.log('✅ Task saved (without assignee/recurrence — run SUPABASE_TASKS_* setup SQL)');
+                        return true;
                     }
-                    console.log('✅ Task saved (without assignee — run SUPABASE_TASKS_ASSIGNEE_SETUP.sql)');
+                    console.log('✅ Task saved (partial columns — run SUPABASE_TASKS_* setup SQL if needed)');
                     return true;
                 }
                 console.error('❌❌❌ SUPABASE TASK INSERT ERROR ❌❌❌');
@@ -202,17 +227,19 @@ async function updateTask(taskId, updates) {
                 .select();
 
             if (error) {
-                // Retry without rollover/assignee columns if migration not applied yet
+                // Retry without rollover/assignee/recurrence columns if migration not applied yet
                 if (
                     error.message?.includes('rolled_over')
                     || error.message?.includes('original_date')
                     || error.message?.includes('assignee')
+                    || error.message?.includes('recurrence')
                     || error.code === '42703'
                 ) {
                     const legacy = { ...dbUpdates };
                     delete legacy.rolled_over;
                     delete legacy.original_date;
                     delete legacy.assignee;
+                    delete legacy.recurrence;
                     const retry = await supabase
                         .from('tasks')
                         .update(legacy)
