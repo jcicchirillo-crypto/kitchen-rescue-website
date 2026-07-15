@@ -180,7 +180,7 @@ function adminNotifyTo() {
 console.log('Admin notify emails:', adminNotifyTo() || '(none)');
 
 const TASK_ASSIGNEES = {
-    joe: { id: 'joe', name: 'Joe', email: null },
+    joe: { id: 'joe', name: 'Me', email: null },
     keith: {
         id: 'keith',
         name: 'Keith Robins',
@@ -228,6 +228,71 @@ async function notifyKeithOfTask(task, reason = 'assigned') {
     } catch (err) {
         console.error('❌ Failed to email Keith task:', err.message);
         return { ok: false, reason: err.message };
+    }
+}
+
+function escapeHtml(value) {
+    return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function emailKeithTodoList(tasks) {
+    const keithEmail = TASK_ASSIGNEES.keith.email;
+    if (!transporter || !keithEmail) {
+        return { ok: false, reason: 'email-not-configured', count: 0 };
+    }
+    const open = (tasks || [])
+        .filter((t) => (t.assignee || 'joe') === 'keith' && !t.completed)
+        .sort((a, b) => {
+            const da = a.date || '9999-99-99';
+            const db = b.date || '9999-99-99';
+            if (da !== db) return da.localeCompare(db);
+            const priorityRank = { high: 0, medium: 1, low: 2 };
+            return (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1);
+        });
+
+    if (open.length === 0) {
+        return { ok: false, reason: 'no-tasks', count: 0 };
+    }
+
+    const rows = open.map((t) => {
+        const when = t.date ? t.date : 'Not scheduled';
+        const overdue = t.rolledOver ? ' <span style="color:#b91c1c;font-weight:700;">(overdue)</span>' : '';
+        return `
+          <tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
+              <div style="font-weight:700;color:#111;">${escapeHtml(t.title)}</div>
+              ${t.description ? `<div style="margin-top:4px;color:#555;font-size:13px;">${escapeHtml(t.description)}</div>` : ''}
+              <div style="margin-top:6px;color:#6b7280;font-size:12px;">
+                ${escapeHtml(t.project || '—')} · ${escapeHtml(t.priority || 'medium')} · ${escapeHtml(when)}${overdue}
+              </div>
+            </td>
+          </tr>`;
+    }).join('');
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+        <h2 style="color:#111;margin:0 0 8px;">Your Kitchen Rescue to-do list</h2>
+        <p style="margin:0 0 16px;color:#666;font-size:14px;">
+          You have <strong>${open.length}</strong> open task${open.length === 1 ? '' : 's'}.
+        </p>
+        <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+          ${rows}
+        </table>
+        <p style="margin:16px 0 0;color:#888;font-size:12px;">Sent from the Kitchen Rescue Task Planner.</p>
+      </div>`;
+
+    try {
+        await transporter.sendMail({
+            from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+            to: keithEmail,
+            subject: `Your to-do list (${open.length} task${open.length === 1 ? '' : 's'})`,
+            html,
+        });
+        console.log('✅ Keith to-do list emailed:', open.length, '→', keithEmail);
+        return { ok: true, sentTo: keithEmail, count: open.length };
+    } catch (err) {
+        console.error('❌ Failed to email Keith to-do list:', err.message);
+        return { ok: false, reason: err.message, count: open.length };
     }
 }
 
@@ -3256,6 +3321,24 @@ app.post('/api/tasks', authenticateAdmin, async (req, res) => {
     } catch (error) {
         console.error('❌ Exception creating task:', error);
         res.status(500).json({ error: 'Failed to create task', message: error.message });
+    }
+});
+
+// Email Keith his open to-do list
+app.post('/api/tasks/keith-todo', authenticateAdmin, async (req, res) => {
+    try {
+        const tasks = await getAllTasks();
+        const result = await emailKeithTodoList(tasks);
+        if (result.reason === 'no-tasks') {
+            return res.status(400).json({ error: 'Keith has no open tasks', ...result });
+        }
+        if (!result.ok) {
+            return res.status(500).json({ error: 'Failed to email Keith', ...result });
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Error emailing Keith to-do list:', error);
+        res.status(500).json({ error: 'Failed to email Keith', message: error.message });
     }
 });
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 // Drag and drop fixes applied
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp, Mail } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -16,7 +16,7 @@ const PRIORITY_LEVELS = [
 ];
 
 const TASK_ASSIGNEES = [
-  { id: "joe", name: "Joe", short: "Joe", color: "bg-slate-100 text-slate-700 border-slate-300" },
+  { id: "joe", name: "Me", short: "Me", color: "bg-slate-100 text-slate-700 border-slate-300" },
   { id: "keith", name: "Keith Robins", short: "Keith", color: "bg-sky-100 text-sky-800 border-sky-300" },
 ];
 
@@ -153,7 +153,7 @@ function CalendarDay({ day, tasks, onDrop, onDragOver, isCurrentMonth, view, pro
               <div className="flex items-center justify-between gap-1">
                 <span className="truncate flex-1" onClick={() => onEdit(task)}>{task.title}</span>
                 <span className={`flex-shrink-0 text-[8px] font-semibold px-1 rounded ${assigneeMeta(task.assignee).color}`}>
-                  {assigneeMeta(task.assignee).short === "Keith" ? "K" : "J"}
+                  {assigneeMeta(task.assignee).short === "Keith" ? "K" : "Me"}
                 </span>
                 <button
                   onClick={(e) => {
@@ -322,6 +322,7 @@ export default function Planner() {
   const [editTask, setEditTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe" });
   const [assigneeFilter, setAssigneeFilter] = useState("all"); // all | joe | keith
   const [notifyStatus, setNotifyStatus] = useState("");
+  const [sendingKeithList, setSendingKeithList] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
   const [touchDraggedTask, setTouchDraggedTask] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
@@ -1063,6 +1064,32 @@ export default function Planner() {
     }
   };
 
+  const sendKeithTodoList = async () => {
+    setSendingKeithList(true);
+    try {
+      const res = await fetch("/api/tasks/keith-todo", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 400 && data.reason === "no-tasks") {
+        setNotifyStatus("Keith has no open tasks");
+      } else if (!res.ok || !data.ok) {
+        setNotifyStatus("Could not email Keith's list");
+      } else {
+        setNotifyStatus(`Sent Keith ${data.count} task${data.count === 1 ? "" : "s"}`);
+      }
+      setTimeout(() => setNotifyStatus(""), 4000);
+    } catch {
+      setNotifyStatus("Could not email Keith's list");
+      setTimeout(() => setNotifyStatus(""), 3000);
+    } finally {
+      setSendingKeithList(false);
+    }
+  };
+
   const handleUnschedule = async (taskId) => {
     const originalTask = tasks.find(t => t.id === taskId);
     if (!originalTask) return;
@@ -1176,7 +1203,7 @@ export default function Planner() {
             <div className="flex items-center gap-1 rounded-md border bg-white p-0.5">
               {[
                 { id: "all", label: "All" },
-                { id: "joe", label: "Joe" },
+                { id: "joe", label: "Me" },
                 { id: "keith", label: "Keith" },
               ].map((opt) => (
                 <button
@@ -1196,6 +1223,16 @@ export default function Planner() {
                 {notifyStatus}
               </span>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-sky-800 border-sky-300 hover:bg-sky-50"
+              onClick={sendKeithTodoList}
+              disabled={sendingKeithList}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              {sendingKeithList ? "Sending…" : "Email Keith's list"}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowManageProjects(!showManageProjects)}>
               <Settings className="h-4 w-4 mr-2" />
               Manage Projects
@@ -1400,7 +1437,7 @@ export default function Planner() {
                       >
                         {TASK_ASSIGNEES.map((a) => (
                           <option key={a.id} value={a.id}>
-                            Assign to {a.name}
+                            {a.name}
                           </option>
                         ))}
                       </select>
