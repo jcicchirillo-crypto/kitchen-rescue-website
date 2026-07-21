@@ -206,12 +206,20 @@ async function markLeadQuoted({
     bookingId,
     totalCost,
     source,
+    startDate,
+    endDate,
+    days,
+    notes,
 } = {}) {
     if (!useSupabase || !supabase) return { ok: false, error: 'Supabase not available' };
 
+    const when = startDate && endDate
+        ? `${startDate} → ${endDate}${days ? ` (${days} days)` : ''}`
+        : null;
     const noteLine = [
         'Quote sent',
         bookingId ? `(${bookingId})` : null,
+        when,
         totalCost != null && totalCost !== '' ? `£${Number(totalCost).toFixed(2)}` : null,
         source ? `via ${source}` : null,
     ].filter(Boolean).join(' ');
@@ -225,7 +233,7 @@ async function markLeadQuoted({
             phone,
             source: source === 'admin-custom-quote' ? 'website' : (source || 'website'),
             status: 'callback',
-            notes: noteLine,
+            notes: appendNotes(notes, noteLine),
             quoted_at: new Date().toISOString(),
             quote_booking_id: bookingId || null,
         });
@@ -234,7 +242,7 @@ async function markLeadQuoted({
     }
 
     const patch = {
-        notes: appendNotes(existing.notes, noteLine),
+        notes: appendNotes(appendNotes(existing.notes, notes), noteLine),
         quoted_at: new Date().toISOString(),
         quote_booking_id: bookingId || existing.quote_booking_id || null,
     };

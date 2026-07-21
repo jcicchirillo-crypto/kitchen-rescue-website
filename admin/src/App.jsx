@@ -53,6 +53,39 @@ function phoneDigitsKey(raw) {
   return digits.length >= 10 ? digits.slice(-10) : digits;
 }
 
+/** Quotes / trade enquiries are not customers until they book. */
+function isCustomerBooking(b) {
+  if (!b) return false;
+  const status = String(b.status || "").toLowerCase();
+  const source = String(b.source || "").toLowerCase();
+
+  if (status === "confirmed") return true;
+  if (source === "booking" || source === "admin") return true;
+
+  // Still enquiries — keep out of Customers
+  if (
+    source === "quote"
+    || source === "admin-custom-quote"
+    || source === "homepage"
+    || source.includes("trade")
+  ) {
+    return false;
+  }
+  if (
+    status.includes("trade")
+    || status === "quote calculated"
+    || status === "trade quote request"
+    || status === "trade pack request"
+  ) {
+    return false;
+  }
+  // Open quote that was never confirmed
+  if (b.quote_sent_at && status.includes("await")) return false;
+
+  // Real hire booking with dates
+  return !!(b.startDate && b.endDate);
+}
+
 function leadStatus(lead) {
   if (lead?.status && LEAD_STATUS_OPTIONS.some((s) => s.id === lead.status)) return lead.status;
   return lead?.followed_up ? "archived" : "new";
@@ -288,7 +321,9 @@ function KitchenRescueAdmin() {
   const [savingLeadId, setSavingLeadId] = useState(null);
   const [leadsTab, setLeadsTab] = useState("new");
   const [leadSourceFilter, setLeadSourceFilter] = useState("all"); // all | meta | website
+  const [selectedLead, setSelectedLead] = useState(null);
   const [followUpTab, setFollowUpTab] = useState("open");
+  const [bookingLeadPrefill, setBookingLeadPrefill] = useState(null);
   const [quoteFollowUpDrafts, setQuoteFollowUpDrafts] = useState({});
   const [savingQuoteId, setSavingQuoteId] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -435,6 +470,9 @@ function KitchenRescueAdmin() {
     const result = await saveLeadUpdate(lead.id, { notes });
     if (result) {
       setLeadNotesDraft((prev) => ({ ...prev, [lead.id]: result.notes || "" }));
+      if (selectedLead?.id === lead.id) {
+        setSelectedLead((prev) => (prev ? { ...prev, notes: result.notes || "" } : prev));
+      }
     }
   };
 
@@ -494,6 +532,31 @@ function KitchenRescueAdmin() {
     if (p && quotedContactKeys.phones.has(p)) return true;
     return false;
   };
+
+  const findQuotesForLead = (lead) => {
+    if (!lead) return [];
+    const email = String(lead.email || "").trim().toLowerCase();
+    const phone = phoneDigitsKey(lead.phone);
+    const matched = bookings.filter((b) => {
+      if (lead.quote_booking_id && b.id === lead.quote_booking_id) return true;
+      const be = String(b.email || "").trim().toLowerCase();
+      const bp = phoneDigitsKey(b.phone);
+      const contactMatch = (email && be === email) || (phone && bp && phone === bp);
+      if (!contactMatch) return false;
+      const source = String(b.source || "").toLowerCase();
+      return (
+        !!b.quote_sent_at
+        || source === "quote"
+        || source === "admin-custom-quote"
+        || source === "homepage"
+      );
+    });
+    return matched.sort((a, b) => {
+      const da = new Date(a.quote_sent_at || a.createdAt || a.timestamp || 0).getTime();
+      const db = new Date(b.quote_sent_at || b.createdAt || b.timestamp || 0).getTime();
+      return db - da;
+    });
+  };
   const openQuoteBookings = useMemo(
     () => quoteBookings.filter((b) => !["won", "lost", "closed"].includes((b.follow_up_status || "open").toLowerCase())),
     [quoteBookings]
@@ -510,7 +573,7 @@ function KitchenRescueAdmin() {
       email: lead.email || "",
       phone: lead.phone || "",
       postcode: lead.postcode || "",
-      notes: lead.notes || "",
+      notes: (leadNotesDraft[lead.id] ?? lead.notes) || "",
     });
     setShowCustomQuote(true);
   };
@@ -657,8 +720,12 @@ function KitchenRescueAdmin() {
 
   const renderLeadRows = (items) =>
     items.map((l) => (
-      <TableRow key={l.id}>
-        <TableCell>
+      <TableRow
+        key={l.id}
+        className="cursor-pointer hover:bg-slate-50/80"
+        onClick={() => setSelectedLead(l)}
+      >
+        <TableCell onClick={(e) => e.stopPropagation()}>
           <select
             className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
             value={leadStatus(l)}
@@ -673,12 +740,12 @@ function KitchenRescueAdmin() {
           {savingLeadId === l.id ? <Loader2 className="inline h-3 w-3 ml-1 animate-spin text-slate-400" /> : null}
         </TableCell>
         <TableCell className="font-medium">
-          <div>{l.name || "—"}</div>
+          <div className="text-slate-900 underline-offset-2 hover:underline">{l.name || "—"}</div>
           {leadIsQuoted(l) && (
             <Badge className="mt-1 bg-violet-100 text-violet-800 hover:bg-violet-100 text-[10px]">Quoted</Badge>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()}>
           {l.email ? (
             <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1">
               <Mail className="h-3 w-3" />
@@ -686,7 +753,7 @@ function KitchenRescueAdmin() {
             </a>
           ) : "—"}
         </TableCell>
-        <TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()}>
           {l.phone ? (
             <a href={`tel:${l.phone}`} className="text-slate-700 hover:underline flex items-center gap-1">
               <Phone className="h-3 w-3" />
@@ -705,7 +772,7 @@ function KitchenRescueAdmin() {
             >
               {leadSourceLabel(l.source)}
             </Badge>
-            {l.source && !["meta", "website"].includes(String(l.source).toLowerCase()) && (
+            {l.source && !["meta", "website", "paid"].includes(String(l.source).toLowerCase()) && (
               <span className="text-[10px] text-slate-400">{l.source}</span>
             )}
           </div>
@@ -713,7 +780,7 @@ function KitchenRescueAdmin() {
         <TableCell className="text-slate-500 text-sm whitespace-nowrap">
           {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : "—"}
         </TableCell>
-        <TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()}>
           <Textarea
             value={leadNotesDraft[l.id] ?? l.notes ?? ""}
             onChange={(e) => setLeadNotesDraft((prev) => ({ ...prev, [l.id]: e.target.value }))}
@@ -723,7 +790,7 @@ function KitchenRescueAdmin() {
             disabled={savingLeadId === l.id}
           />
         </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-end gap-2">
             <Button
               size="sm"
@@ -740,7 +807,15 @@ function KitchenRescueAdmin() {
               className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
               onClick={() => {
                 setLeadStatus(l, "booked");
+                setBookingLeadPrefill({
+                  name: l.name || "",
+                  email: l.email || "",
+                  phone: l.phone || "",
+                  postcode: l.postcode || "",
+                  notes: leadNotesDraft[l.id] ?? l.notes ?? "",
+                });
                 setShowCreateBooking(true);
+                setSelectedLead(null);
               }}
             >
               <Plus className="h-3 w-3" />
@@ -855,12 +930,15 @@ function KitchenRescueAdmin() {
   };
 
   const filtered = useMemo(() => {
-    if (!query?.trim()) return bookings;
+    const customers = bookings.filter(isCustomerBooking);
+    if (!query?.trim()) return customers;
     const q = query.toLowerCase();
-    return bookings.filter((b) =>
+    return customers.filter((b) =>
       [b.id, b.name, b.email, b.postcode, b.pod, b.status].join(" ").toLowerCase().includes(q)
     );
   }, [bookings, query]);
+
+  const customerBookings = useMemo(() => bookings.filter(isCustomerBooking), [bookings]);
 
   if (!isLoggedIn) return <LoginForm onLogin={() => setIsLoggedIn(true)} />;
 
@@ -915,10 +993,10 @@ function KitchenRescueAdmin() {
 
       <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Stat icon={CalendarIcon} label="Pod on hire" value={bookings.filter(b=>b.status==="Confirmed").length} />
-          <Stat icon={CreditCard} label="Deposits pending" value={bookings.filter(b=>b.status!=="Confirmed" && b.status!=="Quote Calculated" && b.status!=="Trade Quote Request" && b.status!=="Cancelled").length} />
-          <Stat icon={Users} label="Customers" value={new Set(bookings.map(b=>b.email)).size} />
-          <Stat icon={Wallet} label="This month revenue" value={`£${bookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
+          <Stat icon={CalendarIcon} label="Pod on hire" value={customerBookings.filter(b=>b.status==="Confirmed").length} />
+          <Stat icon={CreditCard} label="Deposits pending" value={customerBookings.filter(b=>b.status!=="Confirmed" && b.status!=="Cancelled").length} />
+          <Stat icon={Users} label="Customers" value={new Set(customerBookings.map(b=>b.email).filter(Boolean)).size} />
+          <Stat icon={Wallet} label="This month revenue" value={`£${customerBookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
         </div>
 
         <Card className={`mb-4 ${
@@ -1086,9 +1164,9 @@ function KitchenRescueAdmin() {
             )}
             <CardDescription>
               {leadsTab === "new"
-                ? "New enquiries. Call them, then move each lead into Callbacks, Booked, or Not interested using the Status column. Download Excel to work offline."
+                ? "New enquiries. Click a row to see notes and what was quoted. Quotes stay here — not under Customers until they book."
                 : leadsTab === "callback"
-                  ? "Leads that need a call back. Update status when you've spoken to them."
+                  ? "Leads that need a call back. Click a row to open notes and quote details."
                   : leadsTab === "booked"
                     ? "Leads that converted to a booking."
                     : leadsTab === "not_interested"
@@ -1234,7 +1312,7 @@ function KitchenRescueAdmin() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bookings.slice(0, 5).map((b) => (
+                  {customerBookings.filter((b) => b.status !== "Confirmed" && b.status !== "Cancelled").slice(0, 8).map((b) => (
                     <TableRow key={b.id} onClick={()=>setSelectedId(b.id)} className="cursor-pointer">
                       <TableCell className="font-medium">{b.id}</TableCell>
                       <TableCell>
@@ -1281,7 +1359,7 @@ function KitchenRescueAdmin() {
         <Card className="mt-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Customers</CardTitle>
-            <CardDescription>All bookings and contact details. Use &quot;Send confirmation&quot; after payment is received to email the customer and mark as Confirmed.</CardDescription>
+            <CardDescription>Bookings only (past, present and future). Quotes stay under Enquiries until they book.</CardDescription>
             {confirmationMessage && (
               <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
                 {confirmationMessage.text}
@@ -1385,9 +1463,14 @@ function KitchenRescueAdmin() {
 
         <CreateBookingModal
           open={showCreateBooking}
-          onClose={() => setShowCreateBooking(false)}
+          initialValues={bookingLeadPrefill}
+          onClose={() => {
+            setShowCreateBooking(false);
+            setBookingLeadPrefill(null);
+          }}
           onCreated={() => {
             fetchBookings();
+            fetchLeads();
             setConfirmationMessage({ type: "success", text: "Booking created successfully" });
           }}
         />
@@ -1400,6 +1483,159 @@ function KitchenRescueAdmin() {
             setConfirmationMessage({ type: "success", text: "Booking updated successfully" });
           }}
         />
+        {selectedLead && (() => {
+          const lead = leads.find((x) => x.id === selectedLead.id) || selectedLead;
+          const quotes = findQuotesForLead(lead);
+          const notesValue = leadNotesDraft[lead.id] ?? lead.notes ?? "";
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedLead(null)}>
+              <Card className="w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <CardHeader className="flex flex-row items-center justify-between border-b">
+                  <div>
+                    <CardTitle className="text-lg">Enquiry — {lead.name || "Untitled"}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {leadSourceLabel(lead.source)} enquiry
+                      {leadIsQuoted(lead) ? " · Quoted" : ""}
+                    </CardDescription>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} aria-label="Close">
+                    <X className="h-5 w-5" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="overflow-y-auto pt-4 space-y-4">
+                  <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 text-sm">
+                    <span className="text-slate-500">Status</span>
+                    <span>{LEAD_STATUS_OPTIONS.find((s) => s.id === leadStatus(lead))?.label || leadStatus(lead)}</span>
+                    <span className="text-slate-500">Email</span>
+                    <span>
+                      {lead.email ? (
+                        <a href={`mailto:${lead.email}`} className="text-red-600 hover:underline">{lead.email}</a>
+                      ) : "—"}
+                    </span>
+                    <span className="text-slate-500">Phone</span>
+                    <span>
+                      {lead.phone ? (
+                        <a href={`tel:${lead.phone}`} className="hover:underline">{lead.phone}</a>
+                      ) : "—"}
+                    </span>
+                    <span className="text-slate-500">Source</span>
+                    <span>
+                      <Badge
+                        className={
+                          isMetaLeadSource(lead.source)
+                            ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                            : "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                        }
+                      >
+                        {leadSourceLabel(lead.source)}
+                      </Badge>
+                      {lead.source ? <span className="ml-2 text-xs text-slate-400">{lead.source}</span> : null}
+                    </span>
+                    <span className="text-slate-500">Created</span>
+                    <span>
+                      {lead.created_at ? format(new Date(lead.created_at), "d MMM yyyy HH:mm") : "—"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-500">Notes</Label>
+                    <Textarea
+                      value={notesValue}
+                      onChange={(e) => setLeadNotesDraft((prev) => ({ ...prev, [lead.id]: e.target.value }))}
+                      onBlur={() => saveLeadNotes(lead)}
+                      placeholder="Add follow-up notes…"
+                      className="mt-1 min-h-[90px] text-sm"
+                      disabled={savingLeadId === lead.id}
+                    />
+                  </div>
+
+                  <div className="border-t pt-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-800">What was quoted</h3>
+                    {quotes.length === 0 ? (
+                      <p className="text-sm text-slate-500">No quote sent yet for this enquiry.</p>
+                    ) : (
+                      quotes.map((q) => {
+                        const total = getQuoteTotal(q);
+                        return (
+                          <div key={q.id} className="rounded-lg border border-violet-200 bg-violet-50/50 p-3 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100">Quote {q.id}</Badge>
+                              {q.quote_sent_at || q.createdAt || q.timestamp ? (
+                                <span className="text-xs text-slate-500">
+                                  Sent {format(new Date(q.quote_sent_at || q.createdAt || q.timestamp), "d MMM yyyy HH:mm")}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="grid grid-cols-[100px_1fr] gap-x-3 gap-y-1 text-sm">
+                              <span className="text-slate-500">Dates</span>
+                              <span>
+                                {q.startDate ? format(new Date(q.startDate), "d MMM yyyy") : "—"}
+                                {" – "}
+                                {q.endDate ? format(new Date(q.endDate), "d MMM yyyy") : "—"}
+                                {q.days != null ? ` (${q.days} days)` : ""}
+                              </span>
+                              <span className="text-slate-500">Hire</span>
+                              <span>£{q.dailyCost != null ? Number(q.dailyCost).toFixed(2) : "—"}</span>
+                              <span className="text-slate-500">Delivery</span>
+                              <span>£{q.deliveryCost != null ? Number(q.deliveryCost).toFixed(2) : "—"}</span>
+                              <span className="text-slate-500">Collection</span>
+                              <span>£{q.collectionCost != null ? Number(q.collectionCost).toFixed(2) : "—"}</span>
+                              <span className="text-slate-500">Total</span>
+                              <span className="font-semibold">{total != null ? `£${total.toFixed(2)}` : "—"}</span>
+                              <span className="text-slate-500">Postcode</span>
+                              <span>{q.postcode || "—"}</span>
+                              {q.notes ? (
+                                <>
+                                  <span className="text-slate-500">Quote notes</span>
+                                  <span className="break-words whitespace-pre-wrap">{q.notes}</span>
+                                </>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="border-t pt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-red-700 border-red-300"
+                      onClick={() => {
+                        openCustomQuoteForLead(lead);
+                        setSelectedLead(null);
+                      }}
+                    >
+                      <Mail className="h-3 w-3" />
+                      Custom quote
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-emerald-700 border-emerald-300"
+                      onClick={() => {
+                        setLeadStatus(lead, "booked");
+                        setBookingLeadPrefill({
+                          name: lead.name || "",
+                          email: lead.email || "",
+                          phone: lead.phone || "",
+                          postcode: lead.postcode || "",
+                          notes: notesValue,
+                        });
+                        setShowCreateBooking(true);
+                        setSelectedLead(null);
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Convert to booking
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })()}
         {selectedBooking && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedId(null)}>
             <Card className="w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>

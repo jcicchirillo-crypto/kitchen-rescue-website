@@ -1514,6 +1514,10 @@ app.post('/send-quote-email', async (req, res) => {
                         bookingId: newBooking.id,
                         totalCost: newBooking.totalCost,
                         source: newBooking.source,
+                        startDate: newBooking.startDate,
+                        endDate: newBooking.endDate,
+                        days: newBooking.days,
+                        notes: bookingNotes || notes || '',
                     });
                 } catch (e) {
                     console.error('markLeadQuoted failed:', e.message);
@@ -1658,6 +1662,10 @@ app.post('/send-quote-email', async (req, res) => {
                     bookingId: newBooking.id,
                     totalCost: newBooking.totalCost,
                     source: newBooking.source,
+                    startDate: newBooking.startDate,
+                    endDate: newBooking.endDate,
+                    days: newBooking.days,
+                    notes: bookingNotes || notes || '',
                 });
             } catch (e) {
                 console.error('markLeadQuoted failed:', e.message);
@@ -3295,7 +3303,48 @@ app.patch('/api/leads/:id', authenticateAdmin, async (req, res) => {
 app.get('/api/tasks', authenticateAdmin, async (req, res) => {
     try {
         console.log('📥 Admin requesting tasks...');
-        const tasks = await getAllTasks();
+        let tasks = await getAllTasks();
+
+        // Move unfinished tasks from previous dates onto today's planner.
+        // Do this on the server so rollover is not dependent on browser
+        // localStorage or on the Planner being open at midnight.
+        const londonParts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).formatToParts(new Date());
+        const datePart = (type) => londonParts.find((part) => part.type === type)?.value;
+        const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
+        const overdueTasks = tasks.filter(
+            (task) => task.date && !task.completed && task.date < today
+        );
+
+        if (overdueTasks.length > 0) {
+            console.log(`🔄 Rolling ${overdueTasks.length} unfinished task(s) forward to ${today}`);
+            const results = await Promise.all(
+                overdueTasks.map((task) => {
+                    const originalDate = task.originalDate || task.date;
+                    return updateTask(task.id, {
+                        date: today,
+                        rolledOver: true,
+                        originalDate,
+                    });
+                })
+            );
+
+            tasks = tasks.map((task) => {
+                const index = overdueTasks.findIndex((overdue) => overdue.id === task.id);
+                if (index === -1 || !results[index]) return task;
+                return {
+                    ...task,
+                    date: today,
+                    rolledOver: true,
+                    originalDate: task.originalDate || task.date,
+                };
+            });
+        }
+
         console.log(`✅ Returning ${tasks.length} tasks to admin`);
         res.json(tasks);
     } catch (error) {

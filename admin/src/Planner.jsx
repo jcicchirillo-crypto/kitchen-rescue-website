@@ -351,7 +351,7 @@ export default function Planner() {
   const [touchCurrentPos, setTouchCurrentPos] = useState(null);
   const [hoveredDropZone, setHoveredDropZone] = useState(null); // Track which drop zone is being hovered
   const [syncStatus, setSyncStatus] = useState(""); // "syncing", "synced", "error"
-  const rolloverChecked = useRef(false);
+  const lastPlannerDate = useRef(format(new Date(), "yyyy-MM-dd"));
 
   // Check authentication on mount
   useEffect(() => {
@@ -476,64 +476,21 @@ export default function Planner() {
     }
   }, [isLoggedIn]);
 
-  // Auto-rollover incomplete tasks from past dates to today (show in red)
+  // The API rolls unfinished past tasks forward whenever tasks are loaded.
+  // Refresh shortly after midnight as well, even if the Planner stays open.
   useEffect(() => {
-    if (!isLoggedIn || rolloverChecked.current) return;
+    if (!isLoggedIn) return undefined;
 
-    const today = format(new Date(), "yyyy-MM-dd");
-    const lastRolloverDate = localStorage.getItem("planner-last-rollover");
-    
-    // Only rollover once per day
-    if (lastRolloverDate === today) {
-      rolloverChecked.current = true;
-      return;
-    }
-
-    // Check for incomplete tasks from past dates
-    setTasks(currentTasks => {
-      const hasIncompletePastTasks = currentTasks.some(
-        task => task.date && !task.completed && task.date < today
-      );
-
-      if (!hasIncompletePastTasks) {
-        rolloverChecked.current = true;
-        localStorage.setItem("planner-last-rollover", today);
-        return currentTasks;
+    const timer = window.setInterval(() => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      if (today !== lastPlannerDate.current) {
+        lastPlannerDate.current = today;
+        fetchTasks();
       }
+    }, 60 * 1000);
 
-      const updatedTasks = currentTasks.map(task => {
-        // If task has a date in the past and is not completed, move it to today
-        if (task.date && !task.completed && task.date < today) {
-          const originalDate = task.originalDate || task.date;
-          const updated = {
-            ...task,
-            date: today,
-            rolledOver: true,
-            originalDate,
-          };
-          // Save to API
-          fetch(`/api/tasks/${task.id}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-            },
-            body: JSON.stringify({
-              date: today,
-              rolledOver: true,
-              originalDate,
-            }),
-          }).catch(e => console.error("Error updating rolled-over task:", e));
-          return updated;
-        }
-        return task;
-      });
-      
-      rolloverChecked.current = true;
-      localStorage.setItem("planner-last-rollover", today);
-      return updatedTasks;
-    });
-  }, [isLoggedIn]); // Run once when user logs in
+    return () => window.clearInterval(timer);
+  }, [isLoggedIn]);
 
   // Set default project for new task
   useEffect(() => {

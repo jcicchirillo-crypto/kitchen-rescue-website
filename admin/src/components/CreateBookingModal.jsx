@@ -21,7 +21,7 @@ const EMPTY = {
   notes: "",
 };
 
-export function CreateBookingModal({ open, onClose, onCreated }) {
+export function CreateBookingModal({ open, onClose, onCreated, initialValues = null }) {
   const [form, setForm] = useState(EMPTY);
   const [status, setStatus] = useState("idle"); // idle | saving | success | error
   const [error, setError] = useState("");
@@ -31,11 +31,15 @@ export function CreateBookingModal({ open, onClose, onCreated }) {
 
   useEffect(() => {
     if (open) {
-      setForm(EMPTY);
+      setForm({
+        ...EMPTY,
+        ...(initialValues || {}),
+        days: initialValues?.days || EMPTY.days,
+      });
       setStatus("idle");
       setError("");
     }
-  }, [open]);
+  }, [open, initialValues]);
 
   const set = (key) => (e) => {
     const v = e.target.value;
