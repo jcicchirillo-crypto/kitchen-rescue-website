@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 // Drag and drop fixes applied
 import { Link } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, isToday, startOfMonth, endOfMonth, startOfDay } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp, Mail, Repeat } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, ListTodo, ArrowLeft, Clock, LogOut, Settings, Trash2, Edit2, ArrowUp, Mail, Repeat, Archive, RotateCcw } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
@@ -338,6 +338,7 @@ export default function Planner() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddTask, setShowAddTask] = useState(false);
   const [showManageProjects, setShowManageProjects] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", project: "", assignee: "joe", recurrence: "none" });
   const [editingTask, setEditingTask] = useState(null);
