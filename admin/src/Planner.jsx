@@ -1161,8 +1161,19 @@ export default function Planner() {
   };
 
   const visibleTasks = useMemo(() => {
-    if (assigneeFilter === "all") return tasks;
-    return tasks.filter((t) => (t.assignee || "joe") === assigneeFilter);
+    return tasks.filter((task) => {
+      if (task.completed) return false;
+      return assigneeFilter === "all" || (task.assignee || "joe") === assigneeFilter;
+    });
+  }, [tasks, assigneeFilter]);
+
+  const archivedTasks = useMemo(() => {
+    return tasks
+      .filter((task) => {
+        if (!task.completed) return false;
+        return assigneeFilter === "all" || (task.assignee || "joe") === assigneeFilter;
+      })
+      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
   }, [tasks, assigneeFilter]);
 
   const todaysTasks = useMemo(() => {
@@ -1252,6 +1263,15 @@ export default function Planner() {
                 </button>
               ))}
             </div>
+            <Button
+              variant={showArchive ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+              onClick={() => setShowArchive((current) => !current)}
+            >
+              <Archive className="h-4 w-4" />
+              Archive ({archivedTasks.length})
+            </Button>
             {notifyStatus && (
               <span className="text-xs text-sky-700 bg-sky-50 border border-sky-200 rounded px-2 py-1">
                 {notifyStatus}
@@ -1335,6 +1355,68 @@ export default function Planner() {
                   ))}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {showArchive && (
+          <Card className="mb-4 border-slate-300 bg-slate-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Archive className="h-5 w-5" />
+                Completed Tasks
+              </CardTitle>
+              <CardDescription>
+                Checked tasks are kept here. Restore one to today or delete it permanently.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {archivedTasks.length === 0 ? (
+                <p className="text-sm text-slate-500">No completed tasks in this archive.</p>
+              ) : (
+                <div className="space-y-2">
+                  {archivedTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex flex-wrap items-center gap-3 rounded-lg border bg-white p-3"
+                    >
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-slate-700">{task.title}</div>
+                        <div className="text-xs text-slate-500">
+                          {task.project || "No project"}
+                          {task.date ? ` · Scheduled ${task.date}` : ""}
+                          {` · ${assigneeMeta(task.assignee).short}`}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => restoreTask(task.id)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Restore to today
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50"
+                        onClick={() => {
+                          if (window.confirm(`Permanently delete "${task.title}"?`)) {
+                            deleteTask(task.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
