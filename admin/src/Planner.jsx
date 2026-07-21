@@ -696,6 +696,41 @@ export default function Planner() {
     }
   };
 
+  const restoreTask = async (id) => {
+    const originalTask = tasks.find((task) => task.id === id);
+    if (!originalTask) return;
+
+    const restored = {
+      ...originalTask,
+      completed: false,
+      date: format(new Date(), "yyyy-MM-dd"),
+      rolledOver: false,
+      originalDate: null,
+    };
+    setTasks((current) => current.map((task) => task.id === id ? restored : task));
+
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+        body: JSON.stringify({
+          completed: false,
+          date: restored.date,
+          rolledOver: false,
+          originalDate: null,
+        }),
+      });
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+    } catch (error) {
+      console.error("❌ Failed to restore task:", error);
+      setTasks((current) => current.map((task) => task.id === id ? originalTask : task));
+      alert("Failed to restore task. Please try again.");
+    }
+  };
+
   const addProject = () => {
     if (!newProjectName.trim() || projects.includes(newProjectName.trim())) return;
     const updated = [...projects, newProjectName.trim()];
