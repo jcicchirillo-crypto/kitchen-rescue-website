@@ -553,7 +553,7 @@ body::-webkit-scrollbar {
     }
 
     .hero-media {
-        background: #050505 url('/assets/hero-southampton-poster.jpg') center / cover no-repeat;
+        background: #050505 url('/assets/hero-mix-poster.jpg') center / cover no-repeat;
     }
 
     .hero-inner > * {
