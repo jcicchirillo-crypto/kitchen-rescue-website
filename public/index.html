@@ -218,32 +218,62 @@
 
     <!-- Hero -->
     <section id="main-content" class="hero">
-        <div class="hero-media" aria-hidden="true">
-            <video
-                class="hero-video"
-                autoplay
-                muted
-                loop
-                playsinline
-                poster="/assets/hero-mix-poster.jpg"
-            >
-                <source src="/assets/hero-mix.mp4" type="video/mp4">
-            </video>
-        </div>
-        <div class="hero-scrim" aria-hidden="true"></div>
-        <div class="container hero-inner">
-            <p class="hero-brand"><span>Kitchen</span> Rescue</p>
-            <h1 class="hero-title">Stay fully functioning while your kitchen isn't.</h1>
-            <p class="hero-description">A fully equipped temporary kitchen on your driveway — oven, hob, sink, fridge freezer, dishwasher and washing machine — installed in hours.</p>
-            <div class="hero-buttons">
-                <a href="availability.html" class="btn btn-primary">Get an instant quote</a>
-                <a href="#gallery" class="btn btn-secondary">See inside</a>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <i data-lucide="sparkles" class="badge-icon"></i>
+                        Luxury Pod
+                    </div>
+                    <h1 class="hero-title">Stay fully functioning while your kitchen isn't.</h1>
+                    <p class="hero-description">Our top of the range temporary kitchen pod brings a real oven, induction hob, full-size sink, fridge freezer, dishwasher and washing machine to your driveway, installed in hours.</p>
+                    <div class="hero-buttons">
+                        <a href="availability.html" class="btn btn-primary">Get an instant quote</a>
+                        <a href="#gallery" class="btn btn-secondary">See inside</a>
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <a href="tel:+447342606655" style="display: inline-flex; align-items: center; color: #dc2626; text-decoration: none; font-weight: 600; font-size: 1.1rem;">
+                            <i data-lucide="phone" style="margin-right: 0.5rem;"></i>
+                            Call: +44 7342 606655
+                        </a>
+                    </div>
+                    <div class="hero-features">
+                        <div class="hero-feature">
+                            <i data-lucide="shield" class="feature-icon"></i>
+                            Insurance friendly
+                        </div>
+                        <div class="hero-feature">
+                            <i data-lucide="clock" class="feature-icon"></i>
+                            Install ~2–3 hrs
+                        </div>
+                        <div class="hero-feature">
+                            <i data-lucide="map-pin" class="feature-icon"></i>
+                            Fits most UK driveways
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <video
+                        class="hero-photo hero-video"
+                        autoplay
+                        muted
+                        loop
+                        playsinline
+                        poster="/assets/hero-mix-poster.jpg"
+                        aria-label="Kitchen Rescue temporary kitchen pod"
+                    >
+                        <source src="/assets/hero-mix.mp4" type="video/mp4">
+                    </video>
+                    <div class="availability-card">
+                        <p class="card-title">Check availability</p>
+                        <div class="postcode-form">
+                            <input type="text" id="postcode" placeholder="Postcode (e.g. EN10)" class="postcode-input">
+                            <button type="button" class="postcode-btn">Go</button>
+                        </div>
+                        <p class="card-note">We'll confirm delivery window & lead time.</p>
+                    </div>
+                </div>
             </div>
-            <form class="hero-postcode" action="availability.html" method="get" role="search" aria-label="Check availability by postcode">
-                <label class="visually-hidden" for="postcode">Postcode</label>
-                <input type="text" id="postcode" name="postcode" placeholder="Postcode (e.g. EN10)" class="postcode-input" autocomplete="postal-code">
-                <button type="submit" class="postcode-btn">Check availability</button>
-            </form>
         </div>
     </section>
 
