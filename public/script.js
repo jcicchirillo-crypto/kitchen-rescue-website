@@ -110,21 +110,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
 
     if (mobileMenuToggle && mobileNav) {
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        mobileMenuToggle.setAttribute('aria-controls', 'mobileNav');
+        mobileNav.setAttribute('aria-hidden', 'true');
+
         function openMobileMenu() {
             mobileNav.classList.add('open');
-            mobileNavOverlay.classList.add('open');
+            if (mobileNavOverlay) mobileNavOverlay.classList.add('open');
             document.body.classList.add('menu-open');
+            mobileMenuToggle.setAttribute('aria-expanded', 'true');
+            mobileNav.setAttribute('aria-hidden', 'false');
+            if (mobileNavClose) mobileNavClose.focus();
         }
 
         function closeMobileMenu() {
             mobileNav.classList.remove('open');
-            mobileNavOverlay.classList.remove('open');
+            if (mobileNavOverlay) mobileNavOverlay.classList.remove('open');
             document.body.classList.remove('menu-open');
+            mobileMenuToggle.setAttribute('aria-expanded', 'false');
+            mobileNav.setAttribute('aria-hidden', 'true');
+            mobileMenuToggle.focus();
         }
 
-        mobileMenuToggle.addEventListener('click', openMobileMenu);
+        mobileMenuToggle.addEventListener('click', function () {
+            if (mobileNav.classList.contains('open')) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        });
         if (mobileNavClose) mobileNavClose.addEventListener('click', closeMobileMenu);
         if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileMenu);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && mobileNav.classList.contains('open')) {
+                closeMobileMenu();
+            }
+        });
 
         // Close menu when clicking on a link
         mobileNavLinks.forEach(link => {

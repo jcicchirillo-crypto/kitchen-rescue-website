@@ -758,29 +758,29 @@
                     <form id="insuranceClaimsForm" novalidate>
                         <div class="form-row">
                             <div class="form-field">
-                                <label>Full name *</label>
-                                <input type="text" id="fullName" name="fullName" placeholder="Jane Smith" required>
+                                <label for="fullName">Full name *</label>
+                                <input type="text" id="fullName" name="fullName" autocomplete="name" placeholder="Jane Smith" required>
                                 <div class="form-err" id="fullNameErr">Please enter your name.</div>
                             </div>
                             <div class="form-field">
-                                <label>Company name *</label>
-                                <input type="text" id="company" name="company" placeholder="Insurer Ltd" required>
+                                <label for="company">Company name *</label>
+                                <input type="text" id="company" name="company" autocomplete="organization" placeholder="Insurer Ltd" required>
                                 <div class="form-err" id="companyErr">Please enter your company.</div>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-field">
-                                <label>Email address *</label>
-                                <input type="email" id="email" name="email" placeholder="jane@insurer.com" required>
+                                <label for="email">Email address *</label>
+                                <input type="email" id="email" name="email" autocomplete="email" placeholder="jane@insurer.com" required>
                                 <div class="form-err" id="emailErr">Please enter a valid email.</div>
                             </div>
                             <div class="form-field">
-                                <label>Phone number</label>
-                                <input type="tel" id="phone" name="phone" placeholder="07700 900000">
+                                <label for="phone">Phone number</label>
+                                <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="07700 900000">
                             </div>
                         </div>
                         <div class="form-field">
-                            <label>Message *</label>
+                            <label for="message">Message *</label>
                             <textarea id="message" name="message" placeholder="Tell us about the claim — location, urgency, requirements…" required></textarea>
                             <div class="form-err" id="messageErr">Please enter a message.</div>
                         </div>
@@ -911,5 +911,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<script src="/js/a11y-enhance.js"></script>
 </body>
 </html>

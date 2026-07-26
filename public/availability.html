@@ -182,18 +182,22 @@
 </head>
 <body>
 
-<div id="leadGateOverlay">
+<div id="leadGateOverlay" role="dialog" aria-modal="true" aria-labelledby="leadGateTitle">
     <div id="leadGateCard">
-        <button id="leadGateClose" aria-label="Close" onclick="window.location.href='index.html'">×</button>
+        <button type="button" id="leadGateClose" aria-label="Close and return to home" onclick="window.location.href='index.html'">×</button>
         <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="gate-logo">
-        <h2>Check live availability</h2>
+        <h2 id="leadGateTitle">Check live availability</h2>
         <p class="gate-intro">Tell us where and who you are to unlock the calendar and get an instant quote. No obligation.</p>
         <form id="leadGateForm" novalidate>
             <p id="leadGateErr" role="alert" class="gate-err" hidden></p>
-            <input class="gate-input" type="text"  id="lg-postcode" placeholder="Site postcode (e.g. EN10 7AA)" required autocomplete="postal-code" style="text-transform:uppercase;">
-            <input class="gate-input" type="text"  id="lg-name"  placeholder="Your full name"  required autocomplete="name">
-            <input class="gate-input" type="email" id="lg-email" placeholder="Email address"   required autocomplete="email">
-            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number" required autocomplete="tel">
+            <label class="visually-hidden" for="lg-postcode">Site postcode</label>
+            <input class="gate-input" type="text"  id="lg-postcode" name="postcode" placeholder="Site postcode (e.g. EN10 7AA)" required autocomplete="postal-code" style="text-transform:uppercase;">
+            <label class="visually-hidden" for="lg-name">Your full name</label>
+            <input class="gate-input" type="text"  id="lg-name"  name="name" placeholder="Your full name"  required autocomplete="name">
+            <label class="visually-hidden" for="lg-email">Email address</label>
+            <input class="gate-input" type="email" id="lg-email" name="email" placeholder="Email address"   required autocomplete="email">
+            <label class="visually-hidden" for="lg-phone">Phone number</label>
+            <input class="gate-input" type="tel"   id="lg-phone" name="phone" placeholder="Phone number" required autocomplete="tel">
             <button class="gate-submit" type="submit" id="gateBtn">Show me availability →</button>
         </form>
         <p class="gate-trust">🔒 We never share your details or spam you</p>
@@ -300,10 +304,10 @@
         <p>We'll send a full breakdown to your inbox — no obligation to book.</p>
         <div id="modalMsg" class="modal-msg"></div>
         <form onsubmit="handleEmailSubmit(event)">
-            <div class="modal-field"><label>Your name *</label><input type="text" id="quoteName" required></div>
-            <div class="modal-field"><label>Email address *</label><input type="email" id="quoteEmail" required></div>
-            <div class="modal-field"><label>Phone number</label><input type="tel" id="quotePhone"></div>
-            <div class="modal-field"><label>Anything else?</label><textarea id="quoteNotes" rows="3" placeholder="e.g. insurance ref, gate access…"></textarea></div>
+            <div class="modal-field"><label for="quoteName">Your name *</label><input type="text" id="quoteName" name="quoteName" autocomplete="name" required></div>
+            <div class="modal-field"><label for="quoteEmail">Email address *</label><input type="email" id="quoteEmail" name="quoteEmail" autocomplete="email" required></div>
+            <div class="modal-field"><label for="quotePhone">Phone number</label><input type="tel" id="quotePhone" name="quotePhone" autocomplete="tel"></div>
+            <div class="modal-field"><label for="quoteNotes">Anything else?</label><textarea id="quoteNotes" name="quoteNotes" rows="3" placeholder="e.g. insurance ref, gate access…"></textarea></div>
             <div class="modal-actions">
                 <button type="button" class="btn-modal-cancel" onclick="closeEmailModal()">Cancel</button>
                 <button type="submit" class="btn-modal-send" id="sendEmailBtn">Send Quote</button>
@@ -1120,5 +1124,6 @@ function toast(msg, type='info') {
     el._t = setTimeout(() => el.style.opacity='0', 4500);
 }
 </script>
+<script src="/js/a11y-enhance.js"></script>
 </body>
 </html>
