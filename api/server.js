@@ -1292,6 +1292,27 @@ app.post('/api/lead-intent', async (req, res) => {
                 const dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12));
                 return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
             };
+            const toWaNumber = (raw) => {
+                let digits = String(raw || '').replace(/\D/g, '');
+                if (!digits) return '';
+                if (digits.startsWith('00')) digits = digits.slice(2);
+                if (digits.startsWith('0') && digits.length >= 10) digits = `44${digits.slice(1)}`;
+                else if (digits.length === 10 && digits.startsWith('7')) digits = `44${digits}`;
+                return digits;
+            };
+            const waNumber = toWaNumber(phone);
+            const firstName = String(name || '').trim().split(/\s+/)[0] || 'there';
+            let waMsg = `Hi ${firstName}, thanks for checking Kitchen Rescue availability`;
+            if (trimmedPostcode) waMsg += ` for ${trimmedPostcode}`;
+            if (startDate && endDate) {
+                waMsg += ` (${formatDay(startDate)} – ${formatDay(endDate)}`;
+                if (days) waMsg += `, ${days} days`;
+                waMsg += ')';
+            }
+            waMsg += `. Just wondering if you have any questions before you book? Happy to help — Kitchen Rescue`;
+            const waHref = waNumber
+                ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`
+                : '';
             const html = `
                 <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
                     <h2 style="color:#dc2626;margin:0 0 8px;">New availability enquiry</h2>
@@ -1306,7 +1327,10 @@ app.post('/api/lead-intent', async (req, res) => {
                       <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Duration</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${safe(days || '—')} days</td></tr>
                       <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Quote total</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${safe(costLabel)}</td></tr>
                     </table>
-                    <p style="margin:18px 0 0;"><a href="https://www.thekitchenrescue.co.uk/admin" style="color:#dc2626;font-weight:700;text-decoration:none;">Open Admin →</a></p>
+                    <p style="margin:18px 0 0;">
+                      ${waHref ? `<a href="${waHref}" style="display:inline-block;background:#16a34a;color:#fff;font-weight:700;text-decoration:none;padding:10px 16px;border-radius:8px;margin-right:12px;">WhatsApp this lead</a>` : ''}
+                      <a href="https://www.thekitchenrescue.co.uk/admin" style="color:#dc2626;font-weight:700;text-decoration:none;">Open Admin →</a>
+                    </p>
                 </div>`;
             try {
                 await transporter.sendMail({

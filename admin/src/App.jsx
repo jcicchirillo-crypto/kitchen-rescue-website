@@ -53,6 +53,60 @@ function phoneDigitsKey(raw) {
   return digits.length >= 10 ? digits.slice(-10) : digits;
 }
 
+/** Normalise UK/intl phone to digits for wa.me (e.g. 447342606655). */
+function toWhatsAppNumber(raw) {
+  let digits = String(raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("0") && digits.length >= 10) digits = `44${digits.slice(1)}`;
+  else if (digits.length === 10 && digits.startsWith("7")) digits = `44${digits}`;
+  return digits;
+}
+
+function parseLeadIntent(notes) {
+  const text = String(notes || "");
+  const line = text.split("\n").map((l) => l.trim()).find((l) => /^Intent:/i.test(l)) || "";
+  if (!line) return { postcode: "", startDate: "", endDate: "", days: "" };
+  const datesMatch = line.match(/(\d{4}-\d{2}-\d{2})\s*[→\-–]\s*(\d{4}-\d{2}-\d{2})/);
+  const daysMatch = line.match(/\((\d+)\s*days?\)/i);
+  let postcode = "";
+  const afterIntent = line.replace(/^Intent:\s*/i, "");
+  const pcMatch = afterIntent.match(/^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|[A-Z]{1,2}\d[A-Z\d]?)/i);
+  if (pcMatch) postcode = pcMatch[1].trim().toUpperCase();
+  return {
+    postcode,
+    startDate: datesMatch?.[1] || "",
+    endDate: datesMatch?.[2] || "",
+    days: daysMatch?.[1] || "",
+  };
+}
+
+function formatIntentDate(iso) {
+  if (!iso) return "";
+  const parts = String(iso).slice(0, 10).split("-");
+  if (parts.length !== 3) return String(iso);
+  const dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12));
+  return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+/** Build a one-tap WhatsApp follow-up link for a lead (null if no usable phone). */
+function buildLeadWhatsAppUrl(lead) {
+  const num = toWhatsAppNumber(lead?.phone);
+  if (!num) return null;
+  const intent = parseLeadIntent(lead?.notes);
+  const firstName = String(lead?.name || "").trim().split(/\s+/)[0] || "there";
+  const postcode = intent.postcode || lead?.postcode || "";
+  let msg = `Hi ${firstName}, thanks for checking Kitchen Rescue availability`;
+  if (postcode) msg += ` for ${postcode}`;
+  if (intent.startDate && intent.endDate) {
+    msg += ` (${formatIntentDate(intent.startDate)} – ${formatIntentDate(intent.endDate)}`;
+    if (intent.days) msg += `, ${intent.days} days`;
+    msg += ")";
+  }
+  msg += `. Just wondering if you have any questions before you book? Happy to help — Kitchen Rescue`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+}
+
 /** Quotes / trade enquiries are not customers until they book. */
 function isCustomerBooking(b) {
   if (!b) return false;
@@ -791,7 +845,20 @@ function KitchenRescueAdmin() {
           />
         </TableCell>
         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 flex-wrap">
+            {buildLeadWhatsAppUrl(l) ? (
+              <a
+                href={buildLeadWhatsAppUrl(l)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open WhatsApp with a pre-filled follow-up"
+                className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-green-300 bg-white px-3 text-sm font-medium text-green-700 transition-colors hover:bg-green-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MessageSquare className="h-3 w-3" />
+                WhatsApp
+              </a>
+            ) : null}
             <Button
               size="sm"
               variant="outline"
@@ -1598,6 +1665,20 @@ function KitchenRescueAdmin() {
                   </div>
 
                   <div className="border-t pt-3 flex flex-wrap gap-2">
+                    {buildLeadWhatsAppUrl(lead) ? (
+                      <a
+                        href={buildLeadWhatsAppUrl(lead)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open WhatsApp with a pre-filled follow-up"
+                        className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-green-300 bg-white px-3 text-sm font-medium text-green-700 transition-colors hover:bg-green-50"
+                      >
+                        <MessageSquare className="h-3 w-3" />
+                        WhatsApp
+                      </a>
+                    ) : (
+                      <p className="text-xs text-slate-500 w-full">Add a phone number to enable WhatsApp follow-up.</p>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
