@@ -152,10 +152,12 @@ async function addLead(lead) {
                 );
             }
             if (Object.keys(patch).length > 0) {
-                await updateLead(existing.id, patch);
+                const updated = await updateLead(existing.id, patch);
+                console.log('✅ Lead deduped (existing):', existing.email || existing.id, '←', source);
+                return updated.lead || existing;
             }
             console.log('✅ Lead deduped (existing):', existing.email || existing.id, '←', source);
-            return true;
+            return existing;
         }
 
         const row = {
@@ -169,29 +171,83 @@ async function addLead(lead) {
         if (lead.quoted_at) row.quoted_at = lead.quoted_at;
         if (lead.quote_booking_id) row.quote_booking_id = lead.quote_booking_id;
 
-        const { error } = await supabase.from('leads').insert([row]).select();
+        const { data, error } = await supabase.from('leads').insert([row]).select(LEAD_SELECT).maybeSingle();
         if (error) {
             if (error.message?.includes('quoted_at') || error.message?.includes('quote_booking_id') || error.code === '42703') {
                 delete row.quoted_at;
                 delete row.quote_booking_id;
                 if (error.message?.includes('status')) delete row.status;
-                const retry = await supabase.from('leads').insert([row]).select();
+                const retry = await supabase.from('leads').insert([row]).select(LEAD_SELECT_LEGACY).maybeSingle();
                 if (retry.error) {
                     console.error('❌ Supabase leads insert error:', retry.error.message, retry.error.details);
                     return false;
                 }
                 console.log('✅ Lead saved (legacy columns):', row.email, row.source);
-                return true;
+                return mapLead(retry.data) || true;
             }
             console.error('❌ Supabase leads insert error:', error.message, error.details);
             return false;
         }
         console.log('✅ Lead saved to Supabase (leads):', row.email, row.source);
-        return true;
+        return mapLead(data) || true;
     } catch (err) {
         console.error('❌ addLead exception:', err);
         return false;
     }
+}
+
+/**
+ * Attach hire intent (postcode + dates) to a lead when they view a quote.
+ * Replaces any previous "Intent:" note line so admin always sees the latest selection.
+ */
+async function updateLeadIntent({
+    leadId,
+    email,
+    phone,
+    name,
+    postcode,
+    startDate,
+    endDate,
+    days,
+    totalCost,
+    source,
+} = {}) {
+    if (!useSupabase || !supabase) return { ok: false, error: 'Supabase not available' };
+
+    const pc = String(postcode || '').trim().toUpperCase();
+    const when = startDate && endDate
+        ? `${startDate} → ${endDate}${days ? ` (${days} days)` : ''}`
+        : null;
+    const costBit = totalCost != null && totalCost !== '' && !Number.isNaN(Number(totalCost))
+        ? `~£${Number(totalCost).toFixed(2)}`
+        : null;
+    const intentLine = ['Intent:', pc || null, when, costBit].filter(Boolean).join(' ');
+
+    let existing = await findExistingLead({ id: leadId, email, phone });
+    if (!existing) {
+        await addLead({
+            name: name || '—',
+            email,
+            phone,
+            source: source || 'availability_gate',
+            notes: intentLine,
+        });
+        existing = await findExistingLead({ email, phone });
+        return { ok: !!existing, lead: existing, created: !existing ? false : true, intentLine };
+    }
+
+    const withoutOldIntent = String(existing.notes || '')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l && !/^Intent:/i.test(l))
+        .join('\n');
+    const notes = appendNotes(withoutOldIntent, intentLine);
+    const patch = { notes };
+    if (name && name !== '—' && (!existing.name || existing.name === '—')) patch.name = name;
+    if (phone && !existing.phone) patch.phone = formatPhone(phone) || phone;
+
+    const updated = await updateLead(existing.id, patch);
+    return { ok: updated.ok, lead: updated.lead || existing, created: false, intentLine };
 }
 
 /**
@@ -508,6 +564,7 @@ module.exports = {
     importLeads,
     findExistingLead,
     markLeadQuoted,
+    updateLeadIntent,
     isMetaSource,
     leadChannel,
     LEAD_STATUSES,

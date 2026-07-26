@@ -187,12 +187,13 @@
         <button id="leadGateClose" aria-label="Close" onclick="window.location.href='index.html'">×</button>
         <img src="/assets/logo-lockup-final.png" alt="Kitchen Rescue" class="gate-logo">
         <h2>Check live availability</h2>
-        <p class="gate-intro">Enter your details to unlock the calendar and get an instant quote. No obligation.</p>
+        <p class="gate-intro">Tell us where and who you are to unlock the calendar and get an instant quote. No obligation.</p>
         <form id="leadGateForm" novalidate>
             <p id="leadGateErr" role="alert" class="gate-err" hidden></p>
-            <input class="gate-input" type="text"  id="lg-name"  placeholder="Your full name"  required>
-            <input class="gate-input" type="email" id="lg-email" placeholder="Email address"   required>
-            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number" required>
+            <input class="gate-input" type="text"  id="lg-postcode" placeholder="Site postcode (e.g. EN10 7AA)" required autocomplete="postal-code" style="text-transform:uppercase;">
+            <input class="gate-input" type="text"  id="lg-name"  placeholder="Your full name"  required autocomplete="name">
+            <input class="gate-input" type="email" id="lg-email" placeholder="Email address"   required autocomplete="email">
+            <input class="gate-input" type="tel"   id="lg-phone" placeholder="Phone number" required autocomplete="tel">
             <button class="gate-submit" type="submit" id="gateBtn">Show me availability →</button>
         </form>
         <p class="gate-trust">🔒 We never share your details or spam you</p>
@@ -337,6 +338,7 @@ function isCompleteLead(lead) {
     if (!isValidLeadEmail(lead.email || '')) return false;
     if (!(String(lead.name || '').trim())) return false;
     if (!(String(lead.phone || '').trim())) return false;
+    if (!(String(lead.postcode || '').trim())) return false;
     return true;
 }
 
@@ -346,6 +348,8 @@ function removeLeadGateOverlay() {
 }
 
 let currentLead = null;
+let lastIntentKey = '';
+let intentSaveTimer = null;
 
 function setLeadGateError(msg) {
     const errEl = document.getElementById('leadGateErr');
@@ -364,8 +368,9 @@ async function submitLeadGateAsync() {
     const name  = document.getElementById('lg-name').value.trim();
     const email = document.getElementById('lg-email').value.trim();
     const phone = document.getElementById('lg-phone').value.trim();
-    if (!name || !email || !phone) {
-        setLeadGateError('Please fill in your name, email and phone.');
+    const postcode = document.getElementById('lg-postcode').value.trim().toUpperCase();
+    if (!postcode || !name || !email || !phone) {
+        setLeadGateError('Please fill in your postcode, name, email and phone.');
         return;
     }
     if (!isValidLeadEmail(email)) {
@@ -379,7 +384,7 @@ async function submitLeadGateAsync() {
     btn.disabled = true;
     btn.textContent = 'Please wait…';
 
-    const lead = { name, email, phone, source: 'availability_gate' };
+    const lead = { name, email, phone, postcode, source: 'availability_gate' };
 
     try {
         const res = await fetch(new URL('/api/lead-gate', window.location.origin).href, {
@@ -395,10 +400,17 @@ async function submitLeadGateAsync() {
         if (!res.ok || data.success !== true) {
             throw new Error(data.message || data.error || `Server error (${res.status}). Please try again.`);
         }
+        if (data.leadId) lead.id = data.leadId;
         currentLead = lead;
         sessionStorage.setItem('kr_lead', JSON.stringify(lead));
+        const pcInput = document.getElementById('postcodeInput');
+        if (pcInput && postcode) pcInput.value = postcode;
+        const p = new URLSearchParams(window.location.search);
+        p.set('postcode', postcode);
+        window.history.replaceState({}, '', `${window.location.pathname}?${p}`);
         removeLeadGateOverlay();
         prefillFromLead();
+        if (selectedDates.length) updateQuotePanel();
     } catch (err) {
         setLeadGateError(err.message || 'Network error — please check your connection and try again.');
         btn.disabled = false;
@@ -414,6 +426,64 @@ function prefillFromLead() {
     if (n && !n.value) n.value = currentLead.name  || '';
     if (e && !e.value) e.value = currentLead.email || '';
     if (p && !p.value) p.value = currentLead.phone || '';
+    const pcInput = document.getElementById('postcodeInput');
+    if (pcInput && !pcInput.value && currentLead.postcode) {
+        pcInput.value = String(currentLead.postcode).toUpperCase();
+    }
+}
+
+function scheduleLeadIntentSave(payload) {
+    if (intentSaveTimer) clearTimeout(intentSaveTimer);
+    intentSaveTimer = setTimeout(() => {
+        void saveLeadIntent(payload);
+    }, 600);
+}
+
+async function saveLeadIntent({ postcode, startDate, endDate, days, totalCost }) {
+    if (!currentLead || !isValidLeadEmail(currentLead.email || '')) return;
+    const pc = String(postcode || '').trim().toUpperCase();
+    if (!pc || !startDate || !endDate || !days) return;
+
+    const intentKey = `${pc}|${startDate}|${endDate}|${days}|${totalCost ?? ''}`;
+    if (intentKey === lastIntentKey) return;
+
+    const notifiedKey = `kr_intent_notified_${currentLead.email}`;
+    const alreadyNotified = sessionStorage.getItem(notifiedKey) === intentKey;
+    const notify = !alreadyNotified;
+
+    try {
+        const res = await fetch(new URL('/api/lead-intent', window.location.origin).href, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+                leadId: currentLead.id || null,
+                name: currentLead.name,
+                email: currentLead.email,
+                phone: currentLead.phone,
+                postcode: pc,
+                startDate,
+                endDate,
+                days,
+                totalCost: totalCost ?? null,
+                notify,
+            }),
+            cache: 'no-store',
+            credentials: 'same-origin',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success !== true) return;
+
+        lastIntentKey = intentKey;
+        if (notify) sessionStorage.setItem(notifiedKey, intentKey);
+        if (data.leadId) currentLead.id = data.leadId;
+        currentLead.postcode = pc;
+        currentLead.startDate = startDate;
+        currentLead.endDate = endDate;
+        currentLead.days = days;
+        sessionStorage.setItem('kr_lead', JSON.stringify(currentLead));
+    } catch (err) {
+        console.warn('Lead intent save failed:', err);
+    }
 }
 
 // Use local date components for todayStr to avoid BST UTC off-by-one (e.g. late March)
@@ -475,7 +545,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlPostcode = urlParams.get('postcode');
     const urlDates = urlParams.get('dates');
-    if (urlPostcode) document.getElementById('postcodeInput').value = urlPostcode;
+    if (urlPostcode) {
+        document.getElementById('postcodeInput').value = urlPostcode;
+        const lgPc = document.getElementById('lg-postcode');
+        if (lgPc && !lgPc.value) lgPc.value = urlPostcode.toUpperCase();
+    }
+    if (currentLead?.postcode && document.getElementById('postcodeInput') && !document.getElementById('postcodeInput').value) {
+        document.getElementById('postcodeInput').value = String(currentLead.postcode).toUpperCase();
+    }
 
     const urlRate = parseInt(urlParams.get('rate'));
     const urlDelivery = parseInt(urlParams.get('delivery'));
@@ -850,6 +927,21 @@ async function updateQuotePanel() {
             <span>✅ Free cancellation</span>
             <span>🛡️ Fully insured during delivery and throughout your hire for complete peace of mind</span>
         </div>`;
+
+    // Persist hire intent (postcode + dates) on the lead as soon as a quote is visible
+    if (hasPostcode && currentLead) {
+        let quotedTotal = hire;
+        if (delivCosts && typeof delivCosts === 'object') {
+            quotedTotal = hire + Number(delivCosts.deliveryCost || 0) + Number(delivCosts.collectionCost || 0);
+        }
+        scheduleLeadIntentSave({
+            postcode: pcValue,
+            startDate: selectedDates[0],
+            endDate: selectedDates[selectedDates.length - 1],
+            days,
+            totalCost: quotedTotal,
+        });
+    }
 }
 
 async function getDeliveryCost() {

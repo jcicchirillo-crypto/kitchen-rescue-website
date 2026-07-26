@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead, getAllLeads, updateLead, importLeads, markLeadQuoted, LEAD_STATUSES } = require('./leads-storage');
+const { addLead, getAllLeads, updateLead, importLeads, markLeadQuoted, updateLeadIntent, LEAD_STATUSES } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 const { normalizeRecurrence, nextOccurrenceDate } = require('./task-recurrence');
@@ -1149,31 +1149,39 @@ app.post('/api/cron/send-quote-followups', handleQuoteFollowUpRemindersCron);
 // Availability lead gate — save lead + add to Brevo (replaces direct client Supabase insert)
 app.post('/api/lead-gate', async (req, res) => {
     try {
-        const { name, email, phone } = req.body || {};
+        const { name, email, phone, postcode } = req.body || {};
         const trimmedName = (name || '').trim();
         const trimmedEmail = (email || '').trim().toLowerCase();
         const trimmedPhone = (phone || '').trim();
+        const trimmedPostcode = String(postcode || '').trim().toUpperCase();
 
         if (!trimmedEmail) {
             return res.status(400).json({ success: false, message: 'Email is required.' });
+        }
+        if (!trimmedPostcode) {
+            return res.status(400).json({ success: false, message: 'Postcode is required.' });
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(trimmedEmail)) {
             return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
         }
 
-        // Save lead to Supabase
+        const intentNote = `Intent: ${trimmedPostcode}`;
+
+        // Save lead to Supabase (include postcode in notes so admin sees hire location)
         const saved = await addLead({
             name: trimmedName || '—',
             email: trimmedEmail,
             phone: trimmedPhone || null,
-            source: 'availability_gate'
+            source: 'availability_gate',
+            notes: intentNote,
         });
         if (!saved) {
             console.error('Lead gate: failed to save lead to Supabase:', trimmedEmail);
         } else {
-            console.log('Lead gate: lead saved to Supabase:', trimmedEmail);
+            console.log('Lead gate: lead saved to Supabase:', trimmedEmail, trimmedPostcode);
         }
+        const leadId = saved && typeof saved === 'object' ? saved.id : null;
 
         // Add to Brevo "Kitchen Rescue leads" list
         const leadGateListId = BREVO_LEADS_LIST;
@@ -1220,13 +1228,14 @@ app.post('/api/lead-gate', async (req, res) => {
                     <p><strong>Name:</strong> ${(trimmedName || '—').replace(/</g, '&lt;')}</p>
                     <p><strong>Email:</strong> ${(trimmedEmail || '—').replace(/</g, '&lt;')}</p>
                     <p><strong>Phone:</strong> ${(trimmedPhone || '—').replace(/</g, '&lt;')}</p>
-                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They filled in the form to access the availability calendar. No quote sent — follow up when they request one.</p>
+                    <p><strong>Postcode:</strong> ${trimmedPostcode.replace(/</g, '&lt;')}</p>
+                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They unlocked the availability calendar. You'll get another alert when they pick dates.</p>
                 </div>`;
             try {
                 await transporter.sendMail({
                     from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
                     to: adminEmail,
-                    subject: `New lead: ${trimmedName || 'Unknown'} — ${trimmedPhone || 'no phone'}`,
+                    subject: `New lead: ${trimmedName || 'Unknown'} — ${trimmedPostcode} — ${trimmedPhone || 'no phone'}`,
                     html: leadHtml
                 });
                 console.log('Lead gate: admin notification sent to:', adminEmail);
@@ -1235,9 +1244,100 @@ app.post('/api/lead-gate', async (req, res) => {
             }
         }
 
-        return res.json({ success: true, message: 'Thanks! You can now check availability.' });
+        return res.json({
+            success: true,
+            message: 'Thanks! You can now check availability.',
+            leadId: leadId || null,
+            postcode: trimmedPostcode,
+        });
     } catch (error) {
         console.error('Error in /api/lead-gate:', error);
+        return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+    }
+});
+
+// When a lead selects dates on the availability calendar, attach hire intent to their lead
+app.post('/api/lead-intent', async (req, res) => {
+    try {
+        const {
+            leadId,
+            name,
+            email,
+            phone,
+            postcode,
+            startDate,
+            endDate,
+            days,
+            totalCost,
+            notify,
+        } = req.body || {};
+
+        const trimmedEmail = String(email || '').trim().toLowerCase();
+        const trimmedPostcode = String(postcode || '').trim().toUpperCase();
+        if (!trimmedEmail && !leadId) {
+            return res.status(400).json({ success: false, message: 'Lead email or id is required.' });
+        }
+        if (!trimmedPostcode) {
+            return res.status(400).json({ success: false, message: 'Postcode is required.' });
+        }
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: 'Start and end dates are required.' });
+        }
+
+        const result = await updateLeadIntent({
+            leadId: leadId || null,
+            name: (name || '').trim() || '—',
+            email: trimmedEmail,
+            phone: (phone || '').trim() || null,
+            postcode: trimmedPostcode,
+            startDate,
+            endDate,
+            days: days || null,
+            totalCost: totalCost ?? null,
+            source: 'availability_gate',
+        });
+
+        if (!result.ok) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to save intent.' });
+        }
+
+        // Optional admin ping when dates first land (client controls notify flag to avoid spam)
+        if (notify && transporter) {
+            const adminEmail = adminNotifyTo();
+            const safe = (v) => String(v || '—').replace(/</g, '&lt;');
+            const costLabel = totalCost != null && totalCost !== '' && !Number.isNaN(Number(totalCost))
+                ? `£${Number(totalCost).toFixed(2)}`
+                : '—';
+            const html = `
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#dc2626;">Lead selected dates</h2>
+                    <p><strong>Name:</strong> ${safe(name)}</p>
+                    <p><strong>Email:</strong> ${safe(trimmedEmail)}</p>
+                    <p><strong>Phone:</strong> ${safe(phone)}</p>
+                    <p><strong>Postcode:</strong> ${safe(trimmedPostcode)}</p>
+                    <p><strong>Dates:</strong> ${safe(startDate)} → ${safe(endDate)}${days ? ` (${safe(days)} days)` : ''}</p>
+                    <p><strong>Quoted total:</strong> ${safe(costLabel)}</p>
+                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They viewed an instant quote on the availability page. Follow up if they don't book.</p>
+                </div>`;
+            try {
+                await transporter.sendMail({
+                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+                    to: adminEmail,
+                    subject: `Dates selected: ${name || 'Lead'} — ${trimmedPostcode} — ${startDate} → ${endDate}`,
+                    html,
+                });
+            } catch (err) {
+                console.error('Lead intent: admin email failed:', err.message);
+            }
+        }
+
+        return res.json({
+            success: true,
+            leadId: result.lead?.id || null,
+            intent: result.intentLine || null,
+        });
+    } catch (error) {
+        console.error('Error in /api/lead-intent:', error);
         return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
     }
 });
