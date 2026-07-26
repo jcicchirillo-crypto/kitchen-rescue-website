@@ -812,7 +812,15 @@ function KitchenRescueAdmin() {
     });
 
   const renderLeadRows = (items) =>
-    items.map((l) => (
+    items.map((l) => {
+      const notesText = String(leadNotesDraft[l.id] ?? l.notes ?? "");
+      const intent = parseLeadIntent(notesText);
+      const postcode = intent.postcode || l.postcode || "";
+      const dateSummary =
+        intent.startDate && intent.endDate
+          ? `${formatIntentDate(intent.startDate)} – ${formatIntentDate(intent.endDate)}${intent.days ? ` · ${intent.days}d` : ""}`
+          : "";
+      return (
       <TableRow
         key={l.id}
         className="cursor-pointer hover:bg-slate-50/80"
@@ -834,11 +842,16 @@ function KitchenRescueAdmin() {
         </TableCell>
         <TableCell className="font-medium">
           <div className="text-slate-900 underline-offset-2 hover:underline">{l.name || "—"}</div>
+          {(postcode || dateSummary) && (
+            <div className="mt-0.5 text-xs text-slate-500">
+              {[postcode, dateSummary].filter(Boolean).join(" · ")}
+            </div>
+          )}
           <div className="mt-1 flex flex-wrap gap-1">
             {leadIsQuoted(l) && (
               <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100 text-[10px]">Quoted</Badge>
             )}
-            {/WhatsApp sent:/i.test(String(leadNotesDraft[l.id] ?? l.notes ?? "")) && (
+            {/WhatsApp sent:/i.test(notesText) && (
               <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[10px]">WhatsApp</Badge>
             )}
           </div>
@@ -888,35 +901,20 @@ function KitchenRescueAdmin() {
             disabled={savingLeadId === l.id}
           />
         </TableCell>
-        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          {buildLeadWhatsAppUrl(l) ? (
-            <button
-              type="button"
-              title="Open WhatsApp and log follow-up"
-              className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-green-300 bg-white px-2.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-50"
-              onClick={(e) => openLeadWhatsApp(l, e)}
-            >
-              <MessageSquare className="h-3 w-3" />
-              WhatsApp
-            </button>
-          ) : (
-            <span className="text-xs text-slate-400">—</span>
-          )}
-        </TableCell>
       </TableRow>
-    ));
+      );
+    });
 
   const leadsTableHeader = (
     <TableHeader>
       <TableRow>
         <TableHead className="w-36">Status</TableHead>
-        <TableHead>Name</TableHead>
+        <TableHead>Name / request</TableHead>
         <TableHead>Email</TableHead>
         <TableHead>Phone</TableHead>
         <TableHead>Source</TableHead>
         <TableHead>Created</TableHead>
         <TableHead className="min-w-[220px]">Notes</TableHead>
-        <TableHead className="text-right w-28">WhatsApp</TableHead>
       </TableRow>
     </TableHeader>
   );
@@ -1567,6 +1565,8 @@ function KitchenRescueAdmin() {
           const lead = leads.find((x) => x.id === selectedLead.id) || selectedLead;
           const quotes = findQuotesForLead(lead);
           const notesValue = leadNotesDraft[lead.id] ?? lead.notes ?? "";
+          const intent = parseLeadIntent(notesValue);
+          const postcode = intent.postcode || lead.postcode || "";
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedLead(null)}>
               <Card className="w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -1583,6 +1583,32 @@ function KitchenRescueAdmin() {
                   </Button>
                 </CardHeader>
                 <CardContent className="overflow-y-auto pt-4 space-y-4">
+                  {(postcode || intent.startDate) ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 space-y-2">
+                      <h3 className="text-sm font-semibold text-amber-900">Requested hire</h3>
+                      <div className="grid grid-cols-[100px_1fr] gap-x-3 gap-y-1 text-sm">
+                        <span className="text-amber-800/70">Postcode</span>
+                        <span className="font-semibold text-amber-950">{postcode || "—"}</span>
+                        <span className="text-amber-800/70">Delivery</span>
+                        <span className="font-semibold text-amber-950">
+                          {intent.startDate ? formatIntentDate(intent.startDate) : "—"}
+                        </span>
+                        <span className="text-amber-800/70">Collection</span>
+                        <span className="font-semibold text-amber-950">
+                          {intent.endDate ? formatIntentDate(intent.endDate) : "—"}
+                        </span>
+                        <span className="text-amber-800/70">Duration</span>
+                        <span className="font-semibold text-amber-950">
+                          {intent.days ? `${intent.days} days` : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+                      No postcode or dates captured yet for this enquiry.
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 text-sm">
                     <span className="text-slate-500">Status</span>
                     <span>{LEAD_STATUS_OPTIONS.find((s) => s.id === leadStatus(lead))?.label || leadStatus(lead)}</span>
@@ -1615,6 +1641,69 @@ function KitchenRescueAdmin() {
                     <span>
                       {lead.created_at ? format(new Date(lead.created_at), "d MMM yyyy HH:mm") : "—"}
                     </span>
+                  </div>
+
+                  <div className="border-t pt-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-800">Actions</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {buildLeadWhatsAppUrl(lead) ? (
+                        <button
+                          type="button"
+                          onClick={(e) => openLeadWhatsApp(lead, e)}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-green-300 bg-green-50 px-3 text-sm font-medium text-green-800 transition-colors hover:bg-green-100"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          WhatsApp
+                        </button>
+                      ) : (
+                        <div className="inline-flex h-10 items-center justify-center rounded-md border border-dashed border-slate-200 px-3 text-xs text-slate-400">
+                          No phone for WhatsApp
+                        </div>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-10 gap-2 text-red-700 border-red-300"
+                        onClick={() => {
+                          openCustomQuoteForLead({
+                            ...lead,
+                            postcode: postcode || lead.postcode || "",
+                            notes: notesValue,
+                          });
+                          setSelectedLead(null);
+                        }}
+                      >
+                        <Mail className="h-4 w-4" />
+                        Custom quote
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-10 gap-2 text-emerald-700 border-emerald-300"
+                        onClick={() => {
+                          setLeadStatus(lead, "booked");
+                          setBookingLeadPrefill({
+                            name: lead.name || "",
+                            email: lead.email || "",
+                            phone: lead.phone || "",
+                            postcode: postcode || lead.postcode || "",
+                            notes: notesValue,
+                            startDate: intent.startDate || "",
+                            days: intent.days ? Number(intent.days) : 14,
+                          });
+                          setShowCreateBooking(true);
+                          setSelectedLead(null);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Make booking
+                      </Button>
+                    </div>
+                    {/WhatsApp sent:/i.test(notesValue) && (
+                      <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-md px-3 py-2">
+                        WhatsApp activity is logged in notes below.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1674,63 +1763,6 @@ function KitchenRescueAdmin() {
                           </div>
                         );
                       })
-                    )}
-                  </div>
-
-                  <div className="border-t pt-4 space-y-3">
-                    <h3 className="text-sm font-semibold text-slate-800">Follow up</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {buildLeadWhatsAppUrl(lead) ? (
-                        <button
-                          type="button"
-                          onClick={(e) => openLeadWhatsApp(lead, e)}
-                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-green-300 bg-green-50 px-3 text-sm font-medium text-green-800 transition-colors hover:bg-green-100"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          WhatsApp
-                        </button>
-                      ) : (
-                        <div className="inline-flex h-10 items-center justify-center rounded-md border border-dashed border-slate-200 px-3 text-xs text-slate-400">
-                          No phone for WhatsApp
-                        </div>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-10 gap-2 text-red-700 border-red-300"
-                        onClick={() => {
-                          openCustomQuoteForLead(lead);
-                          setSelectedLead(null);
-                        }}
-                      >
-                        <Mail className="h-4 w-4" />
-                        Custom quote
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-10 gap-2 text-emerald-700 border-emerald-300"
-                        onClick={() => {
-                          setLeadStatus(lead, "booked");
-                          setBookingLeadPrefill({
-                            name: lead.name || "",
-                            email: lead.email || "",
-                            phone: lead.phone || "",
-                            postcode: lead.postcode || "",
-                            notes: notesValue,
-                          });
-                          setShowCreateBooking(true);
-                          setSelectedLead(null);
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Make booking
-                      </Button>
-                    </div>
-                    {/WhatsApp sent:/i.test(notesValue) && (
-                      <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-md px-3 py-2">
-                        WhatsApp activity is logged in notes below.
-                      </p>
                     )}
                   </div>
                 </CardContent>
