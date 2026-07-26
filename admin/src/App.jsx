@@ -327,6 +327,7 @@ function KitchenRescueAdmin() {
   const [quoteFollowUpDrafts, setQuoteFollowUpDrafts] = useState({});
   const [savingQuoteId, setSavingQuoteId] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [leadsQuery, setLeadsQuery] = useState("");
 
   const toggleDelete = (id) => {
     setSelectedToDelete((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -479,8 +480,24 @@ function KitchenRescueAdmin() {
   const leadsByStatus = useMemo(() => {
     const groups = { new: [], callback: [], booked: [], not_interested: [], archived: [] };
     const filtered = leads.filter((lead) => {
-      if (leadSourceFilter === "meta") return isMetaLeadSource(lead.source);
-      if (leadSourceFilter === "website") return !isMetaLeadSource(lead.source);
+      // Filter by source
+      if (leadSourceFilter === "meta" && !isMetaLeadSource(lead.source)) return false;
+      if (leadSourceFilter === "website" && isMetaLeadSource(lead.source)) return false;
+      
+      // Filter by search query
+      if (leadsQuery?.trim()) {
+        const q = leadsQuery.toLowerCase();
+        const searchable = [
+          lead.name,
+          lead.email,
+          lead.phone,
+          lead.postcode,
+          lead.source,
+          lead.notes,
+        ].join(" ").toLowerCase();
+        if (!searchable.includes(q)) return false;
+      }
+      
       return true;
     });
     for (const lead of filtered) {
@@ -489,7 +506,7 @@ function KitchenRescueAdmin() {
       else groups.new.push(lead);
     }
     return groups;
-  }, [leads, leadSourceFilter]);
+  }, [leads, leadSourceFilter, leadsQuery]);
   const activeLeads = leadsByStatus.new;
   const callbackLeads = leadsByStatus.callback;
   const bookedLeads = leadsByStatus.booked;
@@ -739,24 +756,24 @@ function KitchenRescueAdmin() {
           </select>
           {savingLeadId === l.id ? <Loader2 className="inline h-3 w-3 ml-1 animate-spin text-slate-400" /> : null}
         </TableCell>
-        <TableCell className="font-medium">
-          <div className="text-slate-900 underline-offset-2 hover:underline">{l.name || "—"}</div>
+        <TableCell className="font-medium max-w-[150px]">
+          <div className="text-slate-900 underline-offset-2 hover:underline truncate">{l.name || "—"}</div>
           {leadIsQuoted(l) && (
             <Badge className="mt-1 bg-violet-100 text-violet-800 hover:bg-violet-100 text-[10px]">Quoted</Badge>
           )}
         </TableCell>
-        <TableCell onClick={(e) => e.stopPropagation()}>
+        <TableCell onClick={(e) => e.stopPropagation()} className="max-w-[200px]">
           {l.email ? (
-            <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1">
-              <Mail className="h-3 w-3" />
-              {l.email}
+            <a href={`mailto:${l.email}`} className="text-red-600 hover:underline flex items-center gap-1 break-all text-xs">
+              <Mail className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{l.email}</span>
             </a>
           ) : "—"}
         </TableCell>
-        <TableCell onClick={(e) => e.stopPropagation()}>
+        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
           {l.phone ? (
-            <a href={`tel:${l.phone}`} className="text-slate-700 hover:underline flex items-center gap-1">
-              <Phone className="h-3 w-3" />
+            <a href={`tel:${l.phone}`} className="text-slate-700 hover:underline flex items-center gap-1 text-xs">
+              <Phone className="h-3 w-3 flex-shrink-0" />
               {l.phone}
             </a>
           ) : "—"}
@@ -773,29 +790,29 @@ function KitchenRescueAdmin() {
               {leadSourceLabel(l.source)}
             </Badge>
             {l.source && !["meta", "website", "paid"].includes(String(l.source).toLowerCase()) && (
-              <span className="text-[10px] text-slate-400">{l.source}</span>
+              <span className="text-[10px] text-slate-400 truncate max-w-[100px]" title={l.source}>{l.source}</span>
             )}
           </div>
         </TableCell>
         <TableCell className="text-slate-500 text-sm whitespace-nowrap">
           {l.created_at ? format(new Date(l.created_at), "d MMM yyyy HH:mm") : "—"}
         </TableCell>
-        <TableCell onClick={(e) => e.stopPropagation()}>
+        <TableCell onClick={(e) => e.stopPropagation()} className="max-w-[250px]">
           <Textarea
             value={leadNotesDraft[l.id] ?? l.notes ?? ""}
             onChange={(e) => setLeadNotesDraft((prev) => ({ ...prev, [l.id]: e.target.value }))}
             onBlur={() => saveLeadNotes(l)}
             placeholder="Add follow-up notes…"
-            className="min-h-[60px] text-xs resize-y"
+            className="min-h-[60px] text-xs resize-y w-full"
             disabled={savingLeadId === l.id}
           />
         </TableCell>
         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 flex-nowrap">
             <Button
               size="sm"
               variant="outline"
-              className="gap-1 text-red-700 border-red-300 hover:bg-red-50"
+              className="gap-1 text-red-700 border-red-300 hover:bg-red-50 whitespace-nowrap"
               onClick={() => openCustomQuoteForLead(l)}
             >
               <Mail className="h-3 w-3" />
@@ -804,7 +821,7 @@ function KitchenRescueAdmin() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+              className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50 whitespace-nowrap"
               onClick={() => {
                 setLeadStatus(l, "booked");
                 setBookingLeadPrefill({
@@ -830,13 +847,13 @@ function KitchenRescueAdmin() {
     <TableHeader>
       <TableRow>
         <TableHead className="w-36">Status</TableHead>
-        <TableHead>Name</TableHead>
-        <TableHead>Email</TableHead>
-        <TableHead>Phone</TableHead>
-        <TableHead>Source</TableHead>
-        <TableHead>Created</TableHead>
+        <TableHead className="w-36">Name</TableHead>
+        <TableHead className="w-48">Email</TableHead>
+        <TableHead className="w-32">Phone</TableHead>
+        <TableHead className="w-28">Source</TableHead>
+        <TableHead className="w-40">Created</TableHead>
         <TableHead className="min-w-[220px]">Notes</TableHead>
-        <TableHead className="text-right">Actions</TableHead>
+        <TableHead className="text-right w-64">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
@@ -1118,31 +1135,42 @@ function KitchenRescueAdmin() {
               </div>
             </div>
             {["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab) && (
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-xs font-medium text-slate-500">Show:</span>
-                {[
-                  { id: "all", label: "All", count: leads.length },
-                  { id: "meta", label: "Meta", count: metaLeadCount },
-                  { id: "website", label: "Website", count: websiteLeadCount },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setLeadSourceFilter(opt.id)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                      leadSourceFilter === opt.id
-                        ? opt.id === "meta"
-                          ? "bg-blue-100 text-blue-800"
-                          : opt.id === "website"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    {opt.label} ({opt.count})
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="relative mb-3">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input 
+                    value={leadsQuery} 
+                    onChange={(e) => setLeadsQuery(e.target.value)} 
+                    placeholder="Search enquiries by name, email, phone, postcode..." 
+                    className="pl-8"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-xs font-medium text-slate-500">Show:</span>
+                  {[
+                    { id: "all", label: "All", count: leads.length },
+                    { id: "meta", label: "Meta", count: metaLeadCount },
+                    { id: "website", label: "Website", count: websiteLeadCount },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setLeadSourceFilter(opt.id)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                        leadSourceFilter === opt.id
+                          ? opt.id === "meta"
+                            ? "bg-blue-100 text-blue-800"
+                            : opt.id === "website"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {opt.label} ({opt.count})
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
             {leadsTab === "follow-up" && (
               <div className="flex items-center gap-2 mb-3">
