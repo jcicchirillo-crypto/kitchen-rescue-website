@@ -916,7 +916,7 @@ function KitchenRescueAdmin() {
         <TableHead>Source</TableHead>
         <TableHead>Created</TableHead>
         <TableHead className="min-w-[220px]">Notes</TableHead>
-        <TableHead className="text-right">Actions</TableHead>
+        <TableHead className="text-right w-28">WhatsApp</TableHead>
       </TableRow>
     </TableHeader>
   );
