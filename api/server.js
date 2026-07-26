@@ -27,7 +27,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { getAllBookings, saveAllBookings, addBooking, updateBooking, deleteBooking } = require('./bookings-storage');
-const { addLead, getAllLeads, updateLead, importLeads, markLeadQuoted, updateLeadIntent, LEAD_STATUSES } = require('./leads-storage');
+const { addLead, getAllLeads, updateLead, importLeads, findExistingLead, markLeadQuoted, updateLeadIntent, markEnquiryFollowUp, parseLeadIntentFromNotes, isPlausibleLeadEmail, LEAD_STATUSES } = require('./leads-storage');
 const { addDeliveryChecklist } = require('./delivery-checklist-storage');
 const { getAllTasks, getAllProjects, addTask, updateTask, deleteTask, saveAllTasks, saveAllProjects } = require('./tasks-storage');
 const { normalizeRecurrence, nextOccurrenceDate } = require('./task-recurrence');
@@ -1108,6 +1108,210 @@ async function runQuoteFollowUpReminders({ dryRun = false } = {}) {
     return result;
 }
 
+function formatEnquiryDate(iso) {
+    if (!iso) return '—';
+    const parts = String(iso).slice(0, 10).split('-');
+    if (parts.length !== 3) return String(iso);
+    const dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12));
+    return dt.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+    });
+}
+
+function generateEnquiryFollowUpEmailHTML(data) {
+    const firstName = String(data.name || '').trim().split(/\s+/)[0] || 'there';
+    const postcode = String(data.postcode || '').toUpperCase() || 'your area';
+    const startLabel = formatEnquiryDate(data.startDate);
+    const endLabel = formatEnquiryDate(data.endDate);
+    const days = data.days ? `${data.days} days` : '—';
+    const baseUrl = (process.env.PUBLIC_SITE_URL || 'https://www.thekitchenrescue.co.uk').replace(/\/$/, '');
+    const datesParam = data.startDate && data.endDate
+        ? buildDateRangeParam(data.startDate, data.endDate, data.days)
+        : '';
+    const ctaUrl = `${baseUrl}/availability.html?${[
+        datesParam ? `dates=${datesParam}` : '',
+        data.postcode ? `postcode=${encodeURIComponent(String(data.postcode).toUpperCase())}` : '',
+        'skipgate=true',
+    ].filter(Boolean).join('&')}`;
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Kitchen Rescue</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <tr><td style="background:#111111;border-radius:12px 12px 0 0;padding:24px 40px;">
+        <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Kitchen Rescue</p>
+        <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:700;">Still need a kitchen for ${postcode}?</h1>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:32px 40px;">
+        <p style="margin:0 0 16px;color:#111827;font-size:16px;line-height:1.6;">Hi ${firstName},</p>
+        <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.65;">Thanks for checking Kitchen Rescue availability for <strong>${postcode}</strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin:0 0 20px;">
+          <tr><td style="padding:16px 20px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">You looked at</p>
+            <p style="margin:0 0 4px;color:#111827;font-size:14px;"><strong>Delivery:</strong> ${startLabel}</p>
+            <p style="margin:0 0 4px;color:#111827;font-size:14px;"><strong>Collection:</strong> ${endLabel}</p>
+            <p style="margin:0;color:#111827;font-size:14px;"><strong>Duration:</strong> ${days}</p>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.65;">Just checking in — do you have any questions before you book?</p>
+        <p style="margin:0 0 8px;color:#374151;font-size:15px;line-height:1.65;">A few people like to know:</p>
+        <ul style="margin:0 0 24px;padding-left:20px;color:#374151;font-size:15px;line-height:1.7;">
+          <li>We deliver and set up on your driveway</li>
+          <li>Fully equipped (oven, hob, fridge, dishwasher, washing machine)</li>
+          <li>Fully insured for delivery and hire</li>
+        </ul>
+        <p style="margin:0 0 28px;text-align:center;">
+          <a href="${ctaUrl}" style="display:inline-block;background:#dc2626;color:#ffffff;font-weight:700;text-decoration:none;padding:14px 24px;border-radius:8px;">Book these dates →</a>
+        </p>
+        <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Or reply to this email / call <a href="tel:07342606655" style="color:#dc2626;text-decoration:none;font-weight:700;">07342 606655</a> and we’ll help.</p>
+      </td></tr>
+      <tr><td style="background:#111111;border-radius:0 0 12px 12px;padding:20px 40px;">
+        <p style="margin:0;color:#ffffff;font-size:14px;font-weight:700;">Kitchen Rescue</p>
+        <p style="margin:4px 0 0;"><a href="${baseUrl}" style="color:rgba(255,255,255,0.65);font-size:13px;text-decoration:none;">www.thekitchenrescue.co.uk</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function buildDateRangeParam(startDate, endDate, days) {
+    const start = String(startDate).slice(0, 10);
+    const end = String(endDate).slice(0, 10);
+    const count = Number(days) || 0;
+    if (count > 1 && start && end) {
+        const dates = [];
+        let cur = start;
+        for (let i = 0; i < count; i++) {
+            dates.push(cur);
+            const d = new Date(cur + 'T12:00:00Z');
+            d.setUTCDate(d.getUTCDate() + 1);
+            cur = d.toISOString().slice(0, 10);
+            if (cur > end) break;
+        }
+        return dates.join(',');
+    }
+    if (start && end && start !== end) return `${start},${end}`;
+    return start || '';
+}
+
+async function sendEnquiryFollowUpToLead(lead, { force = false } = {}) {
+    const intent = parseLeadIntentFromNotes(lead.notes);
+    if (!intent.hasIntent) {
+        return { ok: false, skipped: true, reason: 'no dates selected yet' };
+    }
+    if (!force && intent.followUpSent) {
+        return { ok: false, skipped: true, reason: 'follow-up already sent' };
+    }
+    if (!force && intent.followUpSkipped) {
+        return { ok: false, skipped: true, reason: `already skipped (${intent.followUpSkippedReason || 'invalid email'})` };
+    }
+
+    const status = (lead.status || '').toLowerCase();
+    if (['booked', 'not_interested', 'archived'].includes(status)) {
+        return { ok: false, skipped: true, reason: `lead status is ${status}` };
+    }
+    if (lead.quoted_at && !force) {
+        return { ok: false, skipped: true, reason: 'already quoted' };
+    }
+
+    const emailCheck = isPlausibleLeadEmail(lead.email);
+    if (!emailCheck.ok) {
+        await markEnquiryFollowUp(lead.id, { status: 'skipped', detail: emailCheck.reason });
+        return { ok: false, skipped: true, reason: emailCheck.reason, noted: true };
+    }
+
+    if (!transporter) {
+        await markEnquiryFollowUp(lead.id, { status: 'failed', detail: 'email not configured' });
+        return { ok: false, skipped: true, reason: 'email not configured', noted: true };
+    }
+
+    try {
+        const html = generateEnquiryFollowUpEmailHTML({
+            name: lead.name,
+            postcode: intent.postcode,
+            startDate: intent.startDate,
+            endDate: intent.endDate,
+            days: intent.days,
+        });
+        const postcodeBit = intent.postcode || 'your area';
+        await transporter.sendMail({
+            from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
+            to: lead.email,
+            replyTo: process.env.EMAIL_USER,
+            subject: `Still need a kitchen for ${postcodeBit}?`,
+            html,
+        });
+        await markEnquiryFollowUp(lead.id, { status: 'sent' });
+        return { ok: true, sent: true };
+    } catch (err) {
+        await markEnquiryFollowUp(lead.id, { status: 'failed', detail: err.message || 'send error' });
+        return { ok: false, failed: true, reason: err.message || 'send error', noted: true };
+    }
+}
+
+async function runEnquiryFollowUps({ dryRun = false, force = false, maxAgeHours = 24 } = {}) {
+    const leads = await getAllLeads();
+    const result = { checked: leads.length, eligible: 0, sent: 0, skipped: 0, errors: 0, details: [] };
+    const cutoff = Date.now() - (Number(maxAgeHours) || 24) * 60 * 60 * 1000;
+
+    for (const lead of leads) {
+        const intent = parseLeadIntentFromNotes(lead.notes);
+        if (!intent.hasIntent) continue;
+        if (!force && intent.followUpSent) continue;
+        if (!force && intent.followUpSkipped) continue;
+
+        const status = (lead.status || '').toLowerCase();
+        if (['booked', 'not_interested', 'archived'].includes(status)) continue;
+        if (lead.quoted_at && !force) continue;
+
+        const intentTime = intent.intentAt ? new Date(intent.intentAt).getTime() : new Date(lead.created_at || 0).getTime();
+        if (!force && (!intentTime || intentTime > cutoff)) continue;
+
+        result.eligible++;
+        if (dryRun) {
+            const emailCheck = isPlausibleLeadEmail(lead.email);
+            result.details.push({
+                id: lead.id,
+                email: lead.email,
+                wouldSend: emailCheck.ok,
+                reason: emailCheck.ok ? 'ok' : emailCheck.reason,
+                intentAt: intent.intentAt,
+            });
+            continue;
+        }
+
+        const outcome = await sendEnquiryFollowUpToLead(lead, { force });
+        if (outcome.sent) {
+            result.sent++;
+            result.details.push({ id: lead.id, email: lead.email, sent: true });
+        } else if (outcome.failed) {
+            result.errors++;
+            result.details.push({ id: lead.id, email: lead.email, reason: outcome.reason });
+        } else {
+            result.skipped++;
+            result.details.push({ id: lead.id, email: lead.email, reason: outcome.reason });
+        }
+    }
+
+    console.log('[enquiry-followups] Run complete:', JSON.stringify({
+        checked: result.checked,
+        eligible: result.eligible,
+        sent: result.sent,
+        skipped: result.skipped,
+        errors: result.errors,
+    }));
+    return result;
+}
+
 function isAuthorizedCron(req) {
     const secret = process.env.CRON_SECRET;
     if (!secret) return true; // not configured — allow so it works out of the box (set CRON_SECRET to lock down)
@@ -1145,6 +1349,20 @@ const handleQuoteFollowUpRemindersCron = async (req, res) => {
 };
 app.get('/api/cron/send-quote-followups', handleQuoteFollowUpRemindersCron);
 app.post('/api/cron/send-quote-followups', handleQuoteFollowUpRemindersCron);
+
+const handleEnquiryFollowUpsCron = async (req, res) => {
+    if (!isAuthorizedCron(req)) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
+        const result = await runEnquiryFollowUps({ dryRun });
+        res.json({ success: true, dryRun, ...result });
+    } catch (error) {
+        console.error('[enquiry-followups] Cron error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+app.get('/api/cron/send-enquiry-followups', handleEnquiryFollowUpsCron);
+app.post('/api/cron/send-enquiry-followups', handleEnquiryFollowUpsCron);
 
 // Availability lead gate — save lead + add to Brevo (replaces direct client Supabase insert)
 app.post('/api/lead-gate', async (req, res) => {
@@ -3420,6 +3638,35 @@ app.patch('/api/leads/:id', authenticateAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error updating lead:', error);
         res.status(500).json({ error: 'Failed to update lead' });
+    }
+});
+
+// Manually send (or re-send) the enquiry follow-up email for a lead
+app.post('/api/leads/:id/enquiry-followup', authenticateAdmin, async (req, res) => {
+    try {
+        const lead = await findExistingLead({ id: req.params.id });
+        if (!lead) return res.status(404).json({ error: 'Lead not found' });
+        const force = req.body?.force !== false; // admin button always forces
+        const outcome = await sendEnquiryFollowUpToLead(lead, { force });
+        const refreshed = await findExistingLead({ id: req.params.id });
+        if (outcome.sent) {
+            return res.json({ success: true, lead: refreshed, message: 'Follow-up email sent' });
+        }
+        if (outcome.noted && /invalid|blocked|missing|format/i.test(outcome.reason || '')) {
+            return res.json({
+                success: false,
+                lead: refreshed,
+                message: `Email not sent — ${outcome.reason}. Noted on enquiry.`,
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            lead: refreshed,
+            error: outcome.reason || 'Could not send follow-up',
+        });
+    } catch (error) {
+        console.error('Error sending enquiry follow-up:', error);
+        res.status(500).json({ error: 'Failed to send enquiry follow-up' });
     }
 });
 

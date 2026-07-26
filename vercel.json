@@ -12,6 +12,7 @@
   },
   "crons": [
     { "path": "/api/cron/send-balance-reminders", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/send-quote-followups", "schedule": "0 10 * * *" }
+    { "path": "/api/cron/send-quote-followups", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/send-enquiry-followups", "schedule": "0 11 * * *" }
   ]
 }

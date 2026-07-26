@@ -56,6 +56,79 @@ function appendNotes(existing, addition) {
     return `${e}\n${a}`;
 }
 
+/** Parse hire intent from lead notes (written by updateLeadIntent). */
+function parseLeadIntentFromNotes(notes) {
+    const text = String(notes || '');
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const intentLine = lines.find((l) => /^Intent:/i.test(l)) || '';
+    const intentAtLine = lines.find((l) => /^Intent at:/i.test(l)) || '';
+    const followUpSent = lines.some((l) => /^Enquiry follow-up sent:/i.test(l));
+    const followUpSkipped = lines.find((l) => /^Enquiry follow-up skipped:/i.test(l)) || '';
+    const followUpFailed = lines.find((l) => /^Enquiry follow-up failed:/i.test(l)) || '';
+
+    const datesMatch = intentLine.match(/(\d{4}-\d{2}-\d{2})\s*[→\-–]\s*(\d{4}-\d{2}-\d{2})/);
+    const daysMatch = intentLine.match(/\((\d+)\s*days?\)/i);
+    let postcode = '';
+    const afterIntent = intentLine.replace(/^Intent:\s*/i, '');
+    const pcMatch = afterIntent.match(/^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|[A-Z]{1,2}\d[A-Z\d]?)/i);
+    if (pcMatch) postcode = pcMatch[1].trim().toUpperCase();
+
+    let intentAt = null;
+    const atMatch = intentAtLine.match(/Intent at:\s*(.+)$/i);
+    if (atMatch) {
+        const d = new Date(atMatch[1].trim());
+        if (!Number.isNaN(d.getTime())) intentAt = d.toISOString();
+    }
+
+    return {
+        postcode,
+        startDate: datesMatch?.[1] || '',
+        endDate: datesMatch?.[2] || '',
+        days: daysMatch?.[1] || '',
+        intentAt,
+        hasIntent: !!(datesMatch?.[1] && datesMatch?.[2]),
+        followUpSent,
+        followUpSkipped: !!followUpSkipped,
+        followUpFailed: !!followUpFailed,
+        followUpSkippedReason: followUpSkipped.replace(/^Enquiry follow-up skipped:\s*/i, '').trim(),
+    };
+}
+
+/** Basic + obvious-fake checks before we try to email a lead. */
+function isPlausibleLeadEmail(email) {
+    const e = String(email || '').trim().toLowerCase();
+    if (!e) return { ok: false, reason: 'missing email' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return { ok: false, reason: 'invalid email format' };
+    const domain = e.split('@')[1] || '';
+    const blocked = [
+        'temp.local',
+        'example.com',
+        'example.org',
+        'test.com',
+        'localhost',
+        'invalid',
+        'mailinator.com',
+        'guerrillamail.com',
+        '10minutemail.com',
+        'yopmail.com',
+    ];
+    if (blocked.some((d) => domain === d || domain.endsWith(`.${d}`))) {
+        return { ok: false, reason: `blocked domain (${domain})` };
+    }
+    if (e.startsWith('quote-') && domain === 'temp.local') {
+        return { ok: false, reason: 'temporary quote placeholder email' };
+    }
+    return { ok: true };
+}
+
+function stripIntentMetaLines(notes) {
+    return String(notes || '')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l && !/^Intent:/i.test(l) && !/^Intent at:/i.test(l))
+        .join('\n');
+}
+
 /**
  * Find an existing lead by email (preferred) or phone.
  */
@@ -222,6 +295,7 @@ async function updateLeadIntent({
         ? `~£${Number(totalCost).toFixed(2)}`
         : null;
     const intentLine = ['Intent:', pc || null, when, costBit].filter(Boolean).join(' ');
+    const intentAtLine = `Intent at: ${new Date().toISOString()}`;
 
     let existing = await findExistingLead({ id: leadId, email, phone });
     if (!existing) {
@@ -230,24 +304,49 @@ async function updateLeadIntent({
             email,
             phone,
             source: source || 'availability_gate',
-            notes: intentLine,
+            notes: `${intentLine}\n${intentAtLine}`,
         });
         existing = await findExistingLead({ email, phone });
         return { ok: !!existing, lead: existing, created: !existing ? false : true, intentLine };
     }
 
-    const withoutOldIntent = String(existing.notes || '')
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l && !/^Intent:/i.test(l))
-        .join('\n');
-    const notes = appendNotes(withoutOldIntent, intentLine);
+    const withoutOldIntent = stripIntentMetaLines(existing.notes);
+    const notes = appendNotes(appendNotes(withoutOldIntent, intentLine), intentAtLine);
     const patch = { notes };
     if (name && name !== '—' && (!existing.name || existing.name === '—')) patch.name = name;
     if (phone && !existing.phone) patch.phone = formatPhone(phone) || phone;
 
     const updated = await updateLead(existing.id, patch);
     return { ok: updated.ok, lead: updated.lead || existing, created: false, intentLine };
+}
+
+/**
+ * Append an enquiry follow-up outcome note (sent / skipped / failed).
+ */
+async function markEnquiryFollowUp(leadId, { status, detail } = {}) {
+    if (!leadId) return { ok: false, error: 'Missing lead id' };
+    const existing = await findExistingLead({ id: leadId });
+    if (!existing) return { ok: false, error: 'Lead not found' };
+
+    const stamp = new Date().toISOString();
+    let line = '';
+    if (status === 'sent') line = `Enquiry follow-up sent: ${stamp}`;
+    else if (status === 'skipped') line = `Enquiry follow-up skipped: ${detail || 'unknown reason'} (${stamp})`;
+    else if (status === 'failed') line = `Enquiry follow-up failed: ${detail || 'send error'} (${stamp})`;
+    else return { ok: false, error: 'Invalid status' };
+
+    // Replace previous follow-up outcome lines so the latest state is clear
+    const cleaned = String(existing.notes || '')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l && !/^Enquiry follow-up (sent|skipped|failed):/i.test(l))
+        .join('\n');
+    const notes = appendNotes(cleaned, line);
+    const patch = { notes };
+    if (status === 'sent' && existing.status === 'new') patch.status = 'callback';
+
+    const updated = await updateLead(existing.id, patch);
+    return { ok: updated.ok, lead: updated.lead || existing, line };
 }
 
 /**
@@ -565,6 +664,9 @@ module.exports = {
     findExistingLead,
     markLeadQuoted,
     updateLeadIntent,
+    markEnquiryFollowUp,
+    parseLeadIntentFromNotes,
+    isPlausibleLeadEmail,
     isMetaSource,
     leadChannel,
     LEAD_STATUSES,

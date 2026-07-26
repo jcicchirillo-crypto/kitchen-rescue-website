@@ -671,6 +671,40 @@ function KitchenRescueAdmin() {
     setShowCustomQuote(true);
   };
 
+  const sendEnquiryFollowUpEmail = async (lead) => {
+    if (!lead?.id) return;
+    setSavingLeadId(lead.id);
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(`/api/leads/${lead.id}/enquiry-followup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ force: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.lead) {
+        setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, ...data.lead } : l)));
+        setLeadNotesDraft((prev) => ({ ...prev, [lead.id]: data.lead.notes || "" }));
+        if (selectedLead?.id === lead.id) setSelectedLead((prev) => (prev ? { ...prev, ...data.lead } : prev));
+      }
+      if (data.success) {
+        setConfirmationMessage({ type: "success", text: data.message || "Follow-up email sent" });
+      } else {
+        setConfirmationMessage({
+          type: "error",
+          text: data.message || data.error || "Follow-up email not sent",
+        });
+      }
+    } catch (err) {
+      setConfirmationMessage({ type: "error", text: err.message || "Failed to send follow-up" });
+    } finally {
+      setSavingLeadId(null);
+    }
+  };
+
   const saveQuoteFollowUp = async (quote, override = null) => {
     const draft = override || quoteFollowUpDrafts[quote.id];
     if (!draft) return;
@@ -1645,7 +1679,7 @@ function KitchenRescueAdmin() {
 
                   <div className="border-t pt-4 space-y-3">
                     <h3 className="text-sm font-semibold text-slate-800">Actions</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {buildLeadWhatsAppUrl(lead) ? (
                         <button
                           type="button"
@@ -1660,6 +1694,17 @@ function KitchenRescueAdmin() {
                           No phone for WhatsApp
                         </div>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-10 gap-2 text-sky-700 border-sky-300"
+                        disabled={savingLeadId === lead.id || !intent.startDate}
+                        onClick={() => sendEnquiryFollowUpEmail(lead)}
+                        title={intent.startDate ? "Send the enquiry follow-up email now" : "Needs dates before follow-up"}
+                      >
+                        {savingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                        Email follow-up
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -1699,6 +1744,16 @@ function KitchenRescueAdmin() {
                         Make booking
                       </Button>
                     </div>
+                    {/Enquiry follow-up sent:/i.test(notesValue) && (
+                      <p className="text-xs text-sky-700 bg-sky-50 border border-sky-100 rounded-md px-3 py-2">
+                        Enquiry follow-up email has been sent (see notes).
+                      </p>
+                    )}
+                    {/Enquiry follow-up skipped:/i.test(notesValue) && (
+                      <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-3 py-2">
+                        Follow-up skipped — email looked invalid (see notes).
+                      </p>
+                    )}
                     {/WhatsApp sent:/i.test(notesValue) && (
                       <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-md px-3 py-2">
                         WhatsApp activity is logged in notes below.
