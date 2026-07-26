@@ -1634,6 +1634,80 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     color: #6b7280 !important;
 }
 
+/* Reviews */
+.reviews {
+    max-width: 1080px;
+    margin: 0 auto 28px;
+    padding: 0 16px;
+}
+
+.reviews-inner {
+    padding: 36px 36px 40px;
+    border-radius: 18px;
+    background: linear-gradient(165deg, #1a1a1a 0%, #0f0f0f 55%, #2a1212 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #f5f5f5;
+    text-align: center;
+}
+
+.reviews-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.reviews-lead {
+    margin: 0 auto 1.5rem;
+    max-width: 36rem;
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.reviews-grid {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0 auto;
+    max-width: 40rem;
+    text-align: left;
+}
+
+.review-quote {
+    margin: 0;
+    padding: 0 0 0 1rem;
+    border-left: 3px solid #dc2626;
+}
+
+.review-quote p {
+    margin: 0 0 0.65rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.05rem;
+    line-height: 1.55;
+}
+
+.review-quote footer {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.review-source {
+    margin-left: 0.5rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 400;
+}
+
+.review-source::before {
+    content: '· ';
+}
+
+@media (max-width: 640px) {
+    .reviews-inner {
+        padding: 28px 20px 32px;
+    }
+}
+
 /* Gallery styling to match trade pages exactly */
 .gallery-section {
     background: #f8fafc;

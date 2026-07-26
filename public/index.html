@@ -566,6 +566,14 @@
         </div>
     </section>
 
+    <!-- Reviews: shown only when testimonials exist in /js/reviews.js -->
+    <section id="reviews" class="reviews" aria-label="Customer reviews" hidden>
+        <div class="reviews-inner">
+            <h2 class="reviews-title">Customer reviews</h2>
+            <div id="reviewsGrid" class="reviews-grid"></div>
+        </div>
+    </section>
+
     <!-- Get a quote (CTA to availability) -->
     <section id="get-quote" aria-label="Get a quote">
         <div class="container">
@@ -831,6 +839,7 @@
     </a>
 
     <script src="/script.js"></script>
+    <script src="/js/reviews.js"></script>
     <script>
         // Enhanced Scrolling Experience (Mobile & Desktop)
         (function() {
