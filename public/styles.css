@@ -1667,23 +1667,10 @@ section:not(.hero):not(.features):not(.spec):not(.gallery) {
     background-color: #0f172a;
 }
 
-.gallery-item--video {
-    grid-column: 1 / -1;
-}
-
-.gallery-item--video video {
-    height: min(70vh, 560px);
-    object-fit: contain;
-}
-
 @media (max-width: 640px) {
     .gallery-item img,
     .gallery-item video {
         height: 160px;
-    }
-
-    .gallery-item--video video {
-        height: min(65vh, 420px);
     }
 }
 
