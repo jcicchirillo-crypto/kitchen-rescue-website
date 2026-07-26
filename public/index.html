@@ -24,10 +24,8 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="js/business-constants.js"></script>
     
-    <!-- Cookie Consent - Must load before analytics -->
-    <script src="js/cookie-consent.js"></script>
-    
-    <!-- Analytics scripts are loaded by cookie-consent.js only if user accepts -->
+    <!-- Cookie consent: analytics load only after Accept (not used on trade-landing ad page) -->
+    <script src="/js/cookie-consent.js"></script>
     
     <!-- Business Identity Schema -->
     <script type="application/ld+json">
@@ -906,53 +904,6 @@
             // Add smooth transitions to header
             if (header) {
                 header.style.transition = 'transform 0.3s ease-in-out';
-            }
-        })();
-        
-        // Cookie Consent Management
-        (function() {
-            const banner = document.getElementById('cookieBanner');
-            const acceptBtn = document.getElementById('acceptCookies');
-            const rejectBtn = document.getElementById('rejectCookies');
-            const settingsLink = document.getElementById('cookieSettingsLink');
-            
-            // Check if user has already made a choice
-            const cookieConsent = localStorage.getItem('cookieConsent');
-            
-            if (!cookieConsent) {
-                banner.style.display = 'block';
-            } else if (cookieConsent === 'accepted') {
-                enableAnalytics();
-            }
-            
-            acceptBtn.addEventListener('click', function() {
-                localStorage.setItem('cookieConsent', 'accepted');
-                banner.style.display = 'none';
-                enableAnalytics();
-            });
-            
-            rejectBtn.addEventListener('click', function() {
-                localStorage.setItem('cookieConsent', 'rejected');
-                banner.style.display = 'none';
-                disableAnalytics();
-            });
-            
-            if (settingsLink) {
-                settingsLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    localStorage.removeItem('cookieConsent');
-                    banner.style.display = 'block';
-                });
-            }
-            
-            function enableAnalytics() {
-                // Google Analytics is already loaded, just enable it
-                window['ga-disable-G-9G81ZHPHGF'] = false;
-            }
-            
-            function disableAnalytics() {
-                // Disable Google Analytics
-                window['ga-disable-G-9G81ZHPHGF'] = true;
             }
         })();
 
