@@ -1219,30 +1219,7 @@ app.post('/api/lead-gate', async (req, res) => {
             else if (!leadGateListId) console.warn('Lead gate: Brevo skipped — set BREVO_LEAD_GATE_LIST_ID or BREVO_LIST_ID to your Kitchen Rescue leads list ID');
         }
 
-        // Notify admin by email
-        if (transporter) {
-            const adminEmail = adminNotifyTo();
-            const leadHtml = `
-                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
-                    <h2 style="color:#dc2626;">New availability check lead</h2>
-                    <p><strong>Name:</strong> ${(trimmedName || '—').replace(/</g, '&lt;')}</p>
-                    <p><strong>Email:</strong> ${(trimmedEmail || '—').replace(/</g, '&lt;')}</p>
-                    <p><strong>Phone:</strong> ${(trimmedPhone || '—').replace(/</g, '&lt;')}</p>
-                    <p><strong>Postcode:</strong> ${trimmedPostcode.replace(/</g, '&lt;')}</p>
-                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They unlocked the availability calendar. You'll get another alert when they pick dates.</p>
-                </div>`;
-            try {
-                await transporter.sendMail({
-                    from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
-                    to: adminEmail,
-                    subject: `New lead: ${trimmedName || 'Unknown'} — ${trimmedPostcode} — ${trimmedPhone || 'no phone'}`,
-                    html: leadHtml
-                });
-                console.log('Lead gate: admin notification sent to:', adminEmail);
-            } catch (err) {
-                console.error('Lead gate: admin email failed:', err.message);
-            }
-        }
+        // Lead is stored with postcode; admin gets the full enquiry email once dates are picked (/api/lead-intent)
 
         return res.json({
             success: true,
@@ -1301,31 +1278,44 @@ app.post('/api/lead-intent', async (req, res) => {
             return res.status(500).json({ success: false, message: result.error || 'Failed to save intent.' });
         }
 
-        // Optional admin ping when dates first land (client controls notify flag to avoid spam)
+        // Admin enquiry email — sent when they pick dates (includes postcode + hire window)
         if (notify && transporter) {
             const adminEmail = adminNotifyTo();
             const safe = (v) => String(v || '—').replace(/</g, '&lt;');
             const costLabel = totalCost != null && totalCost !== '' && !Number.isNaN(Number(totalCost))
                 ? `£${Number(totalCost).toFixed(2)}`
                 : '—';
+            const formatDay = (iso) => {
+                if (!iso) return '—';
+                const parts = String(iso).slice(0, 10).split('-');
+                if (parts.length !== 3) return safe(iso);
+                const dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12));
+                return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+            };
             const html = `
-                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
-                    <h2 style="color:#dc2626;">Lead selected dates</h2>
-                    <p><strong>Name:</strong> ${safe(name)}</p>
-                    <p><strong>Email:</strong> ${safe(trimmedEmail)}</p>
-                    <p><strong>Phone:</strong> ${safe(phone)}</p>
-                    <p><strong>Postcode:</strong> ${safe(trimmedPostcode)}</p>
-                    <p><strong>Dates:</strong> ${safe(startDate)} → ${safe(endDate)}${days ? ` (${safe(days)} days)` : ''}</p>
-                    <p><strong>Quoted total:</strong> ${safe(costLabel)}</p>
-                    <p style="color:#6b7280;font-size:13px;margin-top:20px;">They viewed an instant quote on the availability page. Follow up if they don't book.</p>
+                <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#dc2626;margin:0 0 8px;">New availability enquiry</h2>
+                    <p style="color:#6b7280;margin:0 0 20px;font-size:14px;">They unlocked the calendar and selected hire dates. Follow up if they don't book.</p>
+                    <table style="width:100%;border-collapse:collapse;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+                      <tr><td style="padding:10px 14px;color:#6b7280;width:140px;">Name</td><td style="padding:10px 14px;font-weight:700;color:#111827;">${safe(name)}</td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Email</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;"><a href="mailto:${safe(trimmedEmail)}" style="color:#dc2626;text-decoration:none;">${safe(trimmedEmail)}</a></td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Phone</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;"><a href="tel:${safe(phone)}" style="color:#dc2626;text-decoration:none;">${safe(phone)}</a></td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Postcode</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${safe(trimmedPostcode)}</td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Delivery</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${formatDay(startDate)}</td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Collection</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${formatDay(endDate)}</td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Duration</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${safe(days || '—')} days</td></tr>
+                      <tr><td style="padding:10px 14px;color:#6b7280;border-top:1px solid #e5e7eb;">Quote total</td><td style="padding:10px 14px;border-top:1px solid #e5e7eb;font-weight:700;">${safe(costLabel)}</td></tr>
+                    </table>
+                    <p style="margin:18px 0 0;"><a href="https://www.thekitchenrescue.co.uk/admin" style="color:#dc2626;font-weight:700;text-decoration:none;">Open Admin →</a></p>
                 </div>`;
             try {
                 await transporter.sendMail({
                     from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
                     to: adminEmail,
-                    subject: `Dates selected: ${name || 'Lead'} — ${trimmedPostcode} — ${startDate} → ${endDate}`,
+                    subject: `New enquiry: ${name || 'Lead'} — ${trimmedPostcode} — ${formatDay(startDate)} → ${formatDay(endDate)}`,
                     html,
                 });
+                console.log('Lead intent: admin enquiry email sent to:', adminEmail);
             } catch (err) {
                 console.error('Lead intent: admin email failed:', err.message);
             }
@@ -2302,7 +2292,18 @@ function generateBusinessNotificationHTML(data) {
         const num = Number(n);
         return isNaN(num) ? 'TBC' : `£${num.toFixed(2)}`;
     };
-    const fd = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); };
+    const fd = (d) => {
+        if (!d) return '—';
+        const raw = String(d).slice(0, 10);
+        const parts = raw.split('-');
+        if (parts.length === 3 && parts[0].length === 4) {
+            const dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12));
+            return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+        }
+        const dt = new Date(d);
+        if (Number.isNaN(dt.getTime())) return '—';
+        return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
     const durationOptions = Array.isArray(data.durationOptions) && data.durationOptions.length > 1
         ? data.durationOptions
         : null;

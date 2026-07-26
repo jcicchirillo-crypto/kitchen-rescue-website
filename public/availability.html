@@ -928,19 +928,22 @@ async function updateQuotePanel() {
             <span>🛡️ Fully insured during delivery and throughout your hire for complete peace of mind</span>
         </div>`;
 
-    // Persist hire intent (postcode + dates) on the lead as soon as a quote is visible
-    if (hasPostcode && currentLead) {
-        let quotedTotal = hire;
-        if (delivCosts && typeof delivCosts === 'object') {
-            quotedTotal = hire + Number(delivCosts.deliveryCost || 0) + Number(delivCosts.collectionCost || 0);
+    // Persist hire intent as soon as a quote range is selected (even before postcode delivery calc)
+    if (currentLead && selectedDates.length >= 7) {
+        const pcForIntent = pcValue || String(currentLead.postcode || '').trim().toUpperCase();
+        if (pcForIntent) {
+            let quotedTotal = hire;
+            if (hasPostcode && delivCosts && typeof delivCosts === 'object') {
+                quotedTotal = hire + Number(delivCosts.deliveryCost || 0) + Number(delivCosts.collectionCost || 0);
+            }
+            scheduleLeadIntentSave({
+                postcode: pcForIntent,
+                startDate: selectedDates[0],
+                endDate: selectedDates[selectedDates.length - 1],
+                days,
+                totalCost: quotedTotal,
+            });
         }
-        scheduleLeadIntentSave({
-            postcode: pcValue,
-            startDate: selectedDates[0],
-            endDate: selectedDates[selectedDates.length - 1],
-            days,
-            totalCost: quotedTotal,
-        });
     }
 }
 
