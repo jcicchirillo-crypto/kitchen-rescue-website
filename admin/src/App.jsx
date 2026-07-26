@@ -1698,9 +1698,9 @@ function KitchenRescueAdmin() {
                         size="sm"
                         variant="outline"
                         className="h-10 gap-2 text-sky-700 border-sky-300"
-                        disabled={savingLeadId === lead.id || !intent.startDate}
+                        disabled={savingLeadId === lead.id}
                         onClick={() => sendEnquiryFollowUpEmail(lead)}
-                        title={intent.startDate ? "Send the enquiry follow-up email now" : "Needs dates before follow-up"}
+                        title="Send the enquiry follow-up email now"
                       >
                         {savingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                         Email follow-up

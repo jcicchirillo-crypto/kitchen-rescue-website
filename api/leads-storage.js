@@ -330,8 +330,11 @@ async function markEnquiryFollowUp(leadId, { status, detail } = {}) {
 
     const stamp = new Date().toISOString();
     let line = '';
-    if (status === 'sent') line = `Enquiry follow-up sent: ${stamp}`;
-    else if (status === 'skipped') line = `Enquiry follow-up skipped: ${detail || 'unknown reason'} (${stamp})`;
+    if (status === 'sent') {
+        line = detail
+            ? `Enquiry follow-up sent: ${stamp} (${detail})`
+            : `Enquiry follow-up sent: ${stamp}`;
+    } else if (status === 'skipped') line = `Enquiry follow-up skipped: ${detail || 'unknown reason'} (${stamp})`;
     else if (status === 'failed') line = `Enquiry follow-up failed: ${detail || 'send error'} (${stamp})`;
     else return { ok: false, error: 'Invalid status' };
 

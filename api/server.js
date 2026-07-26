@@ -1183,6 +1183,49 @@ function generateEnquiryFollowUpEmailHTML(data) {
 </html>`;
 }
 
+function generateEnquiryFollowUpNoDatesEmailHTML(data) {
+    const firstName = String(data.name || '').trim().split(/\s+/)[0] || 'there';
+    const baseUrl = (process.env.PUBLIC_SITE_URL || 'https://www.thekitchenrescue.co.uk').replace(/\/$/, '');
+    const ctaUrl = `${baseUrl}/availability.html`;
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Kitchen Rescue</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <tr><td style="background:#111111;border-radius:12px 12px 0 0;padding:24px 40px;">
+        <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Kitchen Rescue</p>
+        <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:700;">Still looking for a temporary kitchen?</h1>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:32px 40px;">
+        <p style="margin:0 0 16px;color:#111827;font-size:16px;line-height:1.6;">Hi ${firstName},</p>
+        <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.65;">Thanks for checking Kitchen Rescue availability.</p>
+        <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.65;">Just following up — if you’re still without a kitchen (or about to be), we can help.</p>
+        <p style="margin:0 0 8px;color:#374151;font-size:15px;line-height:1.65;">Our driveway pod includes:</p>
+        <ul style="margin:0 0 16px;padding-left:20px;color:#374151;font-size:15px;line-height:1.7;">
+          <li>Oven, hob, fridge freezer</li>
+          <li>Dishwasher and washing machine</li>
+          <li>Full-size sink</li>
+        </ul>
+        <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.65;">Fully insured for delivery and throughout the hire.</p>
+        <p style="margin:0 0 28px;text-align:center;">
+          <a href="${ctaUrl}" style="display:inline-block;background:#dc2626;color:#ffffff;font-weight:700;text-decoration:none;padding:14px 24px;border-radius:8px;">Check availability →</a>
+        </p>
+        <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Or reply to this email / call <a href="tel:07342606655" style="color:#dc2626;text-decoration:none;font-weight:700;">07342 606655</a> and we’ll talk through dates and pricing.</p>
+      </td></tr>
+      <tr><td style="background:#111111;border-radius:0 0 12px 12px;padding:20px 40px;">
+        <p style="margin:0;color:#ffffff;font-size:14px;font-weight:700;">Kitchen Rescue</p>
+        <p style="margin:4px 0 0;"><a href="${baseUrl}" style="color:rgba(255,255,255,0.65);font-size:13px;text-decoration:none;">www.thekitchenrescue.co.uk</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
 function buildDateRangeParam(startDate, endDate, days) {
     const start = String(startDate).slice(0, 10);
     const end = String(endDate).slice(0, 10);
@@ -1205,9 +1248,6 @@ function buildDateRangeParam(startDate, endDate, days) {
 
 async function sendEnquiryFollowUpToLead(lead, { force = false } = {}) {
     const intent = parseLeadIntentFromNotes(lead.notes);
-    if (!intent.hasIntent) {
-        return { ok: false, skipped: true, reason: 'no dates selected yet' };
-    }
     if (!force && intent.followUpSent) {
         return { ok: false, skipped: true, reason: 'follow-up already sent' };
     }
@@ -1223,6 +1263,12 @@ async function sendEnquiryFollowUpToLead(lead, { force = false } = {}) {
         return { ok: false, skipped: true, reason: 'already quoted' };
     }
 
+    // Skip obvious non-customer / trade placeholder leads
+    const source = String(lead.source || '').toLowerCase();
+    if (!force && source.includes('trade-quote')) {
+        return { ok: false, skipped: true, reason: 'trade quote lead' };
+    }
+
     const emailCheck = isPlausibleLeadEmail(lead.email);
     if (!emailCheck.ok) {
         await markEnquiryFollowUp(lead.id, { status: 'skipped', detail: emailCheck.reason });
@@ -1234,24 +1280,32 @@ async function sendEnquiryFollowUpToLead(lead, { force = false } = {}) {
         return { ok: false, skipped: true, reason: 'email not configured', noted: true };
     }
 
+    const withDates = intent.hasIntent;
     try {
-        const html = generateEnquiryFollowUpEmailHTML({
-            name: lead.name,
-            postcode: intent.postcode,
-            startDate: intent.startDate,
-            endDate: intent.endDate,
-            days: intent.days,
-        });
-        const postcodeBit = intent.postcode || 'your area';
+        const html = withDates
+            ? generateEnquiryFollowUpEmailHTML({
+                name: lead.name,
+                postcode: intent.postcode,
+                startDate: intent.startDate,
+                endDate: intent.endDate,
+                days: intent.days,
+            })
+            : generateEnquiryFollowUpNoDatesEmailHTML({ name: lead.name });
+        const subject = withDates
+            ? `Still need a kitchen for ${intent.postcode || 'your area'}?`
+            : 'Still looking for a temporary kitchen?';
         await transporter.sendMail({
             from: `"Kitchen Rescue" <${process.env.EMAIL_USER}>`,
             to: lead.email,
             replyTo: process.env.EMAIL_USER,
-            subject: `Still need a kitchen for ${postcodeBit}?`,
+            subject,
             html,
         });
-        await markEnquiryFollowUp(lead.id, { status: 'sent' });
-        return { ok: true, sent: true };
+        await markEnquiryFollowUp(lead.id, {
+            status: 'sent',
+            detail: withDates ? 'with dates' : 'no dates',
+        });
+        return { ok: true, sent: true, withDates };
     } catch (err) {
         await markEnquiryFollowUp(lead.id, { status: 'failed', detail: err.message || 'send error' });
         return { ok: false, failed: true, reason: err.message || 'send error', noted: true };
@@ -1265,7 +1319,6 @@ async function runEnquiryFollowUps({ dryRun = false, force = false, maxAgeHours 
 
     for (const lead of leads) {
         const intent = parseLeadIntentFromNotes(lead.notes);
-        if (!intent.hasIntent) continue;
         if (!force && intent.followUpSent) continue;
         if (!force && intent.followUpSkipped) continue;
 
@@ -1273,7 +1326,13 @@ async function runEnquiryFollowUps({ dryRun = false, force = false, maxAgeHours 
         if (['booked', 'not_interested', 'archived'].includes(status)) continue;
         if (lead.quoted_at && !force) continue;
 
-        const intentTime = intent.intentAt ? new Date(intent.intentAt).getTime() : new Date(lead.created_at || 0).getTime();
+        const source = String(lead.source || '').toLowerCase();
+        if (source.includes('trade-quote')) continue;
+
+        // Timing: prefer Intent at when dates exist, otherwise lead created_at
+        const intentTime = intent.intentAt
+            ? new Date(intent.intentAt).getTime()
+            : new Date(lead.created_at || 0).getTime();
         if (!force && (!intentTime || intentTime > cutoff)) continue;
 
         result.eligible++;
@@ -1283,8 +1342,9 @@ async function runEnquiryFollowUps({ dryRun = false, force = false, maxAgeHours 
                 id: lead.id,
                 email: lead.email,
                 wouldSend: emailCheck.ok,
-                reason: emailCheck.ok ? 'ok' : emailCheck.reason,
+                reason: emailCheck.ok ? (intent.hasIntent ? 'with dates' : 'no dates') : emailCheck.reason,
                 intentAt: intent.intentAt,
+                hasDates: intent.hasIntent,
             });
             continue;
         }
@@ -1292,7 +1352,7 @@ async function runEnquiryFollowUps({ dryRun = false, force = false, maxAgeHours 
         const outcome = await sendEnquiryFollowUpToLead(lead, { force });
         if (outcome.sent) {
             result.sent++;
-            result.details.push({ id: lead.id, email: lead.email, sent: true });
+            result.details.push({ id: lead.id, email: lead.email, sent: true, withDates: !!outcome.withDates });
         } else if (outcome.failed) {
             result.errors++;
             result.details.push({ id: lead.id, email: lead.email, reason: outcome.reason });
@@ -1354,8 +1414,12 @@ const handleEnquiryFollowUpsCron = async (req, res) => {
     if (!isAuthorizedCron(req)) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
-        const result = await runEnquiryFollowUps({ dryRun });
-        res.json({ success: true, dryRun, ...result });
+        const catchUp = req.query.catchUp === '1' || req.query.catchUp === 'true';
+        const result = await runEnquiryFollowUps({
+            dryRun,
+            maxAgeHours: catchUp ? 0 : 24,
+        });
+        res.json({ success: true, dryRun, catchUp, ...result });
     } catch (error) {
         console.error('[enquiry-followups] Cron error:', error);
         res.status(500).json({ success: false, error: error.message });
