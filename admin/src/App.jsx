@@ -440,13 +440,25 @@ function KitchenRescueAdmin() {
     });
     if (res.ok) {
       const data = await res.json();
-      setLeads(data);
-      setLeadNotesDraft((prev) => {
-        const next = { ...prev };
-        for (const lead of data) {
-          if (next[lead.id] === undefined) next[lead.id] = lead.notes || "";
-        }
-        return next;
+      setLeads((prevLeads) => {
+        setLeadNotesDraft((prevDraft) => {
+          const next = { ...prevDraft };
+          for (const lead of data) {
+            const serverNotes = lead.notes || "";
+            const draft = prevDraft[lead.id];
+            const previous = prevLeads.find((l) => l.id === lead.id);
+            const previousNotes = previous ? previous.notes || "" : undefined;
+            // Keep in-progress edits; otherwise always take the latest server notes
+            // (cron follow-ups, WhatsApp logs, etc. must show after refresh).
+            const isDirty =
+              draft !== undefined &&
+              previousNotes !== undefined &&
+              draft !== previousNotes;
+            if (!isDirty) next[lead.id] = serverNotes;
+          }
+          return next;
+        });
+        return data;
       });
     } else {
       setLeads([]);
@@ -519,8 +531,21 @@ function KitchenRescueAdmin() {
   };
 
   const saveLeadNotes = async (lead) => {
-    const notes = leadNotesDraft[lead.id] ?? "";
-    if (notes === (lead.notes || "")) return;
+    let notes = leadNotesDraft[lead.id] ?? "";
+    const serverNotes = lead.notes || "";
+    if (notes === serverNotes) return;
+
+    // Never wipe system follow-up lines if an older draft is saved over newer cron notes
+    const systemLines = String(serverNotes)
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => /^Enquiry follow-up (sent|skipped|failed):/i.test(l));
+    for (const line of systemLines) {
+      if (!notes.includes(line)) {
+        notes = notes.trim() ? `${notes.trim()}\n${line}` : line;
+      }
+    }
+
     const result = await saveLeadUpdate(lead.id, { notes });
     if (result) {
       setLeadNotesDraft((prev) => ({ ...prev, [lead.id]: result.notes || "" }));

@@ -328,14 +328,21 @@ async function markEnquiryFollowUp(leadId, { status, detail } = {}) {
     const existing = await findExistingLead({ id: leadId });
     if (!existing) return { ok: false, error: 'Lead not found' };
 
-    const stamp = new Date().toISOString();
+    const stampUk = new Date().toLocaleString('en-GB', {
+        timeZone: 'Europe/London',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
     let line = '';
     if (status === 'sent') {
         line = detail
-            ? `Enquiry follow-up sent: ${stamp} (${detail})`
-            : `Enquiry follow-up sent: ${stamp}`;
-    } else if (status === 'skipped') line = `Enquiry follow-up skipped: ${detail || 'unknown reason'} (${stamp})`;
-    else if (status === 'failed') line = `Enquiry follow-up failed: ${detail || 'send error'} (${stamp})`;
+            ? `Enquiry follow-up sent: ${stampUk} (${detail})`
+            : `Enquiry follow-up sent: ${stampUk}`;
+    } else if (status === 'skipped') line = `Enquiry follow-up skipped: ${detail || 'unknown reason'} (${stampUk})`;
+    else if (status === 'failed') line = `Enquiry follow-up failed: ${detail || 'send error'} (${stampUk})`;
     else return { ok: false, error: 'Invalid status' };
 
     // Replace previous follow-up outcome lines so the latest state is clear
