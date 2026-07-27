@@ -13,7 +13,7 @@ import {
   startOfWeek,
   subWeeks,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, CheckCircle2, Phone, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Phone, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
@@ -43,7 +43,7 @@ function isOpenStatus(status) {
  * Week calendar + to-do list for quote follow-ups.
  * Incomplete past-due items roll to today and show in red.
  */
-export function QuoteFollowUpCalendar({ quotes, onSave, savingId }) {
+export function QuoteFollowUpCalendar({ quotes, onSave, savingId, onWhatsApp }) {
   const [week, setWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [localQuotes, setLocalQuotes] = useState(quotes);
   const rolloverDone = useRef(false);
@@ -197,6 +197,19 @@ export function QuoteFollowUpCalendar({ quotes, onSave, savingId }) {
           </a>
         ) : null}
         <div className="flex flex-wrap gap-1 pt-0.5">
+          {quote.phone && onWhatsApp ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-1.5 text-[10px] text-green-700 border-green-300"
+              disabled={busy}
+              onClick={() => onWhatsApp(quote)}
+            >
+              <MessageSquare className="h-3 w-3" />
+              WhatsApp
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="sm"

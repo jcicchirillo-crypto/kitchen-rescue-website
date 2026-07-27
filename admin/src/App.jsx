@@ -107,6 +107,31 @@ function buildLeadWhatsAppUrl(lead) {
   return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 }
 
+/** WhatsApp chase link for a quote / awaiting-deposit booking. */
+function buildQuoteWhatsAppUrl(quote) {
+  const num = toWhatsAppNumber(quote?.phone);
+  if (!num) return null;
+  const firstName = String(quote?.name || "").trim().split(/\s+/)[0] || "there";
+  const postcode = quote?.postcode || "";
+  const start = quote?.startDate ? formatIntentDate(String(quote.startDate).slice(0, 10)) : "";
+  const end = quote?.endDate ? formatIntentDate(String(quote.endDate).slice(0, 10)) : "";
+  let msg = `Hi ${firstName}, just following up on your Kitchen Rescue quote`;
+  if (postcode) msg += ` for ${postcode}`;
+  if (start && end) msg += ` (${start} – ${end})`;
+  msg += `. Happy to answer any questions or help you book — Kitchen Rescue`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+}
+
+function matchesSearchQuery(haystacks, query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return true;
+  return haystacks
+    .filter((v) => v != null && String(v).trim() !== "")
+    .join(" ")
+    .toLowerCase()
+    .includes(q);
+}
+
 /** Quotes / trade enquiries are not customers until they book. */
 function isCustomerBooking(b) {
   if (!b) return false;
@@ -381,6 +406,7 @@ function KitchenRescueAdmin() {
   const [quoteFollowUpDrafts, setQuoteFollowUpDrafts] = useState({});
   const [savingQuoteId, setSavingQuoteId] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [enquiryQuery, setEnquiryQuery] = useState("");
 
   const toggleDelete = (id) => {
     setSelectedToDelete((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -684,6 +710,23 @@ function KitchenRescueAdmin() {
     [quoteBookings]
   );
 
+  const filterQuoteByEnquiryQuery = (b) =>
+    matchesSearchQuery(
+      [b.id, b.name, b.email, b.phone, b.postcode, b.status, b.notes, b.booking_reference],
+      enquiryQuery
+    );
+  const filterLeadByEnquiryQuery = (l) =>
+    matchesSearchQuery([l.id, l.name, l.email, l.phone, l.notes, l.source, l.status], enquiryQuery);
+
+  const filteredOpenQuoteBookings = useMemo(
+    () => openQuoteBookings.filter(filterQuoteByEnquiryQuery),
+    [openQuoteBookings, enquiryQuery]
+  );
+  const filteredClosedQuoteBookings = useMemo(
+    () => closedQuoteBookings.filter(filterQuoteByEnquiryQuery),
+    [closedQuoteBookings, enquiryQuery]
+  );
+
   const openCustomQuoteForLead = (lead) => {
     setCustomQuoteLead({
       leadId: lead.id,
@@ -731,8 +774,12 @@ function KitchenRescueAdmin() {
   };
 
   const saveQuoteFollowUp = async (quote, override = null) => {
-    const draft = override || quoteFollowUpDrafts[quote.id];
-    if (!draft) return;
+    const draft = override || quoteFollowUpDrafts[quote.id] || {
+      followUpAt: toDateTimeLocalValue(quote.follow_up_at),
+      followUpStatus: quote.follow_up_status || "open",
+      notes: quote.notes || "",
+    };
+    if (!draft && !override) return;
     const silent = !!override?.silent;
     const token = localStorage.getItem("adminToken");
     setSavingQuoteId(quote.id);
@@ -779,6 +826,84 @@ function KitchenRescueAdmin() {
     }
   };
 
+  const logQuoteWhatsAppSent = async (quote) => {
+    if (!quote?.id) return;
+    const stamp = format(new Date(), "d MMM yyyy HH:mm");
+    const line = `WhatsApp sent: ${stamp}`;
+    const existing = String(quoteFollowUpDrafts[quote.id]?.notes ?? quote.notes ?? "").trim();
+    if (existing.split("\n").some((l) => l.trim() === line)) return;
+    const notes = existing ? `${existing}\n${line}` : line;
+    setQuoteFollowUpDrafts((prev) => ({
+      ...prev,
+      [quote.id]: {
+        followUpAt: prev[quote.id]?.followUpAt || toDateTimeLocalValue(quote.follow_up_at),
+        followUpStatus: prev[quote.id]?.followUpStatus || quote.follow_up_status || "open",
+        notes,
+      },
+    }));
+    await saveQuoteFollowUp(quote, {
+      followUpAt: quote.follow_up_at || null,
+      followUpStatus: quote.follow_up_status || "open",
+      notes,
+      silent: true,
+    });
+  };
+
+  const openQuoteWhatsApp = (quote, e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const url = buildQuoteWhatsAppUrl(quote);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+    void logQuoteWhatsAppSent(quote);
+  };
+
+  const addBookingToQuoteFollowUp = async (booking) => {
+    if (!booking?.id) return;
+    const todayIso = new Date(`${format(new Date(), "yyyy-MM-dd")}T09:00:00`).toISOString();
+    const existingNotes = String(booking.notes || "").trim();
+    const line = `Added to quote follow-up for chase (${format(new Date(), "d MMM yyyy")})`;
+    const notes = existingNotes.includes("Added to quote follow-up")
+      ? existingNotes
+      : existingNotes
+        ? `${existingNotes}\n${line}`
+        : line;
+    setSavingQuoteId(booking.id);
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(`/api/bookings/${booking.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          followUpAt: todayIso,
+          followUpStatus: "open",
+          notes,
+          followUpReminderSentAt: null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to add to quote follow-up");
+      }
+      setConfirmationMessage({
+        type: "success",
+        text: `${booking.name || "Booking"} added to Quote follow-up`,
+      });
+      setSelectedId(null);
+      setLeadsTab("follow-up");
+      setFollowUpTab("open");
+      setEnquiryQuery(booking.name || booking.email || "");
+      await fetchBookings();
+    } catch (err) {
+      setConfirmationMessage({ type: "error", text: err.message || "Failed to add to quote follow-up" });
+    } finally {
+      setSavingQuoteId(null);
+    }
+  };
+
   const renderQuoteRows = (items) =>
     items.map((quote) => {
       const draft = quoteFollowUpDrafts[quote.id] || {
@@ -787,6 +912,7 @@ function KitchenRescueAdmin() {
         notes: quote.notes || "",
       };
       const due = quote.follow_up_at && new Date(quote.follow_up_at) <= new Date() && (quote.follow_up_status || "open") === "open";
+      const waUrl = buildQuoteWhatsAppUrl(quote);
       return (
         <TableRow key={quote.id}>
           <TableCell className="font-medium">
@@ -854,17 +980,30 @@ function KitchenRescueAdmin() {
             />
           </TableCell>
           <TableCell className="text-right">
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1"
-              title="Save follow-up date, status and notes for this quote"
-              onClick={() => saveQuoteFollowUp(quote)}
-              disabled={savingQuoteId === quote.id}
-            >
-              {savingQuoteId === quote.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-              Save follow-up
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              {waUrl ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-green-700 border-green-300"
+                  onClick={(e) => openQuoteWhatsApp(quote, e)}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  WhatsApp
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                title="Save follow-up date, status and notes for this quote"
+                onClick={() => saveQuoteFollowUp(quote)}
+                disabled={savingQuoteId === quote.id}
+              >
+                {savingQuoteId === quote.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                Save follow-up
+              </Button>
+            </div>
           </TableCell>
         </TableRow>
       );
@@ -987,11 +1126,11 @@ function KitchenRescueAdmin() {
   };
 
   const leadTabItems = {
-    new: activeLeads,
-    callback: callbackLeads,
-    booked: bookedLeads,
-    not_interested: notInterestedLeads,
-    archived: archivedLeads,
+    new: activeLeads.filter(filterLeadByEnquiryQuery),
+    callback: callbackLeads.filter(filterLeadByEnquiryQuery),
+    booked: bookedLeads.filter(filterLeadByEnquiryQuery),
+    not_interested: notInterestedLeads.filter(filterLeadByEnquiryQuery),
+    archived: archivedLeads.filter(filterLeadByEnquiryQuery),
   };
 
   const exportStatusForTab = ["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab)
@@ -1071,7 +1210,7 @@ function KitchenRescueAdmin() {
     if (!query?.trim()) return customers;
     const q = query.toLowerCase();
     return customers.filter((b) =>
-      [b.id, b.name, b.email, b.postcode, b.pod, b.status].join(" ").toLowerCase().includes(q)
+      [b.id, b.name, b.email, b.phone, b.postcode, b.pod, b.status, b.notes].join(" ").toLowerCase().includes(q)
     );
   }, [bookings, query]);
 
@@ -1299,6 +1438,21 @@ function KitchenRescueAdmin() {
                 </button>
               </div>
             )}
+            {leadsTab !== "import" && (
+              <div className="relative w-full md:w-80 mt-3">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  value={enquiryQuery}
+                  onChange={(e) => setEnquiryQuery(e.target.value)}
+                  placeholder={
+                    leadsTab === "follow-up"
+                      ? "Search quotes by name, email, phone…"
+                      : "Search enquiries by name, email, phone…"
+                  }
+                  className="pl-8"
+                />
+              </div>
+            )}
             <CardDescription>
               {leadsTab === "new"
                 ? "New enquiries. Click a row to see notes and what was quoted. Quotes stay here — not under Customers until they book."
@@ -1334,12 +1488,15 @@ function KitchenRescueAdmin() {
               followUpTab === "open" ? (
                 openQuoteBookings.length === 0 ? (
                   <p className="text-slate-500 text-sm py-4">No open quote follow-ups right now.</p>
+                ) : filteredOpenQuoteBookings.length === 0 ? (
+                  <p className="text-slate-500 text-sm py-4">No quotes match “{enquiryQuery}”.</p>
                 ) : (
                   <div className="space-y-6">
                     <QuoteFollowUpCalendar
-                      quotes={openQuoteBookings}
+                      quotes={filteredOpenQuoteBookings}
                       savingId={savingQuoteId}
                       onSave={saveQuoteFollowUp}
+                      onWhatsApp={openQuoteWhatsApp}
                     />
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
@@ -1358,13 +1515,15 @@ function KitchenRescueAdmin() {
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
-                        <TableBody>{renderQuoteRows(openQuoteBookings)}</TableBody>
+                        <TableBody>{renderQuoteRows(filteredOpenQuoteBookings)}</TableBody>
                       </Table>
                     </div>
                   </div>
                 )
               ) : closedQuoteBookings.length === 0 ? (
                 <p className="text-slate-500 text-sm py-4">No closed quote follow-ups yet.</p>
+              ) : filteredClosedQuoteBookings.length === 0 ? (
+                <p className="text-slate-500 text-sm py-4">No closed quotes match “{enquiryQuery}”.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -1379,7 +1538,7 @@ function KitchenRescueAdmin() {
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>{renderQuoteRows(closedQuoteBookings)}</TableBody>
+                  <TableBody>{renderQuoteRows(filteredClosedQuoteBookings)}</TableBody>
                 </Table>
               )
             ) : (leadTabItems[leadsTab] || []).length === 0 ? (
@@ -1497,6 +1656,15 @@ function KitchenRescueAdmin() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Customers</CardTitle>
             <CardDescription>Bookings only (past, present and future). Quotes stay under Enquiries until they book.</CardDescription>
+            <div className="relative w-full md:w-80 mt-3">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search customers by name, email, phone…"
+                className="pl-8"
+              />
+            </div>
             {confirmationMessage && (
               <p className={`text-sm mt-2 px-3 py-2 rounded-md ${confirmationMessage.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
                 {confirmationMessage.text}
@@ -1890,6 +2058,29 @@ function KitchenRescueAdmin() {
                     <Pencil className="h-4 w-4" />
                     Edit booking
                   </button>
+                  {buildQuoteWhatsAppUrl(selectedBooking) ? (
+                    <button
+                      type="button"
+                      onClick={(e) => openQuoteWhatsApp(selectedBooking, e)}
+                      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-green-800 hover:bg-green-50 border border-green-300 transition-colors"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      WhatsApp
+                    </button>
+                  ) : null}
+                  {String(selectedBooking.status || "").toLowerCase() !== "confirmed"
+                    && String(selectedBooking.status || "").toLowerCase() !== "cancelled"
+                    && !selectedBooking.follow_up_at ? (
+                    <button
+                      type="button"
+                      onClick={() => addBookingToQuoteFollowUp(selectedBooking)}
+                      disabled={savingQuoteId === selectedBooking.id}
+                      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sky-800 hover:bg-sky-50 border border-sky-300 transition-colors disabled:opacity-60"
+                    >
+                      {savingQuoteId === selectedBooking.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />}
+                      Add to quote follow-up
+                    </button>
+                  ) : null}
                   <a
                     href={`/delivery-check?name=${encodeURIComponent(selectedBooking.name || '')}&address=${encodeURIComponent(selectedBooking.deliveryAddress || '')}`}
                     target="_blank"
