@@ -122,6 +122,18 @@ function buildQuoteWhatsAppUrl(quote) {
   return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 }
 
+const GOOGLE_REVIEW_URL = "https://g.page/r/CY2gMKg23NZEEBM/review";
+
+function buildReviewWhatsAppUrl(booking) {
+  const num = toWhatsAppNumber(booking?.phone);
+  if (!num) return null;
+  const firstName = String(booking?.name || "").trim().split(/\s+/)[0] || "there";
+  let msg = `Hi ${firstName}, thanks again for using Kitchen Rescue.`;
+  msg += ` If you were happy with everything, we would really appreciate a quick Google review: ${GOOGLE_REVIEW_URL}`;
+  msg += ` Thank you.`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+}
+
 function matchesSearchQuery(haystacks, query) {
   const q = String(query || "").trim().toLowerCase();
   if (!q) return true;
@@ -405,6 +417,7 @@ function KitchenRescueAdmin() {
   const [bookingLeadPrefill, setBookingLeadPrefill] = useState(null);
   const [quoteFollowUpDrafts, setQuoteFollowUpDrafts] = useState({});
   const [savingQuoteId, setSavingQuoteId] = useState(null);
+  const [sendingReviewId, setSendingReviewId] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [enquiryQuery, setEnquiryQuery] = useState("");
 
@@ -901,6 +914,50 @@ function KitchenRescueAdmin() {
       setConfirmationMessage({ type: "error", text: err.message || "Failed to add to quote follow-up" });
     } finally {
       setSavingQuoteId(null);
+    }
+  };
+
+  const logReviewRequestSent = async (booking) => {
+    if (!booking?.id) return;
+    const stamp = format(new Date(), "d MMM yyyy HH:mm");
+    const line = `Review request WhatsApp sent: ${stamp}`;
+    const existingNotes = String(booking.notes || "").trim();
+    if (existingNotes.split("\n").some((l) => l.trim() === line)) return;
+    const notes = existingNotes ? `${existingNotes}\n${line}` : line;
+    const token = localStorage.getItem("adminToken");
+    const res = await fetch(`/api/bookings/${booking.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ notes }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Failed to log review request");
+    await fetchBookings();
+  };
+
+  const openReviewWhatsApp = async (booking, e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const url = buildReviewWhatsAppUrl(booking);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setSendingReviewId(booking.id);
+    try {
+      await logReviewRequestSent(booking);
+      setConfirmationMessage({
+        type: "success",
+        text: `Review WhatsApp opened for ${booking.name || "customer"}`,
+      });
+    } catch (err) {
+      setConfirmationMessage({
+        type: "error",
+        text: err.message || "Failed to log review request",
+      });
+    } finally {
+      setSendingReviewId(null);
     }
   };
 
@@ -1730,6 +1787,18 @@ function KitchenRescueAdmin() {
                           <Pencil className="h-3 w-3" />
                           Edit
                         </Button>
+                        {buildReviewWhatsAppUrl(b) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-violet-700 border-violet-300 hover:bg-violet-50"
+                          disabled={sendingReviewId === b.id}
+                          onClick={(e) => openReviewWhatsApp(b, e)}
+                        >
+                          {sendingReviewId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageSquare className="h-3 w-3" />}
+                          Review
+                        </Button>
+                        ) : null}
                         {b.email ? (
                         <Button
                           size="sm"
@@ -2066,6 +2135,17 @@ function KitchenRescueAdmin() {
                     >
                       <MessageSquare className="h-4 w-4" />
                       WhatsApp
+                    </button>
+                  ) : null}
+                  {buildReviewWhatsAppUrl(selectedBooking) ? (
+                    <button
+                      type="button"
+                      onClick={(e) => openReviewWhatsApp(selectedBooking, e)}
+                      disabled={sendingReviewId === selectedBooking.id}
+                      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-violet-800 hover:bg-violet-50 border border-violet-300 transition-colors disabled:opacity-60"
+                    >
+                      {sendingReviewId === selectedBooking.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                      Request review
                     </button>
                   ) : null}
                   {String(selectedBooking.status || "").toLowerCase() !== "confirmed"
