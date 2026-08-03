@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams      = new URLSearchParams(window.location.search);
     const datesParam     = urlParams.get('dates') || sessionStorage.getItem('selectedDates') || '';
     const postcode       = urlParams.get('postcode') || sessionStorage.getItem('postcode') || '';
-    const dailyRate      = parseInt(urlParams.get('rate') || sessionStorage.getItem('dailyRate') || '70', 10) || 70;
+    const dailyRate      = parseInt(urlParams.get('rate') || sessionStorage.getItem('dailyRate') || '55', 10) || 55;
     const fixedDelivParam = urlParams.get('delivery');
     let fixedDelivery = null;
     if (fixedDelivParam !== null && fixedDelivParam !== undefined) {

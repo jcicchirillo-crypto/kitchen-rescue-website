@@ -15,8 +15,8 @@ const BUSINESS_INFO = {
 
 // Pricing Constants
 const PRICING = {
-    weeklyRate: "£70/day (1 week), £60/day (2 weeks), £50/day (3 weeks), £45/day (4+ weeks)",
-    dailyRate: "£70 per day (from £45/day for 4+ weeks)",
+    weeklyRate: "£55/day (1 week), £40/day (2 weeks), £35/day (3+ weeks)",
+    dailyRate: "£55 per day (from £35/day for 3+ weeks)",
     deliveryFrom: "£150 (£75 delivery + £75 collection)",
     securityDeposit: "£250",
     securityDepositAmount: 250

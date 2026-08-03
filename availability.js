@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Pricing data
     const pricing = {
-        dailyRate: 70,
+        dailyRate: 55,
         deliveryRates: [
             { maxMiles: 50, price: 150 },
             { maxMiles: 100, price: 200 },

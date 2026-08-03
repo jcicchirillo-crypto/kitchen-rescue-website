@@ -153,7 +153,7 @@
             const quoteStartDateStr = sessionStorage.getItem('quoteStartDate') || bookingData.deliveryDate;
             if (isNaN(quoteHireDelivery) || quoteHireDelivery <= 0) {
                 const days = parseInt(bookingData.hireLength, 10) || 0;
-                const rate = bookingData.dailyRate || 70;
+                const rate = bookingData.dailyRate || 55;
                 const dCost = bookingData.deliveryCost != null ? Number(bookingData.deliveryCost) : (sessionStorage.getItem('deliveryCost') ? parseFloat(sessionStorage.getItem('deliveryCost')) : null);
                 const cCost = bookingData.collectionCost != null ? Number(bookingData.collectionCost) : (sessionStorage.getItem('collectionCost') ? parseFloat(sessionStorage.getItem('collectionCost')) : null);
                 const totalDeliveryCollection = (dCost != null && !isNaN(dCost) && cCost != null && !isNaN(cCost)) ? (dCost + cCost) : (bookingData.fixedDelivery != null ? Number(bookingData.fixedDelivery) : 0);

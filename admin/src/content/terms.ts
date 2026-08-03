@@ -29,7 +29,7 @@ These Terms & Conditions apply to hire of a temporary kitchen provided by **${BU
 
 ## 3. Booking and payment
 ### 3.1 Hire price
-Hire is charged at **£499 per week** unless stated otherwise in writing.
+Hire is charged at the daily rate confirmed in your quote or booking (**£55/day** for 1 week, **£40/day** for 2 weeks, **£35/day** for 3+ weeks) unless stated otherwise in writing.
 
 ### 3.2 Delivery & collection
 Delivery and collection charges will be confirmed in your quote/booking. Where stated as "Delivery & collection: £150 (£75 delivery + £75 collection)", the final cost depends on distance and access.

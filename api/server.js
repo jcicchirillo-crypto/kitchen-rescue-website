@@ -375,10 +375,10 @@ app.get('/api/test-save-retrieve', async (req, res) => {
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date().toISOString().split('T')[0],
             days: 7,
-            dailyCost: 70,
+            dailyCost: 385,
             deliveryCost: 75,
             collectionCost: 75,
-            totalCost: 700,
+            totalCost: 535,
             notes: 'Test booking from diagnostic endpoint',
             status: 'Awaiting deposit',
             source: 'test',
@@ -2268,10 +2268,9 @@ function quoteBuildDateRange(start, end) {
 }
 
 function getDailyRateForDays(days) {
-    if (days >= 28) return 45;
-    if (days >= 21) return 50;
-    if (days >= 14) return 60;
-    return 70;
+    if (days >= 21) return 35; // 3+ weeks
+    if (days >= 14) return 40; // 2 weeks
+    return 55;                 // 1 week (7–13 days)
 }
 
 function buildDurationOption(startDate, weeks, deliveryCost, collectionCost) {
@@ -2315,7 +2314,7 @@ function generateQuoteEmailHTML(data) {
         ? data.durationOptions
         : null;
     const days = Number(data.days) || 0;
-    const dailyRate = Number(data.dailyRate) || 70;
+    const dailyRate = Number(data.dailyRate) || 55;
     const hireCost = Number(data.dailyCost) || (days * dailyRate);
     const delivNum = Number(data.deliveryCost);
     const collNum = Number(data.collectionCost);
@@ -2326,7 +2325,7 @@ function generateQuoteEmailHTML(data) {
     const dailyEquivalent = hasNumericTotal && days > 0 ? quoteTotal / days : 0;
 
     const ctaParts = [];
-    if (dailyRate !== 70) ctaParts.push('rate=' + dailyRate);
+    if (dailyRate !== 55) ctaParts.push('rate=' + dailyRate);
     if (!isNaN(delivNum) && delivNum > 0) ctaParts.push('deliveryCost=' + delivNum);
     if (!isNaN(collNum) && collNum > 0) ctaParts.push('collectionCost=' + collNum);
     const ctaQuery = ctaParts.length ? '&' + ctaParts.join('&') : '';
@@ -2419,7 +2418,7 @@ function generateQuoteEmailHTML(data) {
         ${hasNumericTotal && dailyEquivalent > 0 ? `<div class="price-daily">It's only £${Math.round(dailyEquivalent)} per day.</div>` : ''}
         <div class="price-breakdown">
           <div class="pb-row">
-            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 70 ? `<s style="color:#999">£70</s> <strong style="color:#111">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
+            <span>Hire — ${days} day${days !== 1 ? 's' : ''} × ${dailyRate < 55 ? `<s style="color:#999">£55</s> <strong style="color:#111">£${dailyRate}</strong>` : `£${dailyRate}`}/day</span>
             <span>${money(hireCost)}</span>
           </div>
           <div class="pb-row">
@@ -2711,7 +2710,7 @@ function generateBusinessNotificationHTML(data) {
             ` : `
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="padding:5px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £${data.dailyRate || 70}/day${data.dailyRate && data.dailyRate !== 70 ? ' — CUSTOM RATE' : ''})</td>
+                <td style="padding:5px 0;color:#374151;font-size:14px;">Hire (${data.days} days × £${data.dailyRate || 55}/day${data.dailyRate && data.dailyRate !== 55 ? ' — CUSTOM RATE' : ''})</td>
                 <td align="right" style="padding:5px 0;color:#111827;font-size:14px;font-weight:600;">${money(data.dailyCost)}</td>
               </tr>
               <tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>
@@ -4328,9 +4327,9 @@ app.post('/api/quote/calculate', async (req, res) => {
         const individualDeliveryCost = Math.max(75, Math.round(estimatedMiles) * 2);
         const deliveryPrice = individualDeliveryCost * 2; // delivery + collection
 
-        // Tiered daily rate: 1wk £70, 2wk £60, 3wk £50, 4+wk £45
+        // Tiered daily rate: 1wk £55, 2wk £40, 3+wk £35
         const days = weeks * 7;
-        const dailyRate = days >= 28 ? 45 : days >= 21 ? 50 : days >= 14 ? 60 : 70;
+        const dailyRate = days >= 21 ? 35 : days >= 14 ? 40 : 55;
         const basePrice = days * dailyRate;
         
         // Calculate total

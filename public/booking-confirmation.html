@@ -176,7 +176,7 @@
                 const endDate = new Date(startDate);
                 endDate.setDate(startDate.getDate() + parseInt(data.hireLength) - 1);
                 
-                const dailyRate = data.dailyRate || 70;
+                const dailyRate = data.dailyRate || 55;
                 const days = parseInt(data.hireLength);
                 const dailyCost = days * dailyRate;
                 const dCost = data.deliveryCost != null ? Number(data.deliveryCost) : null;

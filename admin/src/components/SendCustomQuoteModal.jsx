@@ -22,10 +22,9 @@ function buildDateRange(start, end) {
 }
 
 function getDailyRateForDays(days) {
-  if (days >= 28) return 45;
-  if (days >= 21) return 50;
-  if (days >= 14) return 60;
-  return 70;
+  if (days >= 21) return 35; // 3+ weeks
+  if (days >= 14) return 40; // 2 weeks
+  return 55;                 // 1 week (7–13 days)
 }
 
 const COMPARE_WEEK_OPTIONS = [3, 4, 5, 6];
@@ -39,7 +38,7 @@ const EMPTY = {
   startDate: "",
   endDate: "",
   hireWeeks: "",
-  dailyRate: 70,
+  dailyRate: 55,
   deliveryCost: 100,
   collectionCost: 100,
   notes: "",
@@ -572,7 +571,7 @@ export function SendCustomQuoteModal({ open, onClose, onSent, initialValues = nu
                       onChange={set("dailyRate")}
                       className="mt-1"
                     />
-                    <p className="text-xs text-slate-400 mt-1">Tiered: 1wk £70, 2wk £60, 3wk £50, 4+wk £45</p>
+                    <p className="text-xs text-slate-400 mt-1">Tiered: 1wk £55, 2wk £40, 3+wk £35</p>
                   </div>
                 )}
                 <div>

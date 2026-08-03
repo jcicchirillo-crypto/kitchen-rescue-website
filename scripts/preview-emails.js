@@ -46,11 +46,11 @@ const quoteSample = {
     startDate: '2026-07-19',
     endDate: '2026-08-01',
     days: 14,
-    dailyRate: 60,
-    dailyCost: 840,
+    dailyRate: 40,
+    dailyCost: 560,
     deliveryCost: 75,
     collectionCost: 75,
-    totalCost: 990,
+    totalCost: 710,
     notes: 'Driveway access from left side.',
 };
 
@@ -61,7 +61,7 @@ function buildCompareOption(startDate, weeks, deliveryCost, collectionCost) {
     const end = new Date(startDate + 'T00:00:00Z');
     end.setUTCDate(end.getUTCDate() + days - 1);
     const endDate = end.toISOString().slice(0, 10);
-    const dailyRate = days >= 28 ? 45 : days >= 21 ? 50 : 60;
+    const dailyRate = days >= 21 ? 35 : days >= 14 ? 40 : 55;
     const dailyCost = days * dailyRate;
     const deliv = Number(deliveryCost) || 0;
     const coll = Number(collectionCost) || 0;

@@ -496,16 +496,15 @@ const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2
 let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDates = [];
 let selectionStart = null; // ISO string of first-click while picking end date
-let dailyRate = 70; // tiered by default; overridden by ?rate= URL param for custom quotes
+let dailyRate = 55; // tiered by default; overridden by ?rate= URL param for custom quotes
 let urlOverrideRate = null; // when ?rate= is set (e.g. admin custom quote), use this instead of tiered
 let fixedDeliveryCost = null; // overridden by ?delivery= URL param (total; split 50/50 for delivery & collection)
 let fixedDeliveryCosts = null; // overridden by ?deliveryCost=&collectionCost= URL params (from quote email CTA)
 
 function getDailyRateForDays(days) {
-    if (days >= 28) return 45;  // 4+ weeks
-    if (days >= 21) return 50;   // 3 weeks
-    if (days >= 14) return 60;  // 2 weeks
-    return 70;                   // 1 week (7–13 days)
+    if (days >= 21) return 35;  // 3+ weeks
+    if (days >= 14) return 40;  // 2 weeks
+    return 55;                  // 1 week (7–13 days)
 }
 let availabilityData = { unavailable: [] };
 
@@ -851,8 +850,8 @@ async function updateQuotePanel() {
     const pcValue = document.getElementById('postcodeInput').value.toUpperCase().trim();
     const hasPostcode = !!pcValue;
 
-    const hireRowHtml = effectiveRate < 70
-        ? `Hire (${days} × <s style="color:#dc2626;">£70</s> <strong style="color:#166534;">£${effectiveRate}</strong>/day)`
+    const hireRowHtml = effectiveRate < 55
+        ? `Hire (${days} × <s style="color:#dc2626;">£55</s> <strong style="color:#166534;">£${effectiveRate}</strong>/day)`
         : `Hire (${days} × £${effectiveRate}/day)`;
 
     // Show a loading state while the postcode lookup runs
