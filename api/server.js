@@ -3608,9 +3608,11 @@ app.delete('/api/bookings/:id', authenticateAdmin, async (req, res) => {
 app.get('/api/leads', authenticateAdmin, async (req, res) => {
     try {
         const leads = await getAllLeads();
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
         res.json(leads);
     } catch (error) {
         console.error('Error fetching leads:', error);
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
         res.status(500).json([]);
     }
 });

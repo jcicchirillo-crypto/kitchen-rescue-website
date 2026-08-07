@@ -475,6 +475,7 @@ function KitchenRescueAdmin() {
 
   const fetchLeads = async () => {
     const res = await fetch("/api/leads", {
+      cache: "no-store",
       headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` },
     });
     if (res.ok) {
@@ -1161,15 +1162,15 @@ function KitchenRescueAdmin() {
     });
 
   const leadsTableHeader = (
-    <TableHeader>
+    <TableHeader className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_rgba(226,232,240,1)]">
       <TableRow>
-        <TableHead className="w-36">Status</TableHead>
-        <TableHead>Name / request</TableHead>
-        <TableHead>Email</TableHead>
-        <TableHead>Phone</TableHead>
-        <TableHead>Source</TableHead>
-        <TableHead>Created</TableHead>
-        <TableHead className="min-w-[220px]">Notes</TableHead>
+        <TableHead className="w-36 bg-white">Status</TableHead>
+        <TableHead className="bg-white">Name / request</TableHead>
+        <TableHead className="bg-white">Email</TableHead>
+        <TableHead className="bg-white">Phone</TableHead>
+        <TableHead className="bg-white">Source</TableHead>
+        <TableHead className="bg-white">Created</TableHead>
+        <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
       </TableRow>
     </TableHeader>
   );
@@ -1189,6 +1190,25 @@ function KitchenRescueAdmin() {
     not_interested: notInterestedLeads.filter(filterLeadByEnquiryQuery),
     archived: archivedLeads.filter(filterLeadByEnquiryQuery),
   };
+
+  // When searching, look across every status so a lead isn't "missing" because you're on the wrong tab
+  const crossTabSearchLeads = useMemo(() => {
+    const q = String(enquiryQuery || "").trim();
+    if (!q || !["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab)) {
+      return null;
+    }
+    const filtered = leads.filter((lead) => {
+      if (leadSourceFilter === "meta") return isMetaLeadSource(lead.source);
+      if (leadSourceFilter === "website") return !isMetaLeadSource(lead.source);
+      return true;
+    });
+    return filtered.filter(filterLeadByEnquiryQuery);
+  }, [enquiryQuery, leads, leadSourceFilter, leadsTab]);
+
+  const visibleLeadRows =
+    crossTabSearchLeads && crossTabSearchLeads.length > 0
+      ? crossTabSearchLeads
+      : leadTabItems[leadsTab] || [];
 
   const exportStatusForTab = ["new", "callback", "booked", "not_interested", "archived"].includes(leadsTab)
     ? leadsTab
@@ -1496,18 +1516,33 @@ function KitchenRescueAdmin() {
               </div>
             )}
             {leadsTab !== "import" && (
-              <div className="relative w-full md:w-80 mt-3">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  value={enquiryQuery}
-                  onChange={(e) => setEnquiryQuery(e.target.value)}
-                  placeholder={
-                    leadsTab === "follow-up"
-                      ? "Search quotes by name, email, phone…"
-                      : "Search enquiries by name, email, phone…"
-                  }
-                  className="pl-8"
-                />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    value={enquiryQuery}
+                    onChange={(e) => setEnquiryQuery(e.target.value)}
+                    placeholder={
+                      leadsTab === "follow-up"
+                        ? "Search quotes by name, email, phone…"
+                        : "Search enquiries by name, email, phone…"
+                    }
+                    className="pl-8"
+                  />
+                </div>
+                {leadsTab !== "follow-up" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 shrink-0"
+                    onClick={() => { fetchLeads(); fetchBookings(); }}
+                    title="Reload enquiries from the server"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh enquiries
+                  </Button>
+                )}
               </div>
             )}
             <CardDescription>
@@ -1559,17 +1594,17 @@ function KitchenRescueAdmin() {
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                         All open quotes (table)
                       </p>
-                      <Table>
-                        <TableHeader>
+                      <Table className="max-h-[min(60vh,720px)] overflow-y-auto rounded-md border border-slate-200">
+                        <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
-                            <TableHead>Customer</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Quote sent</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Next follow-up</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="min-w-[220px]">Notes</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="bg-white">Customer</TableHead>
+                            <TableHead className="bg-white">Email</TableHead>
+                            <TableHead className="bg-white">Quote sent</TableHead>
+                            <TableHead className="bg-white">Total</TableHead>
+                            <TableHead className="bg-white">Next follow-up</TableHead>
+                            <TableHead className="bg-white">Status</TableHead>
+                            <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
+                            <TableHead className="text-right bg-white">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>{renderQuoteRows(filteredOpenQuoteBookings)}</TableBody>
@@ -1582,33 +1617,45 @@ function KitchenRescueAdmin() {
               ) : filteredClosedQuoteBookings.length === 0 ? (
                 <p className="text-slate-500 text-sm py-4">No closed quotes match “{enquiryQuery}”.</p>
               ) : (
-                <Table>
-                  <TableHeader>
+                <Table className="max-h-[min(60vh,720px)] overflow-y-auto rounded-md border border-slate-200">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Quote sent</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Next follow-up</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="min-w-[220px]">Notes</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="bg-white">Customer</TableHead>
+                      <TableHead className="bg-white">Email</TableHead>
+                      <TableHead className="bg-white">Quote sent</TableHead>
+                      <TableHead className="bg-white">Total</TableHead>
+                      <TableHead className="bg-white">Next follow-up</TableHead>
+                      <TableHead className="bg-white">Status</TableHead>
+                      <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
+                      <TableHead className="text-right bg-white">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>{renderQuoteRows(filteredClosedQuoteBookings)}</TableBody>
                 </Table>
               )
-            ) : (leadTabItems[leadsTab] || []).length === 0 ? (
+            ) : visibleLeadRows.length === 0 ? (
               <p className="text-slate-500 text-sm py-4">
                 {leads.length === 0 && leadsTab === "new"
-                  ? "No enquiries yet. Click Refresh to check for new leads."
-                  : leadTabMeta[leadsTab]?.empty || "Nothing here yet."}
+                  ? "No enquiries yet. Click Refresh enquiries to check for new leads."
+                  : enquiryQuery.trim()
+                    ? `No enquiries match “${enquiryQuery}”. Try Refresh enquiries, or clear the search.`
+                    : leadTabMeta[leadsTab]?.empty || "Nothing here yet."}
               </p>
             ) : (
-              <Table>
-                {leadsTableHeader}
-                <TableBody>{renderLeadRows(leadTabItems[leadsTab])}</TableBody>
-              </Table>
+              <div>
+                {crossTabSearchLeads &&
+                  enquiryQuery.trim() &&
+                  (leadTabItems[leadsTab] || []).length === 0 &&
+                  crossTabSearchLeads.length > 0 && (
+                    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-3">
+                      Found {crossTabSearchLeads.length} match{crossTabSearchLeads.length === 1 ? "" : "es"} in other tabs — showing them here.
+                    </p>
+                  )}
+                <Table className="max-h-[min(65vh,800px)] overflow-y-auto rounded-md border border-slate-200">
+                  {leadsTableHeader}
+                  <TableBody>{renderLeadRows(visibleLeadRows)}</TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
