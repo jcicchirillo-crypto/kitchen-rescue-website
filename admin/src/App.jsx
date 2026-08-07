@@ -144,13 +144,41 @@ function matchesSearchQuery(haystacks, query) {
     .includes(q);
 }
 
+/** Resolve hire window as yyyy-MM-dd for calendar / "on hire" checks. */
+function getBookingStartEnd(b) {
+  if (!b) return { startStr: null, endStr: null };
+  let startStr = toDateOnly(b.startDate) || toDateOnly(b.delivery_date || b.deliveryDate);
+  let endStr = toDateOnly(b.endDate);
+  if (Array.isArray(b.selectedDates) && b.selectedDates.length > 0) {
+    const first = b.selectedDates[0];
+    const last = b.selectedDates[b.selectedDates.length - 1];
+    if (first) startStr = startStr || toDateOnly(first) || String(first).slice(0, 10);
+    if (last) endStr = endStr || toDateOnly(last) || String(last).slice(0, 10);
+  }
+  const daysCount = Number(b.days ?? b.hire_length ?? b.hireLength ?? 0);
+  if (startStr && !endStr && daysCount > 0) {
+    endStr = isoAddDays(startStr, daysCount - 1);
+  }
+  return { startStr: startStr || null, endStr: endStr || null };
+}
+
+/** Confirmed hire whose dates include today. */
+function isCurrentlyOnHire(b) {
+  const status = String(b?.status || "").toLowerCase();
+  if (status !== "confirmed" && status !== "deposit paid") return false;
+  const { startStr, endStr } = getBookingStartEnd(b);
+  if (!startStr || !endStr) return false;
+  const today = format(startOfDay(new Date()), "yyyy-MM-dd");
+  return today >= startStr && today <= endStr;
+}
+
 /** Quotes / trade enquiries are not customers until they book. */
 function isCustomerBooking(b) {
   if (!b) return false;
   const status = String(b.status || "").toLowerCase();
   const source = String(b.source || "").toLowerCase();
 
-  if (status === "confirmed") return true;
+  if (status === "confirmed" || status === "deposit paid") return true;
   if (source === "booking" || source === "admin") return true;
 
   // Still enquiries — keep out of Customers
@@ -809,11 +837,17 @@ function KitchenRescueAdmin() {
             : new Date(followUpAtRaw).toISOString())
         : null;
       const followUpChanged = (quote.follow_up_at || null) !== followUpAt;
+      const followUpStatus = draft.followUpStatus || "open";
+      const markingWon = String(followUpStatus).toLowerCase() === "won";
       const payload = {
         followUpAt,
-        followUpStatus: draft.followUpStatus || "open",
+        followUpStatus,
         notes: draft.notes ?? quote.notes ?? "",
       };
+      // Won = customer booked — confirm onto the hire calendar, don't just close the chase list
+      if (markingWon) {
+        payload.status = "Confirmed";
+      }
       if (followUpChanged || override?.followUpReminderSentAt === null) {
         payload.followUpReminderSentAt = null;
       }
@@ -828,7 +862,21 @@ function KitchenRescueAdmin() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to save follow-up");
       if (!silent) {
-        setConfirmationMessage({ type: "success", text: `Follow-up saved for ${quote.name || quote.id}` });
+        setConfirmationMessage({
+          type: "success",
+          text: markingWon
+            ? `${quote.name || "Quote"} marked Won — confirmed on the calendar`
+            : `Follow-up saved for ${quote.name || quote.id}`,
+        });
+      }
+      if (markingWon) {
+        const { startStr } = getBookingStartEnd(data?.startDate ? data : quote);
+        if (startStr) {
+          const [y, m, d] = startStr.split("-").map(Number);
+          setMonth(new Date(y, m - 1, d || 1));
+        }
+        setLeadsTab("follow-up");
+        setFollowUpTab("closed");
       }
       fetchBookings();
     } catch (err) {
@@ -1346,7 +1394,7 @@ function KitchenRescueAdmin() {
 
       <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Stat icon={CalendarIcon} label="Pod on hire" value={customerBookings.filter(b=>b.status==="Confirmed").length} />
+          <Stat icon={CalendarIcon} label="Pod on hire" value={customerBookings.filter(isCurrentlyOnHire).length} />
           <Stat icon={CreditCard} label="Deposits pending" value={customerBookings.filter(b=>b.status!=="Confirmed" && b.status!=="Cancelled").length} />
           <Stat icon={Users} label="Customers" value={new Set(customerBookings.map(b=>b.email).filter(Boolean)).size} />
           <Stat icon={Wallet} label="This month revenue" value={`£${customerBookings.filter(b=>b.status==="Confirmed").reduce((s,b)=> s + (b.totalCost||0),0).toFixed(0)}`} />
@@ -1686,7 +1734,7 @@ function KitchenRescueAdmin() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/> Calendar</CardTitle>
-              <CardDescription>Month view of bookings. Click a booking to view details.</CardDescription>
+              <CardDescription>Month view of confirmed bookings. Use the arrows to change month. Click a booking for details.</CardDescription>
               <div className="flex items-center justify-center gap-2 pt-2">
                 <Button variant="outline" size="icon" onClick={() => setMonth(subMonths(month, 1))} aria-label="Previous month">
                   <ChevronLeft className="h-4 w-4" />
