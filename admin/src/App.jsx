@@ -1594,21 +1594,23 @@ function KitchenRescueAdmin() {
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                         All open quotes (table)
                       </p>
-                      <Table className="max-h-[min(60vh,720px)] overflow-y-auto rounded-md border border-slate-200">
-                        <TableHeader className="sticky top-0 z-10 bg-white">
-                          <TableRow>
-                            <TableHead className="bg-white">Customer</TableHead>
-                            <TableHead className="bg-white">Email</TableHead>
-                            <TableHead className="bg-white">Quote sent</TableHead>
-                            <TableHead className="bg-white">Total</TableHead>
-                            <TableHead className="bg-white">Next follow-up</TableHead>
-                            <TableHead className="bg-white">Status</TableHead>
-                            <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
-                            <TableHead className="text-right bg-white">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>{renderQuoteRows(filteredOpenQuoteBookings)}</TableBody>
-                      </Table>
+                      <div className="enquiry-table-scroll">
+                        <Table>
+                          <TableHeader className="sticky top-0 z-10 bg-white">
+                            <TableRow>
+                              <TableHead className="bg-white">Customer</TableHead>
+                              <TableHead className="bg-white">Email</TableHead>
+                              <TableHead className="bg-white">Quote sent</TableHead>
+                              <TableHead className="bg-white">Total</TableHead>
+                              <TableHead className="bg-white">Next follow-up</TableHead>
+                              <TableHead className="bg-white">Status</TableHead>
+                              <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
+                              <TableHead className="text-right bg-white">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>{renderQuoteRows(filteredOpenQuoteBookings)}</TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </div>
                 )
@@ -1617,21 +1619,23 @@ function KitchenRescueAdmin() {
               ) : filteredClosedQuoteBookings.length === 0 ? (
                 <p className="text-slate-500 text-sm py-4">No closed quotes match “{enquiryQuery}”.</p>
               ) : (
-                <Table className="max-h-[min(60vh,720px)] overflow-y-auto rounded-md border border-slate-200">
-                  <TableHeader className="sticky top-0 z-10 bg-white">
-                    <TableRow>
-                      <TableHead className="bg-white">Customer</TableHead>
-                      <TableHead className="bg-white">Email</TableHead>
-                      <TableHead className="bg-white">Quote sent</TableHead>
-                      <TableHead className="bg-white">Total</TableHead>
-                      <TableHead className="bg-white">Next follow-up</TableHead>
-                      <TableHead className="bg-white">Status</TableHead>
-                      <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
-                      <TableHead className="text-right bg-white">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>{renderQuoteRows(filteredClosedQuoteBookings)}</TableBody>
-                </Table>
+                <div className="enquiry-table-scroll">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10 bg-white">
+                      <TableRow>
+                        <TableHead className="bg-white">Customer</TableHead>
+                        <TableHead className="bg-white">Email</TableHead>
+                        <TableHead className="bg-white">Quote sent</TableHead>
+                        <TableHead className="bg-white">Total</TableHead>
+                        <TableHead className="bg-white">Next follow-up</TableHead>
+                        <TableHead className="bg-white">Status</TableHead>
+                        <TableHead className="min-w-[220px] bg-white">Notes</TableHead>
+                        <TableHead className="text-right bg-white">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>{renderQuoteRows(filteredClosedQuoteBookings)}</TableBody>
+                  </Table>
+                </div>
               )
             ) : visibleLeadRows.length === 0 ? (
               <p className="text-slate-500 text-sm py-4">
@@ -1651,10 +1655,12 @@ function KitchenRescueAdmin() {
                       Found {crossTabSearchLeads.length} match{crossTabSearchLeads.length === 1 ? "" : "es"} in other tabs — showing them here.
                     </p>
                   )}
-                <Table className="max-h-[min(65vh,800px)] overflow-y-auto rounded-md border border-slate-200">
-                  {leadsTableHeader}
-                  <TableBody>{renderLeadRows(visibleLeadRows)}</TableBody>
-                </Table>
+                <div className="enquiry-table-scroll">
+                  <Table>
+                    {leadsTableHeader}
+                    <TableBody>{renderLeadRows(visibleLeadRows)}</TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </CardContent>

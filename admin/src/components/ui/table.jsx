@@ -1,8 +1,14 @@
 import React from 'react'
 import { cn } from '../../lib/utils'
 
+/**
+ * Horizontal scroll lives on this wrapper. For vertical scrolling of long lists,
+ * wrap <Table> in an outer container with a max-height + overflow-y (see App.jsx
+ * enquiry-table-scroll) — putting max-height on this div alone is easy to miss
+ * when macOS overlay scrollbars hide the thumb.
+ */
 const Table = ({ className, ...props }) => (
-  <div className={cn("w-full overflow-auto", className)}>
+  <div className={cn("w-full overflow-x-auto", className)}>
     <table className="w-full caption-bottom text-sm" {...props} />
   </div>
 )
